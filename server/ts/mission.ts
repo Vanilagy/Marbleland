@@ -12,61 +12,66 @@ export class Mission {
 	static visitedPaths = new Set<string>();
 
 	static async getMissionDependencies(missionPath: string) {
+		let missionFileName = missionPath.slice(missionPath.lastIndexOf('/') + 1);
+		let missionDirectory = missionPath.substring(0, missionPath.lastIndexOf('/'));
 		let missionText = (await fs.readFile(path.join(Config.dataPath, missionPath))).toString();
 		let misFile = new MisParser(missionText).parse();
-		let dependencies: string[] = [];
+		let dependencies = new Set<string>();
 
 		this.visitedPaths.clear();
 
-		dependencies.push(missionPath);
-		dependencies.push(...await this.getSimGroupDependencies(misFile.root));
+		// Add the mission itself
+		dependencies.add(missionPath);
 
-		return [...new Set(dependencies)]; // Remove duplicates
+		// Add the mission thumbnail
+		let fileNames = await Util.getFullFileNames(Util.removeExtension(missionFileName), path.join(Config.dataPath, missionDirectory));
+		let thumbnailPath = fileNames.find(x => ['.jpg', '.jpeg', '.png'].includes(path.extname(x)));
+		if (thumbnailPath) dependencies.add(missionDirectory + '/' + thumbnailPath);
+
+		await this.addSimGroupDependencies(dependencies, misFile.root);
+
+		let lowercased = new Set<string>();
+		for (let str of dependencies) lowercased.add(str.toLowerCase());
+
+		return lowercased;
 	}
 
-	static async getSimGroupDependencies(simGroup: MissionElementSimGroup) {
-		let dependencies: string[] = [];
-
+	static async addSimGroupDependencies(dependencies: Set<string>, simGroup: MissionElementSimGroup) {
 		for (let element of simGroup.elements) {
 			if (element._type === MissionElementType.SimGroup) {
-				dependencies.push(...await this.getSimGroupDependencies(element));
+				await this.addSimGroupDependencies(dependencies, element);
 			} else if (element._type === MissionElementType.InteriorInstance) {
-				dependencies.push(...await this.getInteriorDependencies(element.interiorfile));
+				await this.addInteriorDependencies(dependencies, element.interiorfile);
 			} else if (element._type === MissionElementType.PathedInterior) {
-				dependencies.push(...await this.getInteriorDependencies(element.interiorresource));
+				await this.addInteriorDependencies(dependencies, element.interiorresource);
 			} else if (element._type === MissionElementType.Sky) {
-				dependencies.push(...await this.getSkyDependencies(element));
+				await this.addSkyDependencies(dependencies, element);
 			} else if (element._type === MissionElementType.TSStatic) {
-				dependencies.push(...await this.getTSStaticDependencies(element));
+				//await this.addTSStaticDependencies(dependencies, element);
 			}
 		}
-
-		return dependencies;
 	}
 
-	static async getInteriorDependencies(rawInteriorPath: string) {
-		let dependencies: string[] = [];
-
+	static async addInteriorDependencies(dependencies: Set<string>, rawInteriorPath: string) {
 		let interiorPath = rawInteriorPath.slice(rawInteriorPath.indexOf('data/') + 'data/'.length);
 		let interiorDirectory = interiorPath.substring(0, interiorPath.lastIndexOf('/'));
 
-		if (this.visitedPaths.has(interiorPath)) return dependencies;
+		if (this.visitedPaths.has(interiorPath)) return;
 		else this.visitedPaths.add(interiorPath);
 
 		let fullPath = path.join(Config.dataPath, interiorPath);
 		let exists = await fs.pathExists(fullPath);
+		if (!exists) return;
 
-		if (exists) {
-			dependencies.push(interiorPath);
+		dependencies.add(interiorPath);
 
-			let arrayBuffer = (await fs.readFile(fullPath)).buffer;
-			let dif = hxDif.Dif.LoadFromBuffer(hxDif.haxe_io_Bytes.ofData(arrayBuffer));
+		let arrayBuffer = (await fs.readFile(fullPath)).buffer;
+		let dif = hxDif.Dif.LoadFromBuffer(hxDif.haxe_io_Bytes.ofData(arrayBuffer));
 
-			for (let interior of dif.interiors) dependencies.push(...await this.getMaterialPaths(interior.materialList, interiorDirectory));
-			for (let interior of dif.subObjects) dependencies.push(...await this.getMaterialPaths(interior.materialList, interiorDirectory));
+		for (let interior of dif.interiors.concat(dif.subObjects)) {
+			let materialPaths = await this.getMaterialPaths(interior.materialList, interiorDirectory);
+			for (let path of materialPaths) dependencies.add(path);
 		}
-
-		return dependencies;
 	}
 
 	static async getMaterialPaths(materialList: hxDif.Dif["interiors"][number]["materialList"], interiorDirectory: string) {
@@ -76,58 +81,47 @@ export class Mission {
 			if (IGNORE_MATERIALS.includes(material)) continue;
 
 			let fileName = material.slice(material.lastIndexOf('/') + 1);
-			let fullFileName = await Util.getFullFileName(fileName, path.join(Config.dataPath, interiorDirectory));
-			if (fullFileName) {
-				let materialPath = interiorDirectory + '/' + fullFileName;
-				paths.push(materialPath);
-			}
+			let filePath = await Util.findFileInDataDirectory(fileName, interiorDirectory);
+			if (filePath) paths.push(filePath);
 		}
 
 		return paths;
 	}
 
-	static async getSkyDependencies(element: MissionElementSky) {
-		let dependencies: string[] = [];
-
+	static async addSkyDependencies(dependencies: Set<string>, element: MissionElementSky) {
 		let skyPath = element.materiallist.slice(element.materiallist.indexOf('data/') + 'data/'.length);
 		let skyDirectory = skyPath.substring(0, skyPath.lastIndexOf('/'));
 
-		if (this.visitedPaths.has(skyPath)) return skyPath;
+		if (this.visitedPaths.has(skyPath)) return;
 		else this.visitedPaths.add(skyPath);
 		
 		let fullPath = path.join(Config.dataPath, skyPath);
 		let exists = await fs.pathExists(fullPath);
+		if (!exists) return;
 
-		if (exists) {
-			dependencies.push(skyPath);
+		dependencies.add(skyPath);
 
-			let dmlText = (await fs.readFile(fullPath)).toString();
-			let lines = dmlText.split('\n').map(x => x.trim()).filter(x => x);
+		let dmlText = (await fs.readFile(fullPath)).toString();
+		let lines = dmlText.split('\n').map(x => x.trim()).filter(x => x);
 
-			for (let line of lines) {
-				let fullFileName = await Util.getFullFileName(line, path.join(Config.dataPath, skyDirectory));
-				if (fullFileName) {
-					let texturePath = skyDirectory + '/' + fullFileName;
-					dependencies.push(texturePath);
-				}
-			}
+		for (let line of lines) {
+			let filePath = await Util.findFileInDataDirectory(line, skyDirectory);
+			if (filePath) dependencies.add(filePath);
 		}
-
-		return dependencies;
 	}
 
-	static async getTSStaticDependencies(element: MissionElementTSStatic) {
-		let dependencies: string[] = [];
-
+	static async addTSStaticDependencies(dependencies: Set<string>, element: MissionElementTSStatic) {
 		let dtsPath = element.shapename.slice(element.shapename.indexOf('data/') + 'data/'.length);
 		let dtsDirectory = dtsPath.substring(0, dtsPath.lastIndexOf('/'));
 
-		if (this.visitedPaths.has(dtsPath)) return dependencies;
+		if (this.visitedPaths.has(dtsPath)) return;
 		else this.visitedPaths.add(dtsPath);
 
 		let fullPath = path.join(Config.dataPath, dtsPath);
+		let exists = await fs.pathExists(fullPath);
+		if (!exists) return;
 
-		dependencies.push(dtsPath);
+		dependencies.add(dtsPath);
 
 		let buffer = (await fs.readFile(fullPath)).buffer;
 		let dtsFile = new DtsParser(buffer).parse();
@@ -135,22 +129,19 @@ export class Mission {
 		for (let matName of dtsFile.matNames) {
 			let fullFileName = await Util.getFullFileName(matName, path.join(Config.dataPath, dtsDirectory));
 			if (fullFileName) {
-				let extension = path.extname(fullFileName);
-				if (extension === '.ifl') {
+				if (fullFileName.endsWith('.ifl')) {
 					let iflText = (await fs.readFile(path.join(Config.dataPath, dtsDirectory, fullFileName))).toString();
 					let lines = iflText.split('\n');
 					for (let line of lines) {
 						let textureName = line.split(' ')[0]?.trim();
 						if (textureName) {
-							dependencies.push(dtsDirectory + '/' + textureName);
+							dependencies.add(dtsDirectory + '/' + textureName);
 						}
 					}
-				} else {
-					dependencies.push(dtsDirectory + '/' + fullFileName);
-				}
+				} 
+
+				dependencies.add(dtsDirectory + '/' + fullFileName);
 			}
 		}
-
-		return dependencies;
 	}
 }

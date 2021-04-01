@@ -345,7 +345,6 @@ export class MisParser {
 			case "TSStatic": element = this.readTSStatic(name); break;
 			case "ParticleEmitterNode": element = this.readParticleEmitterNode(name); break;
 			default: {
-				console.warn("Unknown element type! " + type);
 				// Still advance the index
 				let endingBraceIndex = Util.indexOfIgnoreStringLiterals(this.text, '};', this.index);
 				if (endingBraceIndex === -1) endingBraceIndex = this.text.length;

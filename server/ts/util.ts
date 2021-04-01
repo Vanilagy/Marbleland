@@ -1,4 +1,6 @@
 import * as fs from 'fs-extra';
+import * as path from 'path';
+import { Config } from './config';
 
 export class Util {
 	/** Gets the index of a substring like String.prototype.indexOf, but only if that index lies outside of string literals. */
@@ -94,8 +96,38 @@ export class Util {
 		return str;
 	}
 
-	static async getFullFileName(filename: string, directoryPath: string) {
-		let files = await fs.readdir(directoryPath);
-		return files.find(x => x.startsWith(filename)) ?? null;
+	static readdirCache = new Map<string, Promise<string[]>>();
+	static readdirCached(directoryPath: string) {
+		if (this.readdirCache.has(directoryPath)) return this.readdirCache.get(directoryPath);
+		let promise = new Promise<string[]>(async resolve => {
+			let files = await fs.readdir(directoryPath);
+			resolve(files);
+		});
+		this.readdirCache.set(directoryPath, promise);
+		return promise;
+	}
+
+	static async getFullFileName(fileName: string, directoryPath: string) {
+		let files = await this.readdirCached(directoryPath);
+		return files.find(x => x.startsWith(fileName)) ?? null;
+	}
+
+	static async getFullFileNames(fileName: string, directoryPath: string) {
+		let files = await this.readdirCached(directoryPath);
+		return files.filter(x => x.startsWith(fileName));
+	}
+
+	static async findFileInDataDirectory(fileName: string, currentDirectory: string): Promise<string> {
+		let fullDirectoryPath = path.join(Config.dataPath, currentDirectory);
+		let found = await this.getFullFileName(fileName, fullDirectoryPath);
+		if (found) return currentDirectory + '/' + found;
+
+		let slashIndex = currentDirectory.lastIndexOf('/');
+		if (slashIndex === -1) return null;
+		return this.findFileInDataDirectory(fileName, currentDirectory.slice(0, slashIndex)); // Move up one folder
+	}
+
+	static removeExtension(path: string) {
+		return path.slice(0, path.lastIndexOf('.'));
 	}
 }
