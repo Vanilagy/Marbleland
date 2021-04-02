@@ -52,7 +52,28 @@ export interface MissionElementScriptObject extends MissionElementBase {
 	starthelptext: string,
 	level: string,
 	artist: string,
-	goldtime: string
+	goldtime: string,
+	platinumtime: string,
+	ultimatetime: string,
+	awesometime: string,
+	game: string,
+	modification: string,
+
+	score: any,
+	score0: any,
+	score1: any,
+	goldscore: any,
+	goldscore0: any,
+	goldscore1: any,
+	platinumscore: any,
+	platinumscore0: any,
+	platinumscore1: any,
+	ultimatescore: any,
+	ultimatescore0: any,
+	ultimatescore1: any,
+	awesomescore: any
+	awesomescore0: any
+	awesomescore1: any
 }
 
 export interface MissionElementMissionArea extends MissionElementBase {
