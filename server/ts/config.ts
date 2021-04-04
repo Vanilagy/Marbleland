@@ -1,5 +1,3 @@
-import { pathExists } from "fs-extra";
-
 import * as path from 'path';
 
 export class Config {

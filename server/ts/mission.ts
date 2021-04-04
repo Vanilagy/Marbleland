@@ -6,7 +6,7 @@ import { Util } from './util';
 import { DtsParser } from './dts_parser';
 import JSZip from 'jszip';
 import { Config } from './config';
-import { db } from './globals';
+import { db, structureMBG, structurePQ } from './globals';
 
 const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
@@ -168,10 +168,14 @@ export class Mission {
 		return result;
 	}
 
-	async createZip() {
+	async createZip(assuming: 'none' | 'gold' | 'platinumquest') {
 		let zip = new JSZip();
 
 		for (let dependency of this.dependencies) {
+			let normalized = this.normalizeDependency(dependency);
+			if (assuming === 'gold' && Util.directoryStructureHasPath(structureMBG, normalized)) continue;
+			if (assuming === 'platinumquest' && Util.directoryStructureHasPath(structurePQ, normalized)) continue;
+
 			let fullPath: string, exists: boolean;
 
 			fullPath = path.join(this.baseDirectory, dependency);
@@ -183,11 +187,31 @@ export class Mission {
 
 			if (exists) {
 				let stream = fs.createReadStream(fullPath);
-				zip.file(dependency, stream);
+				zip.file(normalized, stream);
 			}
 		}
 
 		return zip;
+	}
+
+	normalizeDependency(dependency: string) {
+		let withoutExtension = Util.removeExtension(this.relativePath);
+		if (dependency.startsWith(withoutExtension)) return path.posix.join('missions', dependency.slice(dependency.lastIndexOf('/') + 1));
+		return dependency;
+	}
+
+	getNormalizedDependencies(assuming: 'none' | 'gold' | 'platinumquest') {
+		let result: string[] = [];
+
+		for (let dependency of this.dependencies) {
+			let normalized = this.normalizeDependency(dependency);
+			if (assuming === 'gold' && Util.directoryStructureHasPath(structureMBG, normalized)) continue;
+			if (assuming === 'platinumquest' && Util.directoryStructureHasPath(structurePQ, normalized)) continue;
+
+			result.push(normalized);
+		}
+
+		return result;
 	}
 
 	createDoc(id: number): MissionDoc {

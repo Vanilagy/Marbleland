@@ -1,6 +1,7 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Config } from './config';
+import { DirectoryStructure } from './globals';
 
 export class Util {
 	/** Gets the index of a substring like String.prototype.indexOf, but only if that index lies outside of string literals. */
@@ -124,6 +125,35 @@ export class Util {
 
 	static jsonClone<T>(obj: T) {
 		return JSON.parse(JSON.stringify(obj));
+	}
+
+	static directoryStructureHasPath(directoryStructure: DirectoryStructure, path: string): boolean {
+		if (!path) return false;
+		let parts = path.split('/');
+		let lowerCase = parts[0].toLowerCase();
+
+		if (lowerCase in directoryStructure) {
+			let entry = directoryStructure[lowerCase];
+			if (entry) return this.directoryStructureHasPath(entry, parts.slice(1).join('/'));
+			return parts.length === 1;
+		}
+
+		return false;
+	}
+
+	static equalCaseInsensitive(s1: string, s2: string) {
+		return s1.toLowerCase() === s2.toLowerCase();
+	}
+
+	static lowerCaseKeysDeep(obj: Record<string, any>) {
+		for (let key in obj) {
+			let value = obj[key];
+			if (typeof value === 'object') Util.lowerCaseKeysDeep(value);
+			delete obj[key];
+			obj[key.toLowerCase()] = value;
+		}
+
+		return obj;
 	}
 }
 

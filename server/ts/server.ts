@@ -5,7 +5,7 @@ import { db } from "./globals";
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
-export const startHTTPServer = () => {
+export const startHTTPServer = (port: number) => {
 	http.createServer(async (req, res) => {
 		let urlObj = new url.URL(req.url, 'http://localhost/');
 	
@@ -17,12 +17,15 @@ export const startHTTPServer = () => {
 			let doc = await db.findOne({ _id: levelId }) as MissionDoc;
 			let mission = Mission.fromDoc(doc);
 	
-			if (type === 'archive') {
-				let zip = await mission.createZip();
+			if (type === 'zip') {
+				let assuming = urlObj.searchParams.get('assuming');
+				if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest';
+
+				let zip = await mission.createZip(assuming as ('none' | 'gold' | 'platinumquest'));
 				let stream = zip.generateNodeStream();
 	
 				res.writeHead(200, {
-					'Content-Disposition': 'attachment; filename="test.zip"'
+					'Content-Disposition': `attachment; filename="${doc._id}.zip"`
 				});
 				stream.pipe(res);
 			} else if (type === 'image') {
@@ -32,8 +35,13 @@ export const startHTTPServer = () => {
 				res.writeHead(200, {});
 				stream.pipe(res);
 			} else if (type === 'dependencies') {
+				let assuming = urlObj.searchParams.get('assuming');
+				if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest';
+
+				let normalizedDependencies = mission.getNormalizedDependencies(assuming as ('none' | 'gold' | 'platinumquest'));
+
 				res.writeHead(200, {});
-				res.end(JSON.stringify([...mission.dependencies], null, '\t'));
+				res.end(JSON.stringify(normalizedDependencies, null, '\t'));
 			} else if (type === 'info') {
 				res.writeHead(200, {});
 				res.end(JSON.stringify(mission.info, null, '\t'));
@@ -88,5 +96,7 @@ export const startHTTPServer = () => {
 		}
 	
 		res.end();
-	}).listen(8080);
+	}).listen(port);
+
+	console.log(`Started HTTP server on port ${port}.`);
 };
