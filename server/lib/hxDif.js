@@ -265,6 +265,15 @@ class Dif {
 		dif.write(bw,version);
 		return bw.getBuffer();
 	}
+	static LoadFromArrayBuffer(buffer) {
+		let br = new io_BytesReader(haxe_io_Bytes.ofData(buffer));
+		return Dif.read(br);
+	}
+	static SaveToArrayBuffer(dif,version) {
+		let bw = new io_BytesWriter();
+		dif.write(bw,version);
+		return bw.getBuffer().b.bufferValue;
+	}
 	static read(io) {
 		let ret = new Dif();
 		let version = new Version();
@@ -2035,8 +2044,14 @@ class io_BytesReader {
 	}
 	readStr() {
 		let len = this.readByte();
-		let str = this.bytes.getString(this.position,len);
-		this.position += len;
+		let str = "";
+		let _g = 0;
+		let _g1 = len;
+		while(_g < _g1) {
+			let i = _g++;
+			let code = this.readByte();
+			str += String.fromCodePoint(code);
+		}
 		return str;
 	}
 	readFloat() {

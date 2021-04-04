@@ -238,7 +238,8 @@ export interface MissionElementParticleEmitterNode extends MissionElementBase {
 
 type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode;
 
-const elementHeadRegEx = /new (\w+)\((\w*)\) *{/g;
+//const elementHeadRegEx = /new (\w+)\((\w*)\) *{/g;
+const elementHeadRegEx = /new (\w+)\((.*?)\) *{/g;
 const blockCommentRegEx = /\/\*(.|\n)*?\*\//g;
 const lineCommentRegEx = /\/\/.*/g;
 const assignmentRegEx = /(\$(?:\w|\d)+)\s*=\s*(.+?);/g;
@@ -314,6 +315,9 @@ export class MisParser {
 				currentIndex += lineMatch.index;
 			}
 		}
+
+		let indexOfMissionGroup = this.text.indexOf('new SimGroup(MissionGroup)');
+		if (indexOfMissionGroup !== -1) this.index = indexOfMissionGroup;
 
 		// Read out all elements (we're expecting exactly one!)
 		let elements = [];

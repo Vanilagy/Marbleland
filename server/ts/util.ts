@@ -100,6 +100,12 @@ export class Util {
 	static readdirCached(directoryPath: string) {
 		if (this.readdirCache.has(directoryPath)) return this.readdirCache.get(directoryPath);
 		let promise = new Promise<string[]>(async resolve => {
+			let exists = await fs.pathExists(directoryPath);
+			if (!exists) {
+				resolve([]);
+				return;
+			}
+			
 			let files = await fs.readdir(directoryPath);
 			resolve(files);
 		});
@@ -107,27 +113,66 @@ export class Util {
 		return promise;
 	}
 
-	static async getFullFileName(fileName: string, directoryPath: string) {
-		let files = await this.readdirCached(directoryPath);
-		return files.find(x => x.startsWith(fileName)) ?? null;
-	}
-
 	static async getFullFileNames(fileName: string, directoryPath: string) {
 		let files = await this.readdirCached(directoryPath);
 		return files.filter(x => x.startsWith(fileName));
 	}
 
-	static async findFileInDataDirectory(fileName: string, currentDirectory: string): Promise<string> {
-		let fullDirectoryPath = path.join(Config.dataPath, currentDirectory);
-		let found = await this.getFullFileName(fileName, fullDirectoryPath);
-		if (found) return currentDirectory + '/' + found;
-
-		let slashIndex = currentDirectory.lastIndexOf('/');
-		if (slashIndex === -1) return null;
-		return this.findFileInDataDirectory(fileName, currentDirectory.slice(0, slashIndex)); // Move up one folder
-	}
-
 	static removeExtension(path: string) {
 		return path.slice(0, path.lastIndexOf('.'));
+	}
+
+	static jsonClone<T>(obj: T) {
+		return JSON.parse(JSON.stringify(obj));
+	}
+}
+
+export class KeyValueStore<T> {
+	private path: string;
+	private data: Partial<T>;
+	private needsSave = false;
+	private saving = false;
+
+	constructor(path: string, defaults: Partial<T>) {
+		this.path = path;
+		this.data = {};
+
+		let exists = fs.pathExistsSync(path);
+		if (exists) {
+			this.data = JSON.parse(fs.readFileSync(path).toString());
+		} else {
+			this.data = {};
+		}
+
+		for (let key in defaults) {
+			if (!(key in this.data)) this.data[key] = defaults[key];
+		}
+	}
+
+	get(key: keyof T) {
+		return this.data[key];
+	}
+
+	set<K extends keyof T>(key: K, value: T[K]) {
+		this.data[key] = value;
+		this.save();
+	}
+
+	setMultiple(values: Partial<T>) {
+		Object.assign(this.data, values);
+		this.save();
+	}
+
+	async save() {
+		this.needsSave = true;
+
+		if (!this.saving) {
+			this.saving = true;
+			this.needsSave = false;
+			await fs.writeFile(this.path, JSON.stringify(this.data));
+			this.saving = false;
+
+			if (this.needsSave) this.save();
+		}
 	}
 }

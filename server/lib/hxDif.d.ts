@@ -106,6 +106,8 @@ export class Dif {
 	write(io: io_BytesWriter, version: Version): void;
 	static LoadFromBuffer(buffer: haxe_io_Bytes): Dif;
 	static SaveToBuffer(dif: Dif, version: Version): haxe_io_Bytes;
+	static LoadFromArrayBuffer(buffer: ArrayBuffer): Dif;
+	static SaveToArrayBuffer(dif: Dif, version: Version): ArrayBuffer;
 	static read(io: io_BytesReader): Dif;
 }
 

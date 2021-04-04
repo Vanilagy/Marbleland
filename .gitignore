@@ -1,4 +1,5 @@
 node_modules
 server/bundle.js
+server/data/data_pq
 todo.txt
 missions.json

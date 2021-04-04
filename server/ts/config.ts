@@ -1,3 +1,7 @@
+import { pathExists } from "fs-extra";
+
+import * as path from 'path';
+
 export class Config {
-	static dataPath = 'D:\\HiGuyCLA\\cla-data\\data';
+	static dataPath = path.posix.join(__dirname, 'data/data_pq');
 }
