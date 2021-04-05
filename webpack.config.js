@@ -31,8 +31,8 @@ module.exports = [{
 	mode: 'none',
 	entry: path.join(__dirname, 'client/ts/index.ts'),
 	output: {
-		filename: 'bundle.js',
-		path: path.join(__dirname, 'client/js')
+		filename: 'js/bundle.js',
+		path: path.join(__dirname, 'client')
 	},
 	module: {
 		rules: [
@@ -67,7 +67,7 @@ module.exports = [{
 	plugins: [
 		new VueLoaderPlugin(),
 		new MiniCssExtractPlugin({
-			filename: path.join(__dirname, 'client/css/style.css')
+			filename: 'css/style.css'
 		})
 	]
 }];
