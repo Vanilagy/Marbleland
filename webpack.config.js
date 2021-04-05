@@ -1,7 +1,9 @@
 const path = require('path');
 const nodeExternals = require('webpack-node-externals');
+const { VueLoaderPlugin } = require('vue-loader');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-module.exports = {
+module.exports = [{
 	mode: 'none',
 	entry: path.join(__dirname, 'server/ts/index.ts'),
 	output: {
@@ -25,4 +27,47 @@ module.exports = {
 		minimize: false
 	},
 	stats: 'minimal'
-};
+}, {
+	mode: 'none',
+	entry: path.join(__dirname, 'client/ts/index.ts'),
+	output: {
+		filename: 'bundle.js',
+		path: path.join(__dirname, 'client/js')
+	},
+	module: {
+		rules: [
+			{
+				test: /\.vue$/,
+				loader: 'vue-loader'
+			},
+			{
+				test: /\.css/,
+				use: [
+					MiniCssExtractPlugin.loader,
+					'css-loader'
+				]
+			},
+			{
+				test: /\.ts$/,
+				loader: 'ts-loader',
+				options: { appendTsSuffixTo: [/\.vue$/] }
+			}
+		]
+	},
+	resolve: {
+		extensions: ['.ts', '.js']
+	},
+	externals: {
+		vue: 'Vue'
+	},
+	optimization: {
+		minimize: false
+	},
+	stats: 'minimal',
+	plugins: [
+		new VueLoaderPlugin(),
+		new MiniCssExtractPlugin({
+			filename: path.join(__dirname, 'client/css/style.css')
+		})
+	]
+}];
