@@ -4,6 +4,7 @@ import { startHTTPServer } from "./server";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as minimist from 'minimist';
+import './api';
 
 const init = async () => {
 	fs.ensureDirSync(path.join(__dirname, 'storage'));

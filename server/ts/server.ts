@@ -1,101 +1,93 @@
-import { GameType, Mission, MissionDoc, Modification } from "./mission";
 import * as http from 'http';
 import * as url from 'url';
-import { db } from "./globals";
-import * as path from 'path';
 import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as serveStatic from 'serve-static';
+import * as finalhandler from 'finalhandler';
+
+type RouteHandler = (parameters: Map<string, string>, urlObj: url.URL) => Promise<{
+	status?: number,
+	body?: string | object | fs.ReadStream,
+	headers?: Record<string, string>
+}>;
+
+export const routes = new Map<string, RouteHandler | RouteHandler[]>();
 
 export const startHTTPServer = (port: number) => {
+	const serve = serveStatic(path.join(__dirname, '../client'), { index: 'index.html' });
+
 	http.createServer(async (req, res) => {
 		let urlObj = new url.URL(req.url, 'http://localhost/');
-	
-		if (urlObj.pathname.startsWith('/api/level/')) {
-			let parts = urlObj.pathname.split('/').slice(3);
-			let levelId = Number(parts[0]);
-			let type = parts[1];
-	
-			let doc = await db.findOne({ _id: levelId }) as MissionDoc;
-			let mission = Mission.fromDoc(doc);
-	
-			if (type === 'zip') {
-				let assuming = urlObj.searchParams.get('assuming');
-				if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest';
+		let pathParts = urlObj.pathname.split('/');
+		let routeMatch: string = null;
+		let routeMatchParameters: Map<string, string> = null;
 
-				let zip = await mission.createZip(assuming as ('none' | 'gold' | 'platinumquest'));
-				let stream = zip.generateNodeStream();
-	
-				res.writeHead(200, {
-					'Content-Disposition': `attachment; filename="${doc._id}.zip"`
-				});
-				stream.pipe(res);
-			} else if (type === 'image') {
-				let imagePath = mission.getImagePath();
-				let stream = fs.createReadStream(path.join(mission.baseDirectory, imagePath));
-	
-				res.writeHead(200, {});
-				stream.pipe(res);
-			} else if (type === 'dependencies') {
-				let assuming = urlObj.searchParams.get('assuming');
-				if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest';
+		outer:
+		for (let [route] of routes) {
+			let parts = route.split('/');
+			if (pathParts.length !== parts.length) continue;
 
-				let normalizedDependencies = mission.getNormalizedDependencies(assuming as ('none' | 'gold' | 'platinumquest'));
+			let parameters = new Map<string, string>();
 
-				res.writeHead(200, {});
-				res.end(JSON.stringify(normalizedDependencies, null, '\t'));
-			} else if (type === 'info') {
-				res.writeHead(200, {});
-				res.end(JSON.stringify(mission.info, null, '\t'));
-			} else {
-				res.writeHead(400);
-				res.end("400 Bad Request");
+			for (let i = 0; i < parts.length; i++) {
+				let part = parts[i];
+				let pathPart = pathParts[i];
+
+				if (part.startsWith('<') && part.endsWith('>')) {
+					parameters.set(part.slice(1, -1), pathPart);
+				} else if (part !== pathPart) {
+					continue outer;
+				}
 			}
-	
-			return;
-		} else if (urlObj.pathname === '/api/list') {
-			let docs = await db.find({}) as MissionDoc[];
-			let response: {
-				id: number,
-				baseName: string,
-				gameType: GameType,
-				modification: Modification,
-				name: string,
-				artist: string,
-				desc: string,
-				qualifyingTime: number,
-				goldTime: number,
-				platinumTime: number,
-				ultimateTime: number,
-				awesomeTime: number,
-				gems: number,
-				hasEasterEgg: boolean
-			}[] = [];
-	
-			for (let doc of docs) {
-				response.push({
-					id: doc._id,
-					baseName: doc.relativePath.slice(doc.relativePath.lastIndexOf('/') + 1),
-					gameType: doc.gameType,
-					modification: doc.modification,
-					name: doc.info.name,
-					artist: doc.info.artist,
-					desc: doc.info.desc,
-					qualifyingTime: doc.info.time? Number(doc.info.time) : undefined,
-					goldTime: doc.info.goldtime? Number(doc.info.goldtime) : undefined,
-					platinumTime: doc.info.platinumtime? Number(doc.info.platinumtime) : undefined,
-					ultimateTime: doc.info.ultimatetime? Number(doc.info.ultimatetime) : undefined,
-					awesomeTime: doc.info.awesometime? Number(doc.info.awesometime) : undefined,
-					gems: doc.gems,
-					hasEasterEgg: doc.hasEasterEgg
-				});
-			}
-	
-			res.writeHead(200, {});
-			res.end(JSON.stringify(response));
-	
-			return;
+
+			routeMatch = route;
+			routeMatchParameters = parameters;
+			break;
 		}
+
+		if (routeMatch) {
+			let handlers = routes.get(routeMatch) as RouteHandler[];
+			if (!Array.isArray(handlers)) {
+				handlers = [handlers];
+			}
+
+			try {
+				let ended = false;
+
+				for (let handler of handlers) {
+					let response = await handler(routeMatchParameters, urlObj);
+					if (!response) continue;
+					if (!response.status) response.status = 200;
+					if (!response.body) response.body = "";
+					if (!response.headers) {
+						response.headers = {
+							'Content-Type': (() => {
+								if (response.body instanceof fs.ReadStream) return 'application/octet-stream';
+								else if (typeof response.body === 'object') return 'application/json';
+								return 'text/plain';
+							})()
+						};
+					}
+		
+					res.writeHead(response.status, response.headers);
+					if (response.body instanceof fs.ReadStream) response.body.pipe(res);
+					else if (typeof response.body === 'object') res.end(JSON.stringify(response.body));
+					else res.end(response.body);
 	
-		res.end();
+					ended = true;
+					break;
+				}
+
+				if (!ended) throw new Error("Request was not replied to.");
+			} catch (e) {
+				console.error("Error during response: ", e);
+
+				res.writeHead(500);
+				res.end();
+			}
+		} else {
+			serve(req, res, finalhandler(req, res) as any);
+		}
 	}).listen(port);
 
 	console.log(`Started HTTP server on port ${port}.`);
