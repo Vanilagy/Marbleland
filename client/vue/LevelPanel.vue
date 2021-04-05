@@ -2,30 +2,33 @@
 	<div class="outer" @click="clicked">
 		<img :src="imageSource">
 		<div class="bottom">
-			<div class="name">{{levelEntry.name}}</div>
-			<div class="artist">{{levelEntry.artist}}</div>
+			<div class="name">{{levelInfo.name}}</div>
+			<div class="artist">{{levelInfo.name}}</div>
 		</div>
 	</div>
 </template>
 
 <script lang="ts">
 import Vue, { PropType } from 'vue'
-import { LevelEntry } from './pages/Search.vue';
+import { LevelInfo } from '../../shared/types';
+import { store } from '../ts/store';
 
 export default Vue.defineComponent({
 	props: {
-		levelEntry: {
-			type: Object as PropType<LevelEntry>
+		levelInfo: {
+			type: Object as PropType<LevelInfo>,
+			required: true
 		}
 	},
 	computed: {
 		imageSource(): string {
-			return `/api/level/${this.levelEntry.id}/image`;
+			return `/api/level/${this.levelInfo.id}/image`;
 		}
 	},
 	methods: {
-		clicked() {
-			this.$router.push({ name: 'Level', params: { id: this.levelEntry.id } });
+		clicked(): void {
+			store.state.currentLevelInfo = this.levelInfo;
+			this.$router.push({ name: 'Level', params: { id: this.levelInfo.id } });
 		}
 	}
 });

@@ -7,22 +7,10 @@ import { DtsParser } from './dts_parser';
 import JSZip from 'jszip';
 import { Config } from './config';
 import { db, keyValue, structureMBG, structurePQ } from './globals';
+import { Modification, GameType, LevelInfo } from '../../shared/types';
 
 const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
-
-export enum GameType {
-	SinglePlayer = "single",
-	Multiplayer = "multi"
-}
-
-export enum Modification {
-	Gold = "gold",
-	Platinum = "platinum",
-	Fubar = "fubar",
-	Ultra = "ultra",
-	PlatinumQuest = "platinumquest"
-}
 
 export interface MissionDoc {
 	_id: number,
@@ -59,6 +47,8 @@ export class Mission {
 		mission.info = doc.info;
 		mission.gameType = doc.gameType;
 		mission.modification = doc.modification;
+		mission.gems = doc.gems;
+		mission.hasEasterEgg = doc.hasEasterEgg;
 
 		return mission;
 	}
@@ -223,6 +213,25 @@ export class Mission {
 			info: this.info,
 			gameType: this.gameType,
 			modification: this.modification,
+			gems: this.gems,
+			hasEasterEgg: this.hasEasterEgg
+		};
+	}
+
+	createLevelInfo(id: number): LevelInfo {
+		return {
+			id: id,
+			baseName: this.getBaseName(),
+			gameType: this.gameType,
+			modification: this.modification,
+			name: this.info.name,
+			artist: this.info.artist,
+			desc: this.info.desc,
+			qualifyingTime: this.info.time? Number(this.info.time) : undefined,
+			goldTime: this.info.goldtime? Number(this.info.goldtime) : undefined,
+			platinumTime: this.info.platinumtime? Number(this.info.platinumtime) : undefined,
+			ultimateTime: this.info.ultimatetime? Number(this.info.ultimatetime) : undefined,
+			awesomeTime: this.info.awesometime? Number(this.info.awesometime) : undefined,
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg
 		};

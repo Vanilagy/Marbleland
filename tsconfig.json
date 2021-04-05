@@ -13,6 +13,8 @@
     },
     "include": [
 		"client/ts/**/*",
-		"server/**/*"
+		"client/vue/**/*",
+		"server/**/*",
+		"shared/**/*"
     ]
 }

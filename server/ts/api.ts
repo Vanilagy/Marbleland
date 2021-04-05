@@ -1,9 +1,10 @@
-import { GameType, Mission, MissionDoc, Modification } from "./mission";
+import { Mission, MissionDoc } from "./mission";
 import { db } from "./globals";
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
+import { LevelInfo } from "../../shared/types";
 
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	let levelId = Number(req.params.levelId);
@@ -75,45 +76,26 @@ app.get('/api/level/:levelId/info', async (req, res) => {
 	let doc = await db.findOne({ _id: levelId }) as MissionDoc;
 	let mission = Mission.fromDoc(doc);
 
+	res.send(mission.createLevelInfo(doc._id));
+});
+
+app.get('/api/level/:levelId/mission-info', async (req, res) => {
+	let levelId = await verifyLevelId(req, res);
+	if (levelId === null) return;
+
+	let doc = await db.findOne({ _id: levelId }) as MissionDoc;
+	let mission = Mission.fromDoc(doc);
+
 	res.send(mission.info);
 });
 
 app.get('/api/list', async (req, res) => {
 	let docs = await db.find({}) as MissionDoc[];
-	let response: {
-		id: number,
-		baseName: string,
-		gameType: GameType,
-		modification: Modification,
-		name: string,
-		artist: string,
-		desc: string,
-		qualifyingTime: number,
-		goldTime: number,
-		platinumTime: number,
-		ultimateTime: number,
-		awesomeTime: number,
-		gems: number,
-		hasEasterEgg: boolean
-	}[] = [];
+	let response: LevelInfo[] = [];
 
 	for (let doc of docs) {
-		response.push({
-			id: doc._id,
-			baseName: doc.relativePath.slice(doc.relativePath.lastIndexOf('/') + 1),
-			gameType: doc.gameType,
-			modification: doc.modification,
-			name: doc.info.name,
-			artist: doc.info.artist,
-			desc: doc.info.desc,
-			qualifyingTime: doc.info.time? Number(doc.info.time) : undefined,
-			goldTime: doc.info.goldtime? Number(doc.info.goldtime) : undefined,
-			platinumTime: doc.info.platinumtime? Number(doc.info.platinumtime) : undefined,
-			ultimateTime: doc.info.ultimatetime? Number(doc.info.ultimatetime) : undefined,
-			awesomeTime: doc.info.awesometime? Number(doc.info.awesometime) : undefined,
-			gems: doc.gems,
-			hasEasterEgg: doc.hasEasterEgg
-		});
+		let mission = Mission.fromDoc(doc);
+		response.push(mission.createLevelInfo(doc._id));
 	}
 
 	res.send(response);

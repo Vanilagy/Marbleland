@@ -1,9 +1,7 @@
 <template>
-	<div id="center" v-if="levelList">
-		<search-bar @queryChange="onQueryChange" ref="cuck"></search-bar>
-		<div class="levels">
-			<level-panel v-for="entry of shownLevels" :key="entry.id" :levelEntry="entry"></level-panel>
-		</div>
+	<search-bar @queryChange="onQueryChange" ref="cuck"></search-bar>
+	<div class="levels">
+		<level-panel v-for="info of shownLevels" :key="info.id" :levelInfo="info"></level-panel>
 	</div>
 </template>
 
@@ -11,23 +9,7 @@
 import Vue from 'vue';
 import SearchBar from '../SearchBar.vue';
 import LevelPanel from '../LevelPanel.vue';
-
-export interface LevelEntry {
-	id: number,
-	baseName: string,
-	gameType: boolean,
-	modification: boolean, 
-	name: string,
-	artist: string,
-	desc: string,
-	qualifyingTime: number,
-	goldTime: number,
-	platinumTime: number,
-	ultimateTime: number,
-	awesomeTime: number,
-	gems: number,
-	hasEasterEgg: boolean
-}
+import { LevelInfo } from '../../../shared/types';
 
 export default Vue.defineComponent({
 	components: {
@@ -36,8 +18,8 @@ export default Vue.defineComponent({
 	},
 	data() {
 		return {
-			levelList: null as LevelEntry[],
-			shownLevels: [] as LevelEntry[]
+			levelList: null as LevelInfo[],
+			shownLevels: [] as LevelInfo[]
 		};
 	},
 	async created() {
@@ -56,31 +38,7 @@ export default Vue.defineComponent({
 });
 </script>
 
-<style>
-body, html {
-	margin: 0;
-	margin-top: 10px;
-	font-family: 'Titillium Web', sans-serif;
-	color: rgb(64, 64, 64);
-}
-
-* {
-	-webkit-user-drag: none;
-	-moz-user-drag: none;
-	-moz-user-select: -moz-none;
-	-khtml-user-select: none;
-	-webkit-user-select: none;
-	-o-user-select: none;
-	user-select: none;
-}
-</style>
-
 <style scoped>
-#center {
-	margin: auto;
-	max-width: 1000px;
-}
-
 .levels {
 	display: flex;
 	margin: -5px;
