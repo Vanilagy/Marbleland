@@ -116,7 +116,8 @@ export class Util {
 
 	static async getFullFileNames(fileName: string, directoryPath: string) {
 		let files = await this.readdirCached(directoryPath);
-		return files.filter(x => this.equalCaseInsensitive(x, fileName));
+		let lowerCase = fileName.toLowerCase();
+		return files.filter(x => x.toLowerCase().startsWith(lowerCase));
 	}
 
 	static removeExtension(path: string) {
