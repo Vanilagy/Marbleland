@@ -6,15 +6,17 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "webpack watch",
-	"start": "node server/bundle.js",
-	"add-directory": "node server/bundle.js add-directory"
+    "start": "node server/bundle.js",
+    "add-directory": "node server/bundle.js add-directory"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@types/fs-extra": "^9.0.9",
+    "@types/minimist": "^1.2.1",
     "fs-extra": "^9.1.0",
     "jszip": "^3.6.0",
+    "minimist": "^1.2.5",
     "nedb": "^1.8.0",
     "nedb-promises": "^4.1.1",
     "performance-now": "^2.1.0",

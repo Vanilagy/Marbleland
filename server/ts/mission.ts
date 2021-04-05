@@ -6,7 +6,7 @@ import { Util } from './util';
 import { DtsParser } from './dts_parser';
 import JSZip from 'jszip';
 import { Config } from './config';
-import { db, structureMBG, structurePQ } from './globals';
+import { db, keyValue, structureMBG, structurePQ } from './globals';
 
 const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
@@ -312,9 +312,10 @@ export class Mission {
 	async findFile(fileName: string, relativePath: string, walkUp = true): Promise<string> {
 		let dir1 = await Util.readdirCached(path.join(this.baseDirectory, relativePath));
 		let dir2 = await Util.readdirCached(path.join(Config.dataPath, relativePath));
+		let lowerCase = fileName.toLowerCase();
 
 		for (let file of dir1.concat(dir2)) {
-			if (file.startsWith(fileName)) return path.posix.join(relativePath, file);
+			if (file.toLowerCase().startsWith(lowerCase)) return path.posix.join(relativePath, file);
 		}
 
 		let slashIndex = relativePath.lastIndexOf('/');
@@ -382,7 +383,8 @@ export class Mission {
 					for (let line of lines) {
 						let textureName = line.split(' ')[0]?.trim();
 						if (textureName) {
-							this.dependencies.add(path.posix.join(dtsDirectory, textureName));
+							let filePath = await this.findFile(textureName, dtsDirectory, false);
+							if (filePath) this.dependencies.add(filePath);
 						}
 					}
 				} 
@@ -393,31 +395,47 @@ export class Mission {
 	}
 }
 
-const claList = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/cla_list.json')).toString()) as {id: number, baseName: string}[];
-export const scanForMissions = async (baseDirectory: string, relativePath: string = '') => {
-	let entries = await fs.readdir(path.join(baseDirectory, relativePath));
+export const scanForMissions = async (baseDirectory: string, idMapPath?: string) => {
+	let idMap: { id: number, baseName: string }[] = null;
+	if (idMapPath) {
+		idMap = JSON.parse(fs.readFileSync(idMapPath).toString());
+	}
 
-	for (let entry of entries) {
-		let joined = path.join(baseDirectory, relativePath, entry);
-		let stat = await fs.stat(joined);
-		let fromStart = path.posix.join(relativePath, entry);
+	const scan = async (relativePath: string) => {
+		let entries = await fs.readdir(path.join(baseDirectory, relativePath));
 
-		if (stat.isDirectory()) {
-			await scanForMissions(baseDirectory, fromStart);
-		} else {
-			if (entry.endsWith('.mis')) {
-				console.log("Importing: ", fromStart);
+		for (let entry of entries) {
+			let joined = path.join(baseDirectory, relativePath, entry);
+			let stat = await fs.stat(joined);
+			let fromStart = path.posix.join(relativePath, entry);
+	
+			if (stat.isDirectory()) {
+				await scan(fromStart);
+			} else {
+				if (entry.endsWith('.mis')) {
+					console.log("Importing: ", fromStart);
+	
+					let mission = new Mission(baseDirectory, fromStart);
+					await mission.hydrate();
 
-				let mission = new Mission(baseDirectory, fromStart);
-				await mission.hydrate();
-
-				let baseName = mission.getBaseName();
-				let id = claList.find(x => x.baseName === baseName)?.id;
-				let doc = mission.createDoc(id);
-				await db.update({ _id: id }, doc, { upsert: true });
-
-				console.log("Level imported successfully with id " + id);
+					let id: number;
+					if (idMap) {
+						let baseName = mission.getBaseName();
+						id = idMap.find(x => x.baseName === baseName)?.id;
+						if (id === undefined) throw new Error(`ID map is missing entry for baseName ${baseName}.`);
+						keyValue.set('levelId', Math.max(id, keyValue.get('levelId')));
+					} else {
+						id = keyValue.get('levelId');
+						keyValue.set('levelId', id + 1);
+					}
+					
+					let doc = mission.createDoc(id);
+					await db.update({ _id: id }, doc, { upsert: true });
+	
+					console.log("Level imported successfully with id " + id);
+				}
 			}
 		}
-	}
+	};
+	await scan('');
 };

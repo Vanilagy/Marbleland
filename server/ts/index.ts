@@ -3,13 +3,16 @@ import { initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import * as minimist from 'minimist';
 
 const init = async () => {
 	fs.ensureDirSync(path.join(__dirname, 'storage'));
 	initGlobals();
 
-	if (process.argv[2] === 'add-directory') {
-		await scanForMissions(process.argv[3]);
+	let argv = minimist(process.argv.slice(2));
+
+	if (argv._[0] === 'add-directory') {
+		await scanForMissions(argv._[1], argv["id-map"]);
 		process.exit();
 	} else {
 		startHTTPServer(8080);
