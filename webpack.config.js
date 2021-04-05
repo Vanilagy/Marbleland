@@ -2,6 +2,7 @@ const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 const { VueLoaderPlugin } = require('vue-loader');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const webpack = require('webpack');
 
 module.exports = [{
 	mode: 'none',
@@ -68,6 +69,9 @@ module.exports = [{
 		new VueLoaderPlugin(),
 		new MiniCssExtractPlugin({
 			filename: 'css/style.css'
+		}),
+		new webpack.DefinePlugin({
+			'process.env': {}
 		})
 	]
 }];

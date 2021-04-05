@@ -1,5 +1,5 @@
 <template>
-	<router-view></router-view>
+	<p>What {{$route.params.id}}</p>
 </template>
 
 <script lang="ts">

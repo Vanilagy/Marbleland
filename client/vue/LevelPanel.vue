@@ -1,5 +1,5 @@
 <template>
-	<div class="outer">
+	<div class="outer" @click="clicked">
 		<img :src="imageSource">
 		<div class="bottom">
 			<div class="name">{{levelEntry.name}}</div>
@@ -10,7 +10,7 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue'
-import { LevelEntry } from './App.vue';
+import { LevelEntry } from './pages/Search.vue';
 
 export default Vue.defineComponent({
 	props: {
@@ -21,6 +21,11 @@ export default Vue.defineComponent({
 	computed: {
 		imageSource(): string {
 			return `/api/level/${this.levelEntry.id}/image`;
+		}
+	},
+	methods: {
+		clicked() {
+			this.$router.push({ name: 'Level', params: { id: this.levelEntry.id } });
 		}
 	}
 });

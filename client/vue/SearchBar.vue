@@ -2,6 +2,10 @@
 	<div class="search-bar" :class="{ active: focused }">
 		<img src="/assets/svg/search_black_24dp.svg">
 		<input type="text" placeholder="Search for level" v-model="searchQuery" @focus="focused = true" @blur="focused = false">
+		<img src="/assets/svg/tune_black_24dp.svg" title="Filter" @click="filterShown = !filterShown" style="cursor: pointer;">
+	</div>
+	<div v-if="filterShown">
+		Filter
 	</div>
 </template>
 
@@ -11,7 +15,8 @@ export default Vue.defineComponent({
 	data() {
 		return {
 			searchQuery: '',
-			focused: false
+			focused: false,
+			filterShown: false
 		};
 	},
 	watch: {
@@ -50,6 +55,7 @@ export default Vue.defineComponent({
 	height: 24px;
 	padding: 8px;
 	opacity: 0.75;
+	display: block;
 }
 
 .search-bar > input {
