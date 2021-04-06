@@ -5,11 +5,11 @@
 				<h1>{{ levelInfo.name }}</h1>
 				<h2>By {{ levelInfo.artist }}</h2>
 				<p><b>Description</b><br>{{ levelInfo.desc }}</p>
-				<div class="detail" v-for="(value, name) in levelDetails"><b>{{ name }}</b>: {{ value }}</div>
+				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
 			</div>
 			<aside>
 				<img :src="imageSource" class="thumbnail">
-				<download-button style="margin-top: 10px" @clicked="download"></download-button>
+				<download-button style="margin-top: 10px" :levelId="levelInfo.id"></download-button>
 			</aside>
 		</div>
 	</template>
@@ -64,9 +64,6 @@ export default Vue.defineComponent({
 		}
 	},
 	methods: {
-		download() {
-			window.location.href = window.location.origin + `/api/level/${this.levelInfo.id}/zip`;
-		},
 		prettyModification(mod: Modification) {
 			switch (mod) {
 				case Modification.Gold: return 'Gold';
