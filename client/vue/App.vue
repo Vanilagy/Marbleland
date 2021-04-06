@@ -30,6 +30,7 @@ body, html {
 	margin: 0;
 	font-family: 'Titillium Web', sans-serif;
 	color: rgb(64, 64, 64);
+	margin-bottom: 10px;
 }
 
 * {

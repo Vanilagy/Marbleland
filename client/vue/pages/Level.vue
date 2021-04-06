@@ -18,7 +18,6 @@
 <script lang="ts">
 import Vue from 'vue'
 import { LevelInfo, Modification } from '../../../shared/types';
-import { store } from '../../ts/store';
 import DownloadButton from '../DownloadButton.vue';
 import { Util } from '../../ts/util';
 
@@ -32,8 +31,8 @@ export default Vue.defineComponent({
 		};
 	},
 	async created() {
-		if (store.state.currentLevelInfo) {
-			this.levelInfo = store.state.currentLevelInfo;
+		if (this.$store.state.currentLevelInfo) {
+			this.levelInfo = this.$store.state.currentLevelInfo;
 		} else {
 			let id = Number(this.$route.params.id);
 			let response = await fetch(`/api/level/${id}/info`);

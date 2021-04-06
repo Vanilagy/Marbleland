@@ -3,7 +3,7 @@
 		<img :src="imageSource">
 		<div class="bottom">
 			<div class="name">{{levelInfo.name}}</div>
-			<div class="artist">{{levelInfo.name}}</div>
+			<div class="artist">{{levelInfo.artist}}</div>
 		</div>
 	</div>
 </template>
@@ -11,7 +11,6 @@
 <script lang="ts">
 import Vue, { PropType } from 'vue'
 import { LevelInfo } from '../../shared/types';
-import { store } from '../ts/store';
 
 export default Vue.defineComponent({
 	props: {
@@ -27,7 +26,7 @@ export default Vue.defineComponent({
 	},
 	methods: {
 		clicked(): void {
-			store.state.currentLevelInfo = this.levelInfo;
+			this.$store.state.currentLevelInfo = this.levelInfo;
 			this.$router.push({ name: 'Level', params: { id: this.levelInfo.id } });
 		}
 	}
