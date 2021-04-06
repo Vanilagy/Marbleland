@@ -1,6 +1,6 @@
 <template>
 	<div class="outer">
-		<div class="wrapper">
+		<div class="wrapper" :style="wrapperStyle">
 			<p @click="toggleExpand">{{ currentLabel }}</p>
 			<img src="/assets/svg/expand_more_black_24dp.svg" :style="chevronStyle">
 			<div v-if="expanded" style="border-top: 1px solid rgb(220, 220, 220)" class="expander">
@@ -34,6 +34,11 @@ export default Vue.defineComponent({
 		chevronStyle(): Record<string, string> {
 			return {
 				transform: this.expanded? 'rotate(180deg)' : ''
+			};
+		},
+		wrapperStyle(): Record<string, string> {
+			return {
+				'box-shadow': this.expanded? '0px 0px 5px #00000052' : ''
 			};
 		}
 	},

@@ -1,12 +1,12 @@
 <template>
 	<div class="search-bar">
 		<img src="/assets/svg/search_black_24dp.svg">
-		<input type="text" placeholder="Search for level" v-model="$store.state.searchState.query" @focus="focused = true" @blur="focused = false">
-		<img src="/assets/svg/tune_black_24dp.svg" title="Filter" @click="$store.state.searchState.filterShown = !$store.state.searchState.filterShown" class="toggle-filter">
+		<input type="text" placeholder="Search for level" v-model="searchBar.query" @focus="focused = true" @blur="focused = false">
+		<img src="/assets/svg/tune_black_24dp.svg" @click="searchBar.filterShown = !searchBar.filterShown" class="toggle-filter" :class="{ active: searchBar.filterShown }" :title="searchBar.filterShown? 'Disable filter' : 'Enable filter'">
 		<div class="search-bar-border" :class="{ active: focused }"></div>
 	</div>
-	<div v-if="$store.state.searchState.filterShown" class="filter">
-		<div class="labeled-dropdown" v-for="(config, key) in $store.state.searchState.filter" :key="key">
+	<div v-if="searchBar.filterShown" class="filter">
+		<div class="labeled-dropdown" v-for="(config, key) in searchBar.filter" :key="key">
 			<p>{{ config.label }}</p>
 			<dropdown-component v-model="config.value" :options="config.options"></dropdown-component>
 		</div>
@@ -21,8 +21,8 @@ import DropdownComponent from './DropdownComponent.vue';
 export default Vue.defineComponent({
 	data() {
 		return {
+			searchBar: this.$store.state.searchState.searchBar,
 			focused: false,
-			filterShown: false,
 			shit: 'a',
 			options: [{
 				name: 'a',
@@ -102,20 +102,24 @@ export default Vue.defineComponent({
 	opacity: 0.25 !important;
 }
 
-.toggle-filter:hover {
+.toggle-filter.active {
 	opacity: 0.75 !important;
+}
+
+.toggle-filter:hover {
+	opacity: 0.5 !important;
 }
 
 .filter {
 	margin: -5px;
 	margin-top: 5px;
-	width: 100%;
 	display: flex;
 }
 
 .labeled-dropdown {
 	width: 20%;
 	margin: 5px;
+	flex: 1 1 0;
 }
 
 .labeled-dropdown > p {

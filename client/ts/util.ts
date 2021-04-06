@@ -20,4 +20,8 @@ export class Util {
 		}
 		return true;
 	}
+
+	static normalizeString(str: string) {
+		return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/g, '').toLowerCase();
+	}
 }

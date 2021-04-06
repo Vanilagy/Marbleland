@@ -12,6 +12,7 @@ import SearchBar from '../SearchBar.vue';
 import LevelPanel from '../LevelPanel.vue';
 import { LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
+import { Search } from '../../ts/search';
 
 const levelSearchStrings = new Map<LevelInfo, string>();
 
@@ -19,7 +20,9 @@ export default Vue.defineComponent({
 	data() {
 		return {
 			searchState: this.$store.state.searchState,
-			lastFilteredLevels: [] as LevelInfo[]
+			searchBar: this.$store.state.searchState.searchBar,
+			lastFilteredLevels: [] as LevelInfo[],
+			filteredLevels: [] as LevelInfo[]
 		};
 	},
 	components: {
@@ -27,34 +30,12 @@ export default Vue.defineComponent({
 		LevelPanel
 	},
 	async created() {
-		if (!this.searchState.levels) {
-			let response = await fetch('/api/list');
-			let levelList = await response.json() as LevelInfo[];
-
-			this.searchState.levels = levelList;
-
-			for (let level of this.searchState.levels) {
-				let searchString = [level.id, level.name, level.artist, level.baseName].filter(x => x).join(' ');
-				searchString = this.normalizeString(searchString);
-				levelSearchStrings.set(level, searchString);
-			}
-
-			this.searchState.ready = true;
-		}
+		await Search.loadLevels();
+		this.updateFilteredLevels();
 	},
 	computed: {
-		filteredLevels(): LevelInfo[] {
-			let { levels, query, ready } = this.searchState;
-			if (!ready) return [];
-
-			let words = this.normalizedQuery.split(' ');
-			return levels.filter(x => words.filter(y => levelSearchStrings.get(x).includes(y)).length === words.length);
-		},
 		shownLevels(): LevelInfo[] {
 			return this.filteredLevels.slice(0, this.searchState.shownCount);
-		},
-		normalizedQuery(): string {
-			return this.normalizeString(this.searchState.query);
 		},
 		canShowMore(): boolean {
 			return this.shownLevels.length < this.filteredLevels.length;
@@ -66,12 +47,22 @@ export default Vue.defineComponent({
 		},
 		showMore() {
 			this.searchState.shownCount += 24;
+		},
+		updateFilteredLevels() {
+			let filtered = Search.filter();
+
+			this.searchState.shownCount = 24;
+
+			this.lastFilteredLevels = this.filteredLevels.slice();
+			this.filteredLevels = filtered;
 		}
 	},
 	watch: {
-		filteredLevels() {
-			let equal = Util.arraysEqualShallow(this.lastFilteredLevels, this.filteredLevels);
-			if (!equal) this.searchState.shownCount = 24;
+		searchBar: {
+			handler(newState, old) {
+				this.updateFilteredLevels();
+			},
+			deep: true
 		}
 	}
 });
