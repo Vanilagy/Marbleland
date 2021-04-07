@@ -62,7 +62,8 @@ export const store = createStore({
 				}
 			},
 			shownCount: 24
-		}
+		},
+		loggedInAccountId: null as number
 	}
 });
 

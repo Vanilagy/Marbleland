@@ -1,5 +1,6 @@
 node_modules
 server/bundle.js
+server/server_bundle.js
 server/data/data_pq
 storage
 todo.txt
@@ -7,3 +8,4 @@ missions.json
 cla_list.json
 client/css/style.css
 client/js/bundle.js
+client/js/client_bundle.js

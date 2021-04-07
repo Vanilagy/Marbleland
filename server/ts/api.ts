@@ -1,11 +1,13 @@
 import { Mission, MissionDoc } from "./mission";
-import { db } from "./globals";
+import { db, keyValue } from "./globals";
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
-import { LevelInfo } from "../../shared/types";
+import { LevelInfo, ProfileInfo } from "../../shared/types";
 import * as sharp from 'sharp';
+import { AccountDoc, generateNewAccessToken, TOKEN_TTL } from "./account";
+import * as bcrypt from 'bcryptjs';
 
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	let levelId = Number(req.params.levelId);
@@ -14,7 +16,7 @@ const verifyLevelId = async (req: express.Request, res: express.Response) => {
 		return null;
 	}
 
-	let doc = await db.findOne({ _id: levelId });
+	let doc = await db.missions.findOne({ _id: levelId });
 	if (!doc) {
 		res.status(404).send("404\nA level with this ID does not exist.");
 		return null;
@@ -27,7 +29,7 @@ app.get('/api/level/:levelId/zip', async (req, res) => {
 	let levelId = await verifyLevelId(req, res);
 	if (levelId === null) return;
 
-	let doc = await db.findOne({ _id: levelId }) as MissionDoc;
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 	let mission = Mission.fromDoc(doc);
 
 	let assuming = req.query.assuming as string;
@@ -45,7 +47,7 @@ app.get('/api/level/:levelId/image', async (req, res) => {
 	let levelId = await verifyLevelId(req, res);
 	if (levelId === null) return;
 
-	let doc = await db.findOne({ _id: levelId }) as MissionDoc;
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 	let mission = Mission.fromDoc(doc);
 
 	let imagePath = mission.getImagePath();
@@ -93,7 +95,7 @@ app.get('/api/level/:levelId/dependencies', async (req, res) => {
 	let levelId = await verifyLevelId(req, res);
 	if (levelId === null) return;
 
-	let doc = await db.findOne({ _id: levelId }) as MissionDoc;
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 	let mission = Mission.fromDoc(doc);
 
 	let assuming = req.query.assuming as string;
@@ -108,7 +110,7 @@ app.get('/api/level/:levelId/info', async (req, res) => {
 	let levelId = await verifyLevelId(req, res);
 	if (levelId === null) return;
 
-	let doc = await db.findOne({ _id: levelId }) as MissionDoc;
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 	let mission = Mission.fromDoc(doc);
 
 	res.send(mission.createLevelInfo(doc._id));
@@ -118,14 +120,14 @@ app.get('/api/level/:levelId/mission-info', async (req, res) => {
 	let levelId = await verifyLevelId(req, res);
 	if (levelId === null) return;
 
-	let doc = await db.findOne({ _id: levelId }) as MissionDoc;
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 	let mission = Mission.fromDoc(doc);
 
 	res.send(mission.info);
 });
 
 app.get('/api/list', async (req, res) => {
-	let docs = await db.find({}) as MissionDoc[];
+	let docs = await db.missions.find({}) as MissionDoc[];
 	let response: LevelInfo[] = [];
 
 	for (let doc of docs) {
@@ -134,4 +136,147 @@ app.get('/api/list', async (req, res) => {
 	}
 
 	res.send(response);
+});
+
+const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+
+app.get('/api/account/register', async (req, res) => {
+	let q = req.query as {email: string, username: string, password: string};
+	if (!q.email || !q.username || !q.password) {
+		res.status(400).send({ status: 'error', reason: "Missing parameters" });
+		return;
+	}
+
+	q.email = q.email.trim();
+	q.username = q.username.trim();
+
+	if (!emailRegEx.test(q.email)) {
+		res.status(400).send({ status: 'error', reason: "Invalid email." });
+		return;
+	}
+
+	let existing: AccountDoc;
+
+	existing = await db.accounts.findOne({ email: q.email });
+	if (existing) {
+		res.status(400).send({ status: 'error', reason: "Email already in use." });
+		return;
+	}
+
+	existing = await db.accounts.findOne({ username: q.username });
+	if (existing) {
+		res.status(400).send({ status: 'error', reason: "Username already in use." });
+		return;
+	}
+
+	if (q.password.length < 8) {
+		res.status(400).send({ status: 'error', reason: "Password too short." });
+		return;
+	}
+
+	let hash = await bcrypt.hash(q.password, 8);
+	let id = keyValue.get('accountId');
+	keyValue.set('accountId', id + 1);
+
+	let doc: AccountDoc = {
+		_id: id,
+		email: q.email,
+		username: q.username,
+		passwordHash: hash,
+		tokens: []
+	};
+
+	let newToken = generateNewAccessToken();
+	doc.tokens.push({
+		value: newToken,
+		lastUsed: Date.now()
+	});
+
+	await db.accounts.insert(doc);
+
+	res.status(200).send({ status: 'success', accountId: id, token: newToken });
+});
+
+app.get('/api/account/check-token', async (req, res) => {
+	if (!req.query.token) {
+		res.status(400);
+		return;
+	}
+
+	let doc = await db.accounts.findOne({ 'tokens.value': req.query.token }) as AccountDoc;
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let token = doc.tokens.find(x => x.value === req.query.token);
+	let now = Date.now();
+	if (now - token.lastUsed >= TOKEN_TTL) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	res.send({
+		accountId: doc._id
+	});
+
+	token.lastUsed = Date.now();
+	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
+});
+
+app.get('/api/account/sign-in', async (req, res) => {
+	let doc = await db.accounts.findOne({ email: req.query.email }) as AccountDoc;
+	if (!doc) {
+		res.status(400).send({
+			status: 'error',
+			reason: 'An account with this email does not exist.'
+		});
+		return;
+	}
+
+	let pwMatches = await bcrypt.compare((req.query.password as string) ?? '', doc.passwordHash);
+	if (!pwMatches) {
+		res.status(400).send({
+			status: 'error',
+			reason: 'Incorrect password.'
+		});
+		return;
+	}
+
+	let newToken = generateNewAccessToken();
+	doc.tokens.push({
+		value: newToken,
+		lastUsed: Date.now()
+	});
+
+	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
+
+	res.status(200).send({ status: 'success', accountId: doc._id, token: newToken });
+});
+
+app.get('/api/account/sign-out', async (req, res) => {
+	if (!req.query.token) {
+		res.status(400);
+		return;
+	}
+
+	let doc = await db.accounts.findOne({ 'tokens.value': req.query.token }) as AccountDoc;
+	if (doc) {
+		doc.tokens = doc.tokens.filter(x => x.value !== req.query.token);
+		await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
+	}
+	
+	res.end();
+});
+
+app.get('/api/account/:accountId/info', async (req, res) => {
+	let doc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+	if (!doc) {
+		res.status(404).send("404\nAn account with this ID does not exist.");
+		return;
+	}
+
+	res.send({
+		username: doc.username
+	} as ProfileInfo);
 });

@@ -8,7 +8,7 @@ module.exports = [{
 	mode: 'none',
 	entry: path.join(__dirname, 'server/ts/index.ts'),
 	output: {
-		filename: 'bundle.js',
+		filename: 'server_bundle.js',
 		path: path.join(__dirname, 'server')
 	},
 	resolve: {
@@ -32,7 +32,7 @@ module.exports = [{
 	mode: 'none',
 	entry: path.join(__dirname, 'client/ts/index.ts'),
 	output: {
-		filename: 'js/bundle.js',
+		filename: 'js/client_bundle.js',
 		path: path.join(__dirname, 'client')
 	},
 	module: {

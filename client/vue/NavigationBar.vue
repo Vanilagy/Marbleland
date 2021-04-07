@@ -5,13 +5,18 @@
 		<div>Upload</div>
 		<div>Packs</div>
 		<div>About</div>
+		<profile-icon class="profileIcon"></profile-icon>
 	</header>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
-export default Vue.defineComponent({
+import ProfileIcon from './ProfileIcon.vue';
 
+export default Vue.defineComponent({
+	components: {
+		ProfileIcon
+	}
 });
 </script>
 
@@ -20,6 +25,7 @@ header {
 	display: flex;
 	align-items: center;
 	margin: 20px 0px;
+	position: relative;
 }
 
 h1 {
@@ -28,5 +34,11 @@ h1 {
 
 header > * {
 	margin-right: 20px;
+}
+
+.profileIcon {
+	position: absolute;
+	top: 8px;
+	right: 0;
 }
 </style>

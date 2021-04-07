@@ -27,3 +27,7 @@ export enum Modification {
 	Ultra = "ultra",
 	PlatinumQuest = "platinumquest"
 }
+
+export interface ProfileInfo {
+	username: string
+}
