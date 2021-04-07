@@ -3,7 +3,7 @@
 		<div class="top-part">
 			<div>
 				<h1>{{ levelInfo.name }}</h1>
-				<h2>By {{ levelInfo.artist }}</h2>
+				<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
 				<p><b>Description</b><br>{{ levelInfo.desc }}</p>
 				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
 			</div>

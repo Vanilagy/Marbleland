@@ -2,7 +2,7 @@
 	<div class="search-bar">
 		<img src="/assets/svg/search_black_24dp.svg">
 		<input type="text" placeholder="Search for level" v-model="searchBar.query" @focus="focused = true" @blur="focused = false">
-		<img src="/assets/svg/tune_black_24dp.svg" @click="searchBar.filterShown = !searchBar.filterShown" class="toggle-filter" :class="{ active: searchBar.filterShown }" :title="searchBar.filterShown? 'Disable filter' : 'Enable filter'">
+		<img src="/assets/svg/tune_black_24dp.svg" @click="searchBar.filterShown = !searchBar.filterShown" class="toggle-filter" :title="searchBar.filterShown? 'Hide filter' : 'Show filter'">
 		<div class="search-bar-border" :class="{ active: focused }"></div>
 	</div>
 	<div v-if="searchBar.filterShown" class="filter">
@@ -102,12 +102,8 @@ export default Vue.defineComponent({
 	opacity: 0.25 !important;
 }
 
-.toggle-filter.active {
-	opacity: 0.75 !important;
-}
-
 .toggle-filter:hover {
-	opacity: 0.5 !important;
+	opacity: 0.75 !important;
 }
 
 .filter {

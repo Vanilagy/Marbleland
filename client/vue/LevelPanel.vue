@@ -1,9 +1,9 @@
 <template>
 	<div class="outer" @click="clicked">
-		<img :src="imageSource">
+		<img :src="imageSource" @error="imageLoadError" v-if="imageShown">
 		<div class="bottom">
 			<div class="name">{{levelInfo.name}}</div>
-			<div class="artist">{{levelInfo.artist}}</div>
+			<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
 		</div>
 	</div>
 </template>
@@ -19,6 +19,11 @@ export default Vue.defineComponent({
 			required: true
 		}
 	},
+	data() {
+		return {
+			imageShown: true
+		};
+	},
 	computed: {
 		imageSource(): string {
 			return `/api/level/${this.levelInfo.id}/image`;
@@ -28,6 +33,9 @@ export default Vue.defineComponent({
 		clicked(): void {
 			this.$store.state.currentLevelInfo = this.levelInfo;
 			this.$router.push({ name: 'Level', params: { id: this.levelInfo.id } });
+		},
+		imageLoadError() {
+			this.imageShown = false;
 		}
 	}
 });
@@ -59,18 +67,31 @@ img {
 .name {
 	font-size: 16px;
 	height: 20px;
+	overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: calc(100% - 20px);
 }
 
 .artist {
 	font-size: 12px;
+	overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: calc(100% - 20px);
 }
 
 .bottom {
 	position: absolute;
 	left: 0;
 	bottom: 0;
-	padding: 3px 10px;
+	padding: 3px 9px;
 	width: 100%;
 	background: rgba(240, 240, 240, 0.9);
+}
+
+.missingArtist {
+	font-style: italic;
+	opacity: 0.5;
 }
 </style>

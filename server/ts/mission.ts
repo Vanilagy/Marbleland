@@ -75,7 +75,7 @@ export class Mission {
 
 		// Add the mission thumbnail
 		let fileNames = await Util.getFullFileNames(Util.removeExtension(missionFileName), path.join(this.baseDirectory, missionDirectory));
-		let thumbnailPaths = fileNames.filter(x => IMAGE_EXTENSIONS.includes(path.extname(x)));
+		let thumbnailPaths = fileNames.filter(x => IMAGE_EXTENSIONS.includes(path.extname(x).toLowerCase()));
 		for (let thumbnailPath of thumbnailPaths) this.dependencies.add(path.posix.join(missionDirectory, thumbnailPath));
 
 		this.visitedPaths.clear();
@@ -239,8 +239,8 @@ export class Mission {
 
 	getImagePath() {
 		let startsWith = Util.removeExtension(this.relativePath);
-		let potentialNames = IMAGE_EXTENSIONS.map(x => startsWith + x);
-		return [...this.dependencies].find(x => potentialNames.includes(x)) ?? null;
+		let potentialNames = IMAGE_EXTENSIONS.map(x => (startsWith + x).toLowerCase());
+		return [...this.dependencies].find(x => potentialNames.includes(x.toLowerCase())) ?? null;
 	}
 
 	getBaseName() {
@@ -385,7 +385,7 @@ export class Mission {
 		for (let matName of dtsFile.matNames) {
 			let relativePath = await this.findFile(matName, dtsDirectory, false);
 			if (relativePath) {
-				if (relativePath.endsWith('.ifl')) {
+				if (relativePath.toLowerCase().endsWith('.ifl')) {
 					let fullPath = await this.findPath(relativePath);
 					let iflText = (await fs.readFile(fullPath)).toString();
 					let lines = iflText.split('\n');
@@ -408,6 +408,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 	let idMap: { id: number, baseName: string }[] = null;
 	if (idMapPath) {
 		idMap = JSON.parse(fs.readFileSync(idMapPath).toString());
+		console.log("ID map loaded.");
 	}
 
 	const scan = async (relativePath: string) => {
@@ -421,11 +422,16 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 			if (stat.isDirectory()) {
 				await scan(fromStart);
 			} else {
-				if (entry.endsWith('.mis')) {
+				if (entry.toLowerCase().endsWith('.mis')) {
 					console.log("Importing: ", fromStart);
-	
 					let mission = new Mission(baseDirectory, fromStart);
-					await mission.hydrate();
+	
+					try {
+						await mission.hydrate();
+					} catch (e) {
+						console.error("Error in loading mission " + entry, e);
+						break;
+					}
 
 					let id: number;
 					if (idMap) {

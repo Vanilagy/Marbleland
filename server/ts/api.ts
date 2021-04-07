@@ -5,6 +5,7 @@ import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
 import { LevelInfo } from "../../shared/types";
+import * as sharp from 'sharp';
 
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	let levelId = Number(req.params.levelId);
@@ -48,10 +49,44 @@ app.get('/api/level/:levelId/image', async (req, res) => {
 	let mission = Mission.fromDoc(doc);
 
 	let imagePath = mission.getImagePath();
-	let stream = fs.createReadStream(path.join(mission.baseDirectory, imagePath));
+	if (!imagePath) {
+		res.status(404).send("This level is missing an image thumbnail.");
+		return;
+	}
 
+	let buffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
+
+	if ('original' in req.query) {
+		res.set('Content-Type', imagePath.endsWith('.png')? 'image/png' : 'image/jpeg');
+		res.send(buffer);
+		return;
+	}
+
+	if (req.query.width && req.query.height) {
+		let width = Number(req.query.width);
+		let height = Number(req.query.height);
+		let valid = true;
+
+		if (!Number.isInteger(width) || !Number.isInteger(height)) valid = false;
+		if (width < 1 || height < 1) valid = false;
+		if (width > 2048 || height > 2048) valid = false;
+
+		if (!valid) {
+			res.status(400).send("400\nQuery parameters invalid.");
+			return;
+		}
+
+		let resized = await sharp(buffer).resize({width, height, fit: 'cover'}).jpeg({quality: 60}).toBuffer();
+		res.set('Content-Type', 'image/jpeg');
+		res.send(resized);
+
+		return;
+	}
+	
+	// Default
+	let resized = await sharp(buffer).resize({width: 640, height: 480, fit: 'inside', withoutEnlargement: true}).jpeg({quality: 60}).toBuffer();
 	res.set('Content-Type', imagePath.endsWith('.png')? 'image/png' : 'image/jpeg');
-	stream.pipe(res);
+	res.send(resized);
 });
 
 app.get('/api/level/:levelId/dependencies', async (req, res) => {

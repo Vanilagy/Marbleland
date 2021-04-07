@@ -43,8 +43,6 @@ export abstract class Search {
 
 		let words = normalizedQuery.split(' ');
 		let filtered = this.wrappers.filter(x => {
-			if (!searchState.searchBar.filterShown) return true;
-
 			let matchCount = 0;
 			for (let i = 0; i < words.length; i++) {
 				let word = words[i];

@@ -35,8 +35,8 @@ export const store = createStore({
 						value: 'all',
 						options: [
 							{ name: 'all', label: "Don't care"},
-							{ name: 'yes', label: 'Yes'},
-							{ name: 'no', label: 'No'}
+							{ name: 'no', label: 'No'},
+							{ name: 'yes', label: 'Yes'}
 						]
 					},
 					hasEasterEgg: {
@@ -44,8 +44,8 @@ export const store = createStore({
 						value: 'all',
 						options: [
 							{ name: 'all', label: "Don't care"},
-							{ name: 'yes', label: 'Yes'},
-							{ name: 'no', label: 'No'}
+							{ name: 'no', label: 'No'},
+							{ name: 'yes', label: 'Yes'}
 						]
 					},
 					sort: {
@@ -58,7 +58,7 @@ export const store = createStore({
 							{ name: 'id', label: 'Level ID'},
 							{ name: 'gemCount', label: 'Gem count'},
 						]
-					},
+					}
 				}
 			},
 			shownCount: 24

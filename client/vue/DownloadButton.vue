@@ -1,7 +1,7 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;">
 		<div @click="download('platinumquest')" class="mainButton">
-			<img src="/assets/svg/download_black_24dp.svg">
+			<img src="/assets/svg/download_black_24dp.svg" style="margin-right: 10px;">
 			<span>Download Level</span>
 		</div>
 		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
@@ -69,7 +69,6 @@ export default Vue.defineComponent({
 img {
 	opacity: 0.75;
 	display: block;
-	margin-right: 10px;
 }
 
 .mainButton > span {
@@ -81,9 +80,10 @@ img {
 .expandMore {
 	position: absolute;
 	right: 0px;
-	top: 8px;
+	top: 0px;
 	opacity: 0.25;
 	cursor: pointer;
+	padding: 8px;
 }
 
 .expandMore:hover {
