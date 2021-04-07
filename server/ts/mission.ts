@@ -277,8 +277,7 @@ export class Mission {
 			} else if (element._type === MissionElementType.Sky) {
 				await this.addSkyDependencies(element);
 			} else if (element._type === MissionElementType.TSStatic) {
-				// TODO
-				//await this.addTSStaticDependencies(element);
+				await this.addTSStaticDependencies(element);
 			}
 		}
 	}
@@ -380,7 +379,7 @@ export class Mission {
 		this.dependencies.add(dtsPath);
 
 		let buffer = (await fs.readFile(fullPath)).buffer;
-		let dtsFile = new DtsParser(buffer).parse();
+		let dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
 
 		for (let matName of dtsFile.matNames) {
 			let relativePath = await this.findFile(matName, dtsDirectory, false);
@@ -429,7 +428,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 					try {
 						await mission.hydrate();
 					} catch (e) {
-						console.error("Error in loading mission " + entry, e);
+						console.error(`Error in loading mission ${entry}:`, e);
 						break;
 					}
 

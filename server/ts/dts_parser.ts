@@ -388,7 +388,7 @@ class OldAlloc {
 
 /** A parser for .dts files, used for static shapes and items. Main resources are http://docs.garagegames.com/torque-3d/official/content/documentation/Artist%20Guide/Formats/dts_format.html#:~:text=DTS%20is%20the%20native%20binary,and%20(optionally)%20sequence%20data.&text=The%20DTS%20file%20format%20stores,loading%20on%20non%2DIntel%20platforms. and the Torque 3D source. */
 export class DtsParser extends BinaryFileParser {
-	parse(): DtsFile {
+	parse(stopAfterMaterials = false): DtsFile {
 		let version = this.readU16();
 		let exporterVersion = this.readU16();
 
@@ -428,8 +428,11 @@ export class DtsParser extends BinaryFileParser {
 			materialList = this.parseMaterialList(version);
 		}
 
-		let alloc = new Alloc(memBuffer, start32, start16, start8);
-		let shape = this.assembleShape(alloc, version);
+		let shape = {};
+		if (!stopAfterMaterials) {
+			let alloc = new Alloc(memBuffer, start32, start16, start8);
+			shape = this.assembleShape(alloc, version);
+		}
 
 		let obj = {
 			version,
@@ -633,6 +636,7 @@ export class DtsParser extends BinaryFileParser {
 			let bounds = alloc.readBoxF();
 			let center = alloc.readPoint3F();
 			let radius = alloc.readF32();
+
 			let numVerts = alloc.readS32();
 			let verts = Array(numVerts).fill(null).map(() => alloc.readPoint3F());
 			let numTVerts = alloc.readS32();
