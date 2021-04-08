@@ -47,4 +47,9 @@ body, html {
 	margin: auto;
 	max-width: 1000px;
 }
+
+.disabled {
+	pointer-events: none;
+	opacity: 0.333;
+}
 </style>

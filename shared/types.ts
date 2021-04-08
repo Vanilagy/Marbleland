@@ -6,6 +6,9 @@ export interface LevelInfo {
 	name: string,
 	artist: string,
 	desc: string,
+	addedAt: number,
+	remarks: string,
+
 	qualifyingTime: number,
 	goldTime: number,
 	platinumTime: number,

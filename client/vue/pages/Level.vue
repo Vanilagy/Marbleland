@@ -4,7 +4,7 @@
 			<div>
 				<h1>{{ levelInfo.name }}</h1>
 				<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
-				<p><b>Description</b><br>{{ levelInfo.desc }}</p>
+				<p class="labeledValue"><b>Description</b><br>{{ levelInfo.desc }}</p>
 				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
 			</div>
 			<aside>
@@ -12,6 +12,7 @@
 				<download-button style="margin-top: 10px" :levelId="levelInfo.id"></download-button>
 			</aside>
 		</div>
+		<p v-if="levelInfo.remarks" class="labeledValue"><b>Remarks</b><br>{{ levelInfo.remarks }}</p>
 	</template>
 </template>
 
@@ -111,7 +112,7 @@ export default Vue.defineComponent({
 	font-size: 18px;
 }
 
-.top-part p {
+.labeledValue {
 	margin: 0;
 	margin-top: 30px;
 	margin-bottom: 30px;

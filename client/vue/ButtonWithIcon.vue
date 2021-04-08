@@ -1,6 +1,6 @@
 <template>
-	<div @click="$emit('clicked')" class="mainButton">
-		<img src="/assets/svg/download_black_24dp.svg" style="margin-right: 10px;">
+	<div class="mainButton">
+		<img :src="icon" style="margin-right: 10px;">
 		<span><slot></slot></span>
 	</div>
 </template>

@@ -121,7 +121,9 @@ export class Util {
 	}
 
 	static removeExtension(path: string) {
-		return path.slice(0, path.lastIndexOf('.'));
+		let dotIndex = path.lastIndexOf('.');
+		if (dotIndex === -1) return path;
+		return path.slice(0, dotIndex);
 	}
 
 	static jsonClone<T>(obj: T) {
@@ -155,6 +157,10 @@ export class Util {
 		}
 
 		return obj;
+	}
+
+	static getFileName(path: string) {
+		return path.slice(path.lastIndexOf('/') + 1)
 	}
 }
 

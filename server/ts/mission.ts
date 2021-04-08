@@ -9,8 +9,8 @@ import { Config } from './config';
 import { db, keyValue, structureMBG, structurePQ } from './globals';
 import { Modification, GameType, LevelInfo } from '../../shared/types';
 
-const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
-const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
+export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
+export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
 
 export interface MissionDoc {
 	_id: number,
@@ -21,7 +21,10 @@ export interface MissionDoc {
 	gameType: GameType,
 	modification: Modification,
 	gems: number,
-	hasEasterEgg: boolean
+	hasEasterEgg: boolean,
+	addedAt: number,
+	addedBy?: number,
+	remarks?: string
 }
 
 export class Mission {
@@ -35,6 +38,9 @@ export class Mission {
 	gems: number = 0;
 	hasEasterEgg: boolean = false;
 	visitedPaths = new Set<string>();
+	addedAt: number;
+	addedBy: number;
+	remarks: string;
 
 	constructor(baseDirectory: string, relativePath: string) {
 		this.baseDirectory = baseDirectory;
@@ -49,6 +55,9 @@ export class Mission {
 		mission.modification = doc.modification;
 		mission.gems = doc.gems;
 		mission.hasEasterEgg = doc.hasEasterEgg;
+		mission.addedAt = doc.addedAt;
+		mission.addedBy = doc.addedBy;
+		mission.remarks = doc.remarks;
 
 		return mission;
 	}
@@ -214,7 +223,8 @@ export class Mission {
 			gameType: this.gameType,
 			modification: this.modification,
 			gems: this.gems,
-			hasEasterEgg: this.hasEasterEgg
+			hasEasterEgg: this.hasEasterEgg,
+			addedAt: Date.now()
 		};
 	}
 
@@ -227,6 +237,9 @@ export class Mission {
 			name: this.info.name,
 			artist: this.info.artist,
 			desc: this.info.desc,
+			addedAt: this.addedAt,
+			remarks: this.remarks,
+
 			qualifyingTime: this.info.time? Number(this.info.time) : undefined,
 			goldTime: this.info.goldtime? Number(this.info.goldtime) : undefined,
 			platinumTime: this.info.platinumtime? Number(this.info.platinumtime) : undefined,
@@ -323,7 +336,7 @@ export class Mission {
 		let lowerCase = fileName.toLowerCase();
 
 		for (let file of dir1.concat(dir2)) {
-			if (file.toLowerCase().startsWith(lowerCase)) return path.posix.join(relativePath, file);
+			if (Util.removeExtension(file).toLowerCase() === lowerCase) return path.posix.join(relativePath, file);
 		}
 
 		let slashIndex = relativePath.lastIndexOf('/');

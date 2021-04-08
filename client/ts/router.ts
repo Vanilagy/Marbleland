@@ -4,6 +4,7 @@ import Level from '../vue/pages/Level.vue';
 import SignUp from '../vue/pages/SignUp.vue';
 import SignIn from '../vue/pages/SignIn.vue';
 import Profile from '../vue/pages/Profile.vue';
+import Upload from '../vue/pages/Upload.vue';
 
 const routes = [{
 	path: '/',
@@ -25,6 +26,10 @@ const routes = [{
 	path: '/profile/:id',
 	name: 'Profile',
 	component: Profile
+}, {
+	path: '/upload',
+	name: 'Upload',
+	component: Upload
 }];
 
 const router = createRouter({

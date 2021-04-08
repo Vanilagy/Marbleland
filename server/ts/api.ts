@@ -6,12 +6,15 @@ import { app } from "./server";
 import * as express from 'express';
 import { LevelInfo, ProfileInfo } from "../../shared/types";
 import * as sharp from 'sharp';
-import { AccountDoc, generateNewAccessToken, TOKEN_TTL } from "./account";
+import { AccountDoc, authorize, generateNewAccessToken, TOKEN_TTL } from "./account";
 import * as bcrypt from 'bcryptjs';
+import * as jszip from 'jszip';
+import { MissionUpload, ongoingUploads } from "./mission_upload";
 
 app.use(express.raw({
-	limit: '20mb'
+	limit: '15mb'
 }));
+app.use(express.json());
 
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	let levelId = Number(req.params.levelId);
@@ -213,20 +216,8 @@ app.get('/api/account/register', async (req, res) => {
 });
 
 app.get('/api/account/check-token', async (req, res) => {
-	if (!req.query.token) {
-		res.status(400);
-		return;
-	}
-
-	let doc = await db.accounts.findOne({ 'tokens.value': req.query.token }) as AccountDoc;
+	let doc = await authorize(req);
 	if (!doc) {
-		res.status(401).send("401\nInvalid token.");
-		return;
-	}
-
-	let token = doc.tokens.find(x => x.value === req.query.token);
-	let now = Date.now();
-	if (now - token.lastUsed >= TOKEN_TTL) {
 		res.status(401).send("401\nInvalid token.");
 		return;
 	}
@@ -234,9 +225,6 @@ app.get('/api/account/check-token', async (req, res) => {
 	res.send({
 		profileInfo: await getProfileInfo(doc)
 	});
-
-	token.lastUsed = Date.now();
-	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 });
 
 app.get('/api/account/sign-in', async (req, res) => {
@@ -327,14 +315,14 @@ app.get('/api/account/:accountId/avatar', async (req, res) => {
 });
 
 app.post('/api/account/:accountId/set-avatar', async (req, res) => {
-	if (!req.body) {
-		res.status(400).end();
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
 		return;
 	}
 
-	let doc = await db.accounts.findOne({ _id: Number(req.params.accountId), 'tokens.value': req.query.auth });
-	if (!doc) {
-		res.status(401).end();
+	if (doc._id !== Number(req.params.accountId)) {
+		res.status(400).end();
 		return;
 	}
 
@@ -342,4 +330,66 @@ app.post('/api/account/:accountId/set-avatar', async (req, res) => {
 	await fs.writeFile(path.join(__dirname, `storage/avatars/${doc._id}.jpg`), normed);
 
 	res.end();
+});
+
+app.post('/api/level/upload', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let problems: string[] = [];
+	let zip: jszip;
+	let upload: MissionUpload;
+
+	try {
+		zip = await jszip.loadAsync(req.body);
+	} catch (e) {
+		problems.push("The uploaded file couldn't be unzipped.");
+	}
+
+	if (zip) {
+		try {
+			upload = new MissionUpload(zip);
+			await upload.process();
+			problems.push(...upload.problems);
+		} catch (e) {
+			problems.push("An error occurred during processing.");
+		}
+	}
+
+	if (problems.length > 0) {
+		res.status(400).send({
+			status: 'error',
+			problems: problems
+		});
+	} else {
+		ongoingUploads.set(upload.id, upload);
+
+		res.send({
+			status: 'success',
+			uploadId: upload.id
+		});
+	}
+});
+
+app.post('/api/level/submit', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let upload = ongoingUploads.get(req.body.uploadId);
+	if (!upload) {
+		res.status(400).end();
+		return;
+	}
+
+	let missionDoc = await upload.submit(doc._id, req.body.remarks);
+
+	res.send({
+		levelId: missionDoc._id
+	});
 });

@@ -2,7 +2,7 @@
 	<div :class="{ disabled: waitingForResponse }" v-if="!$store.state.loggedInAccount">
 		<h1>{{ (type === 'signUp')? 'Create an account' : 'Sign in to an account' }}</h1>
 		<input type="email" placeholder="Email" v-model.trim="email" @keydown.enter="submit">
-		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit">
+		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24">
 		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit">
 		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit">
 		<p v-for="problem of problems" :key="problem" class="problem">- {{ problem }}</p>
@@ -126,11 +126,6 @@ input:focus {
 	margin: auto;
 	border-radius: 5px;
 	margin-top: 30px;
-}
-
-.disabled {
-	pointer-events: none;
-	opacity: 0.333;
 }
 
 .problem {

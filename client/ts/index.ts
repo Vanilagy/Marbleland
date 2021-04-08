@@ -11,7 +11,12 @@ const checkLoginToken = async () => {
 	let token = localStorage.getItem('token');
 	if (!token) return;
 
-	let response = await fetch(`/api/account/check-token?token=${token}`);
+	let response = await fetch(`/api/account/check-token`, {
+		headers: {
+			'Authorization': `Bearer ${token}`
+		}
+	});
+	
 	if (!response.ok) {
 		localStorage.removeItem('token');
 	} else {

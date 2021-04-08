@@ -1,6 +1,6 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;">
-		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @clicked="download('platinumquest')">Download Level</button-with-icon>
+		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest')">Download Level</button-with-icon>
 		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
 		<div v-if="expanded">
 			<p v-for="assumption of assuming" :key="assumption.name" @click="download(assumption.name)" v-html="assumption.label"></p>

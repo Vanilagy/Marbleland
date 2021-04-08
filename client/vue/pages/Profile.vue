@@ -51,11 +51,12 @@ export default Vue.defineComponent({
 				if (!file) return;
 
 				let token = localStorage.getItem('token');
-				let response = await fetch(`/api/account/${this.profileInfo.id}/set-avatar?auth=${token}`, {
+				let response = await fetch(`/api/account/${this.profileInfo.id}/set-avatar`, {
 					method: 'POST',
 					body: file,
 					headers: {
-						'Content-Type': 'application/octet-stream'
+						'Content-Type': 'application/octet-stream',
+						'Authorization': `Bearer ${token}`
 					}
 				});
 
