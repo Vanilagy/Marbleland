@@ -6,6 +6,7 @@ export interface AccountDoc {
 	email: string,
 	username: string,
 	passwordHash: string,
+	created: number,
 	tokens: {
 		value: string,
 		lastUsed: number

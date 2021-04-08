@@ -29,5 +29,7 @@ export enum Modification {
 }
 
 export interface ProfileInfo {
-	username: string
+	id: number,
+	username: string,
+	hasAvatar: boolean
 }

@@ -9,6 +9,10 @@ import * as sharp from 'sharp';
 import { AccountDoc, generateNewAccessToken, TOKEN_TTL } from "./account";
 import * as bcrypt from 'bcryptjs';
 
+app.use(express.raw({
+	limit: '20mb'
+}));
+
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	let levelId = Number(req.params.levelId);
 	if (!Number.isInteger(levelId)) {
@@ -138,6 +142,16 @@ app.get('/api/list', async (req, res) => {
 	res.send(response);
 });
 
+const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
+	let hasAvatar = await fs.pathExists(path.join(__dirname, `storage/avatars/${doc._id}.jpg`));
+
+	return {
+		id: doc._id,
+		username: doc.username,
+		hasAvatar
+	};
+};
+
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
 app.get('/api/account/register', async (req, res) => {
@@ -183,6 +197,7 @@ app.get('/api/account/register', async (req, res) => {
 		email: q.email,
 		username: q.username,
 		passwordHash: hash,
+		created: Date.now(),
 		tokens: []
 	};
 
@@ -194,7 +209,7 @@ app.get('/api/account/register', async (req, res) => {
 
 	await db.accounts.insert(doc);
 
-	res.status(200).send({ status: 'success', accountId: id, token: newToken });
+	res.status(200).send({ status: 'success', token: newToken, profileInfo: await getProfileInfo(doc) });
 });
 
 app.get('/api/account/check-token', async (req, res) => {
@@ -217,7 +232,7 @@ app.get('/api/account/check-token', async (req, res) => {
 	}
 
 	res.send({
-		accountId: doc._id
+		profileInfo: await getProfileInfo(doc)
 	});
 
 	token.lastUsed = Date.now();
@@ -251,7 +266,7 @@ app.get('/api/account/sign-in', async (req, res) => {
 
 	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 
-	res.status(200).send({ status: 'success', accountId: doc._id, token: newToken });
+	res.status(200).send({ status: 'success', token: newToken, profileInfo: await getProfileInfo(doc) });
 });
 
 app.get('/api/account/sign-out', async (req, res) => {
@@ -276,7 +291,55 @@ app.get('/api/account/:accountId/info', async (req, res) => {
 		return;
 	}
 
-	res.send({
-		username: doc.username
-	} as ProfileInfo);
+	res.send(await getProfileInfo(doc));
+});
+
+app.get('/api/account/:accountId/avatar', async (req, res) => {
+	let avatarPath = path.join(__dirname, `storage/avatars/${req.params.accountId}.jpg`);
+	let exists = await fs.pathExists(avatarPath);
+
+	res.set('Cache-Control', 'no-cache, no-store');
+
+	if (!exists) {
+		let stream = fs.createReadStream(path.join(__dirname, 'data/assets/avatar_default.png'));
+		res.set('Content-Type', 'image/jpeg');
+		stream.pipe(res);
+		return;
+	}
+
+	let buffer = await fs.readFile(avatarPath);
+
+	if (req.query.size) {
+		let size = Number(req.query.size);
+		if (!Number.isInteger(size) || size < 1 || size > 1024) {
+			res.status(400).end();
+			return;
+		}
+
+		let resized = await sharp(buffer).resize({ width: size, height: size }).jpeg({ quality: 80 }).toBuffer();
+		res.set('Content-Type', 'image/jpeg');
+		res.send(resized);
+		return;
+	}
+
+	res.set('Content-Type', 'image/jpeg');
+	res.send(buffer);
+});
+
+app.post('/api/account/:accountId/set-avatar', async (req, res) => {
+	if (!req.body) {
+		res.status(400).end();
+		return;
+	}
+
+	let doc = await db.accounts.findOne({ _id: Number(req.params.accountId), 'tokens.value': req.query.auth });
+	if (!doc) {
+		res.status(401).end();
+		return;
+	}
+
+	let normed = await sharp(req.body).resize({ width: 1024, height: 1024, fit: 'cover', withoutEnlargement: true }).jpeg({ quality: 100 }).toBuffer();
+	await fs.writeFile(path.join(__dirname, `storage/avatars/${doc._id}.jpg`), normed);
+
+	res.end();
 });

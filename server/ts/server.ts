@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as express from 'express';
 import * as history from 'connect-history-api-fallback';
+import * as bodyParser from 'body-parser';
 
 export const app = express();
 

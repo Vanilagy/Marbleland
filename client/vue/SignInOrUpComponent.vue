@@ -1,10 +1,10 @@
 <template>
-	<div :class="{ disabled: waitingForResponse }" v-if="!$store.state.loggedInAccountId">
+	<div :class="{ disabled: waitingForResponse }" v-if="!$store.state.loggedInAccount">
 		<h1>{{ (type === 'signUp')? 'Create an account' : 'Sign in to an account' }}</h1>
-		<input type="email" placeholder="Email" v-model.trim="email">
-		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'">
-		<input type="password" placeholder="Password" v-model="password">
-		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'">
+		<input type="email" placeholder="Email" v-model.trim="email" @keydown.enter="submit">
+		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit">
+		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit">
+		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit">
 		<p v-for="problem of problems" :key="problem" class="problem">- {{ problem }}</p>
 		<p class="problem">{{ responseError }}</p>
 		<button-with-icon icon="/assets/svg/login_black_24dp.svg" class="submitButton" :class="{ disabled: !canSubmit }" @click="submit">
@@ -16,6 +16,7 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue'
+import { ProfileInfo } from '../../shared/types';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
@@ -45,7 +46,7 @@ export default Vue.defineComponent({
 		problems(): string[] {
 			let problems: string[] = [];
 
-			if (this.$store.state.loggedInAccountId) problems.push("You're already signed in!");
+			if (this.$store.state.loggedInAccount) problems.push("You're already signed in!");
 
 			if (this.type !== 'signUp') return problems;
 			if (!this.filledOut) return problems;
@@ -77,8 +78,8 @@ export default Vue.defineComponent({
 			let json = await response.json() as {
 				status: 'success' | 'error',
 				reason?: string,
-				accountId?: number,
-				token?: string
+				token?: string,
+				profileInfo?: ProfileInfo
 			};
 
 			if (json.status === 'error') {
@@ -86,8 +87,8 @@ export default Vue.defineComponent({
 				this.waitingForResponse = false;
 			} else {
 				localStorage.setItem('token', json.token);
-				this.$store.state.loggedInAccountId = json.accountId;
-				this.$router.push({ name: 'Profile', params: { id: json.accountId } });
+				this.$store.state.loggedInAccount = json.profileInfo;
+				this.$router.push({ name: 'Profile', params: { id: json.profileInfo.id } });
 			}
 		}
 	}

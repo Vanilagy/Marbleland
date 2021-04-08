@@ -1,5 +1,6 @@
 import { response } from 'express';
 import * as Vue from 'vue';
+import { ProfileInfo } from '../../shared/types';
 import App from '../vue/App.vue';
 import router from './router';
 import { store } from './store';
@@ -14,8 +15,8 @@ const checkLoginToken = async () => {
 	if (!response.ok) {
 		localStorage.removeItem('token');
 	} else {
-		let json = await response.json() as { accountId: number };
-		store.state.loggedInAccountId = json.accountId;
+		let json = await response.json() as { profileInfo: ProfileInfo };
+		store.state.loggedInAccount = json.profileInfo;
 	}
 };
 checkLoginToken();

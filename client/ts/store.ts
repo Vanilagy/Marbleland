@@ -1,5 +1,5 @@
 import { createStore } from "vuex";
-import { LevelInfo } from "../../shared/types";
+import { LevelInfo, ProfileInfo } from "../../shared/types";
 
 export const store = createStore({
 	state: {
@@ -63,7 +63,8 @@ export const store = createStore({
 			},
 			shownCount: 24
 		},
-		loggedInAccountId: null as number
+		loggedInAccount: null as ProfileInfo,
+		avatarVersion: 0
 	}
 });
 
