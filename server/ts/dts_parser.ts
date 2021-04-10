@@ -620,12 +620,15 @@ export class DtsParser extends BinaryFileParser {
 
 		alloc.guard();
 
-		let meshes = Array(numMeshes).fill(null).map(() => {
+		let meshes: DtsFile["meshes"] = [];
+
+		for (let i = 0; i < numMeshes; i++) {
 			let type = alloc.readU32();
 			
 			if (type === MeshType.Null) {
 				// Null meshes are simply skipped
-				return null;
+				meshes.push(null);
+				continue;
 			}
 			
 			alloc.guard();
@@ -638,13 +641,13 @@ export class DtsParser extends BinaryFileParser {
 			let radius = alloc.readF32();
 
 			let numVerts = alloc.readS32();
-			let verts = Array(numVerts).fill(null).map(() => alloc.readPoint3F());
+			let verts = (parentMesh < 0)? Array(numVerts).fill(null).map(() => alloc.readPoint3F()) : meshes[parentMesh].verts;
 			let numTVerts = alloc.readS32();
-			let tverts = Array(numTVerts).fill(null).map(() => alloc.readPoint2F());
+			let tverts = (parentMesh < 0)? Array(numTVerts).fill(null).map(() => alloc.readPoint2F()) : meshes[parentMesh].tverts;
 
-			let norms = Array(numVerts).fill(null).map(() => alloc.readPoint3F());
+			let norms = (parentMesh < 0)? Array(numVerts).fill(null).map(() => alloc.readPoint3F()) : meshes[parentMesh].norms;
 			let encodedNorms: number[] = [];
-			if (version > 21) encodedNorms = Array(numVerts).fill(null).map(() => alloc.readU8());
+			if (version > 21) encodedNorms = (parentMesh < 0)? Array(numVerts).fill(null).map(() => alloc.readU8()) : meshes[parentMesh].encodedNorms;
 			let numPrimitives = alloc.readS32();
 			let primitives = Array(numPrimitives).fill(null).map(() => {
 				return {
@@ -710,8 +713,8 @@ export class DtsParser extends BinaryFileParser {
 				alloc.guard();
 			}
 
-			return mesh;
-		});
+			meshes.push(mesh);
+		}
 
 		alloc.guard();
 
