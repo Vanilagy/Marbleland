@@ -2,7 +2,7 @@
 	<search-bar></search-bar>
 	<div class="levels">
 		<template v-if="!loaded">
-			<level-panel-skeleton v-for="n in 24"></level-panel-skeleton>
+			<level-panel-skeleton v-for="n in 24" :key="n"></level-panel-skeleton>
 		</template>
 		<template v-else>
 			<template v-if="shownLevels.length > 0">
@@ -30,7 +30,6 @@ export default Vue.defineComponent({
 		return {
 			searchState: this.$store.state.searchState,
 			searchBar: this.$store.state.searchState.searchBar,
-			loaded: false,
 			lastFilteredLevels: [] as LevelInfo[],
 			filteredLevels: [] as LevelInfo[]
 		};
@@ -41,9 +40,8 @@ export default Vue.defineComponent({
 		LevelPanelSkeleton
 	},
 	async created() {
-		await Search.loadLevels();
-		this.updateFilteredLevels(false);
-		this.loaded = true;
+		if (this.loaded) this.updateFilteredLevels(false);
+		else Search.loadLevels();
 	},
 	computed: {
 		shownLevels(): LevelInfo[] {
@@ -54,6 +52,12 @@ export default Vue.defineComponent({
 		},
 		noLevelsNotice(): string {
 			return Search.levels.length? "There are no levels matching your search query." : "There are no levels to search for.";
+		},
+		levelsVersion(): number {
+			return this.$store.state.searchState.levelsVersion;
+		},
+		loaded(): boolean {
+			return this.levelsVersion !== 0;
 		}
 	},
 	methods: {
@@ -78,6 +82,9 @@ export default Vue.defineComponent({
 				if (this.loaded) this.updateFilteredLevels(true);
 			},
 			deep: true
+		},
+		levelsVersion() {
+			this.updateFilteredLevels(false);
 		}
 	}
 });

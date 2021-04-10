@@ -276,10 +276,10 @@ export class MissionUpload {
 		}
 
 		let relativePath = [...this.normalizedDirectory.keys()].find(x => x.endsWith('.mis'));
-		let mission = new Mission(directoryPath, relativePath);
+		let mission = new Mission(directoryPath, relativePath, levelId);
 		await mission.hydrate();
 
-		let doc = mission.createDoc(levelId);
+		let doc = mission.createDoc();
 		doc.addedBy = submitter;
 		doc.remarks = remarks ?? '';
 

@@ -58,6 +58,7 @@ export interface MissionElementScriptObject extends MissionElementBase {
 	awesometime: string,
 	game: string,
 	modification: string,
+	gamemode: string,
 
 	score: any,
 	score0: any,

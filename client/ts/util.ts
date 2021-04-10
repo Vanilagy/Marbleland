@@ -24,4 +24,27 @@ export class Util {
 	static normalizeString(str: string) {
 		return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/g, '').toLowerCase();
 	}
+
+	static monthStrings = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+	static formatDate(date: Date) {
+		let month = this.monthStrings[date.getMonth()];
+		let day = date.getDate();
+		let year = date.getFullYear();
+
+		return `${month} ${day}, ${year}`;
+	}
+
+	static splitWords(s: string) {
+		let re, match, output = [];
+		re = /([A-Za-z]?)([a-z]+)/g;
+	
+		match = re.exec(s);
+		while (match) {
+			output.push([match[1].toUpperCase(), match[2]].join(""));
+			match = re.exec(s);
+		}
+	
+		return output;
+	}
 }

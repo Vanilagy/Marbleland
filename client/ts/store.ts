@@ -3,7 +3,6 @@ import { LevelInfo, ProfileInfo } from "../../shared/types";
 
 export const store = createStore({
 	state: {
-		currentLevelInfo: null as LevelInfo,
 		searchState: {
 			searchBar: {
 				query: '',
@@ -61,7 +60,8 @@ export const store = createStore({
 					}
 				}
 			},
-			shownCount: 24
+			shownCount: 24,
+			levelsVersion: 0
 		},
 		loggedInAccount: null as ProfileInfo,
 		avatarVersion: 0

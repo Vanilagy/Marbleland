@@ -7,7 +7,7 @@ export interface LevelInfo {
 	artist: string,
 	desc: string,
 	addedAt: number,
-	remarks: string,
+	gameMode: string,
 
 	qualifyingTime: number,
 	goldTime: number,
@@ -16,6 +16,11 @@ export interface LevelInfo {
 	awesomeTime: number,
 	gems: number,
 	hasEasterEgg: boolean
+}
+
+export interface ExtendedLevelInfo extends LevelInfo {
+	addedBy: ProfileInfo,
+	remarks: string
 }
 
 export enum GameType {

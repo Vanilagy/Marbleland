@@ -31,7 +31,6 @@ export default Vue.defineComponent({
 	},
 	methods: {
 		clicked(): void {
-			this.$store.state.currentLevelInfo = this.levelInfo;
 			this.$router.push({ name: 'Level', params: { id: this.levelInfo.id } });
 		},
 		imageLoadError() {

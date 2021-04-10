@@ -1,6 +1,9 @@
 import * as crypto from 'crypto';
 import { db } from './globals';
 import * as express from 'express';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import { ProfileInfo } from '../../shared/types';
 
 export interface AccountDoc {
 	_id: number,
@@ -57,4 +60,14 @@ export const authorize = async (req: express.Request) => {
 	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 
 	return doc;
+};
+
+export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
+	let hasAvatar = await fs.pathExists(path.join(__dirname, `storage/avatars/${doc._id}.jpg`));
+
+	return {
+		id: doc._id,
+		username: doc.username,
+		hasAvatar
+	};
 };

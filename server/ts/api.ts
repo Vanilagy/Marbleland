@@ -6,7 +6,7 @@ import { app } from "./server";
 import * as express from 'express';
 import { LevelInfo, ProfileInfo } from "../../shared/types";
 import * as sharp from 'sharp';
-import { AccountDoc, authorize, generateNewAccessToken, TOKEN_TTL } from "./account";
+import { AccountDoc, authorize, generateNewAccessToken, getProfileInfo, TOKEN_TTL } from "./account";
 import * as bcrypt from 'bcryptjs';
 import * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
@@ -120,7 +120,17 @@ app.get('/api/level/:levelId/info', async (req, res) => {
 	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 	let mission = Mission.fromDoc(doc);
 
-	res.send(mission.createLevelInfo(doc._id));
+	res.send(mission.createLevelInfo());
+});
+
+app.get('/api/level/:levelId/extended-info', async (req, res) => {
+	let levelId = await verifyLevelId(req, res);
+	if (levelId === null) return;
+
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+	let mission = Mission.fromDoc(doc);
+
+	res.send(await mission.createExtendedLevelInfo());
 });
 
 app.get('/api/level/:levelId/mission-info', async (req, res) => {
@@ -139,21 +149,11 @@ app.get('/api/list', async (req, res) => {
 
 	for (let doc of docs) {
 		let mission = Mission.fromDoc(doc);
-		response.push(mission.createLevelInfo(doc._id));
+		response.push(mission.createLevelInfo());
 	}
 
 	res.send(response);
 });
-
-const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
-	let hasAvatar = await fs.pathExists(path.join(__dirname, `storage/avatars/${doc._id}.jpg`));
-
-	return {
-		id: doc._id,
-		username: doc.username,
-		hasAvatar
-	};
-};
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 

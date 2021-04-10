@@ -7,7 +7,8 @@ import { DtsParser } from './dts_parser';
 import JSZip from 'jszip';
 import { Config } from './config';
 import { db, keyValue, structureMBG, structurePQ } from './globals';
-import { Modification, GameType, LevelInfo } from '../../shared/types';
+import { Modification, GameType, LevelInfo, ExtendedLevelInfo } from '../../shared/types';
+import { AccountDoc, getProfileInfo } from './account';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
@@ -38,17 +39,25 @@ export class Mission {
 	gems: number = 0;
 	hasEasterEgg: boolean = false;
 	visitedPaths = new Set<string>();
+	id: number;
 	addedAt: number;
 	addedBy: number;
 	remarks: string;
 
-	constructor(baseDirectory: string, relativePath: string) {
+	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
 		this.relativePath = relativePath;
+
+		if (id !== undefined) {
+			this.id = id;
+		} else {
+			this.id = keyValue.get('levelId');
+			keyValue.set('levelId', this.id + 1);
+		}
 	}
 
 	static fromDoc(doc: MissionDoc) {
-		let mission = new Mission(doc.baseDirectory, doc.relativePath);
+		let mission = new Mission(doc.baseDirectory, doc.relativePath, doc._id);
 		mission.dependencies = new Set(doc.dependencies);
 		mission.info = doc.info;
 		mission.gameType = doc.gameType;
@@ -213,9 +222,9 @@ export class Mission {
 		return result;
 	}
 
-	createDoc(id: number): MissionDoc {
+	createDoc(): MissionDoc {
 		return {
-			_id: id,
+			_id: this.id,
 			baseDirectory: this.baseDirectory,
 			relativePath: this.relativePath,
 			dependencies: [...this.dependencies],
@@ -228,9 +237,9 @@ export class Mission {
 		};
 	}
 
-	createLevelInfo(id: number): LevelInfo {
+	createLevelInfo(): LevelInfo {
 		return {
-			id: id,
+			id: this.id,
 			baseName: this.getBaseName(),
 			gameType: this.gameType,
 			modification: this.modification,
@@ -238,7 +247,7 @@ export class Mission {
 			artist: this.info.artist,
 			desc: this.info.desc,
 			addedAt: this.addedAt,
-			remarks: this.remarks,
+			gameMode: this.info.gamemode,
 
 			qualifyingTime: this.info.time? Number(this.info.time) : undefined,
 			goldTime: this.info.goldtime? Number(this.info.goldtime) : undefined,
@@ -250,6 +259,17 @@ export class Mission {
 		};
 	}
 
+	async createExtendedLevelInfo(): Promise<ExtendedLevelInfo> {
+		let levelInfo = this.createLevelInfo();
+
+		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
+
+		return Object.assign(levelInfo, {
+			addedBy: accountDoc && await getProfileInfo(accountDoc),
+			remarks: this.remarks
+		});
+	}
+
 	getImagePath() {
 		let startsWith = Util.removeExtension(this.relativePath);
 		let potentialNames = IMAGE_EXTENSIONS.map(x => (startsWith + x).toLowerCase());
@@ -257,7 +277,7 @@ export class Mission {
 	}
 
 	getBaseName() {
-		return this.relativePath.slice(this.relativePath.lastIndexOf('/') + 1);
+		return Util.getFileName(this.relativePath);
 	}
 
 	scanSimGroup(simGroup: MissionElementSimGroup) {
@@ -436,7 +456,16 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 			} else {
 				if (entry.toLowerCase().endsWith('.mis')) {
 					console.log("Importing: ", fromStart);
-					let mission = new Mission(baseDirectory, fromStart);
+
+					let id: number;
+					if (idMap) {
+						let baseName = Util.getFileName(fromStart);
+						id = idMap.find(x => x.baseName === baseName)?.id;
+						if (id === undefined) throw new Error(`ID map is missing entry for baseName ${baseName}.`);
+						keyValue.set('levelId', Math.max(id, keyValue.get('levelId')));
+					}
+
+					let mission = new Mission(baseDirectory, fromStart, id);
 	
 					try {
 						await mission.hydrate();
@@ -444,20 +473,9 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 						console.error(`Error in loading mission ${entry}:`, e);
 						break;
 					}
-
-					let id: number;
-					if (idMap) {
-						let baseName = mission.getBaseName();
-						id = idMap.find(x => x.baseName === baseName)?.id;
-						if (id === undefined) throw new Error(`ID map is missing entry for baseName ${baseName}.`);
-						keyValue.set('levelId', Math.max(id, keyValue.get('levelId')));
-					} else {
-						id = keyValue.get('levelId');
-						keyValue.set('levelId', id + 1);
-					}
 					
-					let doc = mission.createDoc(id);
-					await db.missions.update({ _id: id }, doc, { upsert: true });
+					let doc = mission.createDoc();
+					await db.missions.update({ _id: doc._id }, doc, { upsert: true });
 	
 					console.log("Level imported successfully with id " + id);
 				}

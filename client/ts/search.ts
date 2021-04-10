@@ -13,8 +13,8 @@ export abstract class Search {
 	static levels: LevelInfo[];
 	static wrappers: LevelInfoWrapper[];
 
-	static async loadLevels() {
-		if (this.levels) return;
+	static async loadLevels(reload = false) {
+		if (this.levels && !reload) return;
 
 		let response = await fetch('/api/list');
 		let levelList = await response.json() as LevelInfo[];
@@ -34,6 +34,8 @@ export abstract class Search {
 				sortArtist
 			};
 		});
+
+		store.state.searchState.levelsVersion++;
 	}
 
 	static filter() {
@@ -79,5 +81,13 @@ export abstract class Search {
 		filtered.sort(sortingFunction);
 
 		return filtered.map(x => x.info);
+	}
+
+	static checkForRefresh(id: number) {
+		if (!this.levels) return false;
+
+		if (!this.levels.some(x => x.id === id)) {
+			this.loadLevels(true);
+		}
 	}
 }
