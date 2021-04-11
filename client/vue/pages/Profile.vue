@@ -9,6 +9,14 @@
 			<img :src="avatarSrc" :style="{ opacity: avatarOpacity }">
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
+		<template v-if="!editingBio || !isOwnProfile">
+			<p class="bio" :class="{ emptyBio: !profileInfo.bio }">{{ bio }}</p>
+			<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio" title="Edit bio" v-if="isOwnProfile" @click="editingBio = true">
+		</template>
+		<template v-else>
+			<textarea class="bioTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
+			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="saveBio" @click="saveBio">Save bio</button-with-icon>
+		</template>
 		<h3>Uploaded levels</h3>
 		<level-list :levels="profileInfo.uploadedLevels" :defaultCount="4" noLevelsNotice="This user has yet to upload any levels."></level-list>
 	</div>
@@ -19,12 +27,14 @@ import Vue from 'vue';
 import { ExtendedProfileInfo } from '../../../shared/types';
 import InfoBanner from '../InfoBanner.vue';
 import LevelList from '../LevelList.vue';
+import ButtonWithIcon from '../ButtonWithIcon.vue';
 
 export default Vue.defineComponent({
 	data() {
 		return {
 			profileInfo: null as ExtendedProfileInfo,
-			creationBannerShown: false
+			creationBannerShown: false,
+			editingBio: false
 		};
 	},
 	async mounted() {
@@ -52,6 +62,9 @@ export default Vue.defineComponent({
 		},
 		isOwnProfile(): boolean {
 			return this.profileInfo.id === this.$store.state.loggedInAccount?.id
+		},
+		bio(): string {
+			return this.profileInfo.bio || "This user hasn't set a bio.";
 		}
 	},
 	methods: {
@@ -83,11 +96,25 @@ export default Vue.defineComponent({
 					alert("Something went wrong.");
 				}
 			});
+		},
+		saveBio() {
+			this.editingBio = false;
+
+			let token = localStorage.getItem('token');
+			fetch(`/api/account/${this.profileInfo.bio}/set-bio`, {
+				method: 'POST',
+				body: this.profileInfo.bio ?? '',
+				headers: {
+					'Content-Type': 'text/plain',
+					'Authorization': `Bearer ${token}`
+				}
+			});
 		}
 	},
 	components: {
 		InfoBanner,
 		LevelList,
+		ButtonWithIcon
 	}
 });
 </script>
@@ -146,6 +173,60 @@ h1 {
 
 .setAvatar > img {
 	width: 48px;
+}
+
+.bio {
+	font-size: 14px;
+	text-align: center;
+	margin: 0;
+	margin: auto;
+	width: 500px;
+	white-space: pre-wrap;
+}
+
+.emptyBio {
+	opacity: 0.5;
+	font-style: italic;
+}
+
+.editBio {
+	opacity: 0.25;
+	cursor: pointer;
+	display: block;
+	margin: auto;
+}
+
+.editBio:hover {
+	opacity: 0.75;
+}
+
+.bioTextarea {
+	display: block;
+	width: 500px;
+	height: 200px;
+	margin: auto;
+	background: rgb(240, 240, 240);
+	font-size: 16px;
+	font-family: inherit;
+	color: inherit;
+	border: 2px solid transparent;
+	border-radius: 5px;
+	padding: 5px;
+    box-sizing: border-box;
+    resize: none;
+	margin-top: 10px;
+}
+
+.bioTextarea:focus {
+	outline: none;
+	border: 2px solid rgb(220, 220, 220);
+}
+
+.saveBio {
+	width: 200px;
+	margin: auto;
+	border-radius: 5px;
+	margin-top: 10px;
 }
 
 h3 {

@@ -15,7 +15,8 @@ export interface AccountDoc {
 	tokens: {
 		value: string,
 		lastUsed: number
-	}[]
+	}[],
+	bio: string
 }
 
 export const generateNewAccessToken = () => {
@@ -85,6 +86,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 	}
 
 	return Object.assign(profileInfo, {
+		bio: doc.bio,
 		uploadedLevels
 	});
 };

@@ -43,5 +43,6 @@ export interface ProfileInfo {
 }
 
 export interface ExtendedProfileInfo extends ProfileInfo {
+	bio: string,
 	uploadedLevels: LevelInfo[]
 }

@@ -15,6 +15,7 @@ app.use(express.raw({
 	limit: '15mb'
 }));
 app.use(express.json());
+app.use(express.text());
 
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	let levelId = Number(req.params.levelId);
@@ -206,7 +207,8 @@ app.get('/api/account/register', async (req, res) => {
 		username: q.username,
 		passwordHash: hash,
 		created: Date.now(),
-		tokens: []
+		tokens: [],
+		bio: ''
 	};
 
 	let newToken = generateNewAccessToken();
@@ -333,6 +335,19 @@ app.post('/api/account/:accountId/set-avatar', async (req, res) => {
 
 	let normed = await sharp(req.body).resize({ width: 1024, height: 1024, fit: 'cover', withoutEnlargement: true }).jpeg({ quality: 100 }).toBuffer();
 	await fs.writeFile(path.join(__dirname, `storage/avatars/${doc._id}.jpg`), normed);
+
+	res.end();
+});
+
+app.post('/api/account/:accountId/set-bio', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	doc.bio = req.body.toString();
+	await db.accounts.update({ _id: doc._id }, doc);
 
 	res.end();
 });
