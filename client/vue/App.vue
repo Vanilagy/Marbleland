@@ -36,6 +36,17 @@ body, html {
 * {
 	-webkit-user-drag: none;
 	-moz-user-drag: none;
+}
+
+img {
+	-moz-user-select: -moz-none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+}
+
+.notSelectable {
 	-moz-user-select: -moz-none;
 	-khtml-user-select: none;
 	-webkit-user-select: none;

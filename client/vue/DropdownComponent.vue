@@ -1,5 +1,5 @@
 <template>
-	<div class="outer">
+	<div class="outer notSelectable">
 		<div class="wrapper" :style="wrapperStyle">
 			<p @click="toggleExpand">{{ currentLabel }}</p>
 			<img src="/assets/svg/expand_more_black_24dp.svg" :style="chevronStyle">

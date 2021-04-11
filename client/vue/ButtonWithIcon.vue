@@ -1,5 +1,5 @@
 <template>
-	<div class="mainButton">
+	<div class="mainButton notSelectable">
 		<img :src="icon" style="margin-right: 10px;">
 		<span><slot></slot></span>
 	</div>

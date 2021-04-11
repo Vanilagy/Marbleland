@@ -1,5 +1,5 @@
 <template>
-	<div class="profileBanner" @click="clicked">
+	<div class="profileBanner notSelectable" @click="clicked">
 		<img :src="avatarSrc" :style="{ opacity: opacity }">
 		<div>
 			<p class="username">{{ profileInfo.username }}</p>
