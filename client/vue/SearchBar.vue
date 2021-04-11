@@ -1,5 +1,5 @@
 <template>
-	<div class="search-bar">
+	<div class="search-bar notSelectable">
 		<img src="/assets/svg/search_black_24dp.svg">
 		<input type="text" placeholder="Search for level" v-model="searchBar.query" @focus="focused = true" @blur="focused = false">
 		<img src="/assets/svg/tune_black_24dp.svg" @click="searchBar.filterShown = !searchBar.filterShown" class="toggle-filter" :title="searchBar.filterShown? 'Hide filter' : 'Show filter'">

@@ -1,5 +1,5 @@
 <template>
-	<div class="outer" @click="clicked">
+	<div class="outer notSelectable" @click="clicked">
 		<img :src="imageSource" @error="imageLoadError" v-if="imageShown">
 		<div class="bottom">
 			<div class="name">{{levelInfo.name}}</div>
