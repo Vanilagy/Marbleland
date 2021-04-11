@@ -6,7 +6,7 @@ import { app } from "./server";
 import * as express from 'express';
 import { LevelInfo, ProfileInfo } from "../../shared/types";
 import * as sharp from 'sharp';
-import { AccountDoc, authorize, generateNewAccessToken, getProfileInfo, TOKEN_TTL } from "./account";
+import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getProfileInfo, TOKEN_TTL } from "./account";
 import * as bcrypt from 'bcryptjs';
 import * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
@@ -284,7 +284,7 @@ app.get('/api/account/:accountId/info', async (req, res) => {
 		return;
 	}
 
-	res.send(await getProfileInfo(doc));
+	res.send(await getExtendedProfileInfo(doc));
 });
 
 app.get('/api/account/:accountId/avatar', async (req, res) => {

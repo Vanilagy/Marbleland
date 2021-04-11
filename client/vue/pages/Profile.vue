@@ -9,25 +9,28 @@
 			<img :src="avatarSrc" :style="{ opacity: avatarOpacity }">
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
+		<h3>Uploaded levels</h3>
+		<level-list :levels="profileInfo.uploadedLevels" :defaultCount="4" noLevelsNotice="This user has yet to upload any levels."></level-list>
 	</div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
-import { ProfileInfo } from '../../../shared/types';
+import { ExtendedProfileInfo } from '../../../shared/types';
 import InfoBanner from '../InfoBanner.vue';
+import LevelList from '../LevelList.vue';
 
 export default Vue.defineComponent({
 	data() {
 		return {
-			profileInfo: null as ProfileInfo,
+			profileInfo: null as ExtendedProfileInfo,
 			creationBannerShown: false
 		};
 	},
 	async mounted() {
 		let accountId = Number(this.$route.params.id);
 		let response = await fetch(`/api/account/${accountId}/info`);
-		let json = await response.json() as ProfileInfo;
+		let json = await response.json() as ExtendedProfileInfo;
 
 		this.profileInfo = json;
 
@@ -83,7 +86,8 @@ export default Vue.defineComponent({
 		}
 	},
 	components: {
-		InfoBanner
+		InfoBanner,
+		LevelList,
 	}
 });
 </script>
@@ -142,5 +146,13 @@ h1 {
 
 .setAvatar > img {
 	width: 48px;
+}
+
+h3 {
+	margin: 0;
+	font-size: 13px;
+	text-transform: uppercase;
+	font-weight: bold;
+	margin-top: 25px;
 }
 </style>

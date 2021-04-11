@@ -1,24 +1,12 @@
 <template>
 	<search-bar></search-bar>
-	<div class="levels">
-		<template v-if="!loaded">
-			<level-panel-skeleton v-for="n in 24" :key="n"></level-panel-skeleton>
-		</template>
-		<template v-else>
-			<template v-if="shownLevels.length > 0">
-				<level-panel v-for="info of shownLevels" :key="info.id" :levelInfo="info"></level-panel>
-			</template>
-			<p v-else class="noLevelsNotice">{{ noLevelsNotice }}</p>
-		</template>
-	</div>
-	<img src="/assets/svg/expand_more_black_24dp.svg" class="more" @click="showMore" v-if="canShowMore" title="Show more">
+	<level-list :levels="filteredLevels" :noLevelsNotice="noLevelsNotice" :defaultCount="24" ref="levelList" @shownCountChange="storeShownCount"></level-list>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
 import SearchBar from '../SearchBar.vue';
-import LevelPanel from '../LevelPanel.vue';
-import LevelPanelSkeleton from '../LevelPanelSkeleton.vue';
+import LevelList from '../LevelList.vue';
 import { LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
@@ -36,22 +24,17 @@ export default Vue.defineComponent({
 	},
 	components: {
 		SearchBar,
-		LevelPanel,
-		LevelPanelSkeleton
+		LevelList
 	},
-	async created() {
+	mounted() {
 		if (this.loaded) this.updateFilteredLevels(false);
 		else Search.loadLevels();
+
+		(this.$refs.levelList as any).shownCount = Number(this.$store.state.searchState.shownCount);
 	},
 	computed: {
-		shownLevels(): LevelInfo[] {
-			return this.filteredLevels.slice(0, this.searchState.shownCount);
-		},
-		canShowMore(): boolean {
-			return this.shownLevels.length < this.filteredLevels.length;
-		},
 		noLevelsNotice(): string {
-			return Search.levels.length? "There are no levels matching your search query." : "There are no levels to search for.";
+			return Search.levels?.length? "There are no levels matching your search query." : "There are no levels to search for.";
 		},
 		levelsVersion(): number {
 			return this.$store.state.searchState.levelsVersion;
@@ -64,16 +47,18 @@ export default Vue.defineComponent({
 		normalizeString(str: string) {
 			return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/g, '').toLowerCase();
 		},
-		showMore() {
-			this.searchState.shownCount += 24;
-		},
 		updateFilteredLevels(resetShownCount: boolean) {
 			let filtered = Search.filter();
 
-			if (resetShownCount) this.searchState.shownCount = 24;
+			//if (resetShownCount) this.searchState.shownCount = 24;
 
 			this.lastFilteredLevels = this.filteredLevels.slice();
 			this.filteredLevels = filtered;
+		},
+		storeShownCount() {
+			if (!this.$refs.levelList) return;
+			
+			this.$store.state.searchState.shownCount = (this.$refs.levelList as any).shownCount;
 		}
 	},
 	watch: {
@@ -91,34 +76,5 @@ export default Vue.defineComponent({
 </script>
 
 <style scoped>
-.levels {
-	display: flex;
-	margin: -5px;
-	margin-top: 5px;
-	flex-wrap: wrap;
-}
 
-.levels > div {
-	margin: 5px;
-}
-
-.more {
-	display: block;
-	margin: auto;
-	width: 48px;
-	opacity: 0.25;
-	cursor: pointer;
-}
-
-.more:hover {
-	opacity: 0.75;
-}
-
-.noLevelsNotice {
-	margin: 5px;
-	margin-bottom: 15px;
-	width: 100%;
-	text-align: center;
-	font-size: 14px;
-}
 </style>

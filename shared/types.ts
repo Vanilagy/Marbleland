@@ -41,3 +41,7 @@ export interface ProfileInfo {
 	username: string,
 	hasAvatar: boolean
 }
+
+export interface ExtendedProfileInfo extends ProfileInfo {
+	uploadedLevels: LevelInfo[]
+}

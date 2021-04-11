@@ -3,7 +3,8 @@ import { db } from './globals';
 import * as express from 'express';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { ProfileInfo } from '../../shared/types';
+import { ExtendedProfileInfo, LevelInfo, ProfileInfo } from '../../shared/types';
+import { Mission, MissionDoc } from './mission';
 
 export interface AccountDoc {
 	_id: number,
@@ -70,4 +71,20 @@ export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 		username: doc.username,
 		hasAvatar
 	};
+};
+
+export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedProfileInfo> => {
+	let profileInfo = await getProfileInfo(doc);
+
+	let missionDocs = await db.missions.find({ addedBy: doc._id }) as MissionDoc[];
+	let uploadedLevels: LevelInfo[] = [];
+
+	for (let doc of missionDocs) {
+		let mission = Mission.fromDoc(doc);
+		uploadedLevels.push(mission.createLevelInfo());
+	}
+
+	return Object.assign(profileInfo, {
+		uploadedLevels
+	});
 };
