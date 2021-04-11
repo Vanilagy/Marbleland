@@ -5,7 +5,7 @@
 			<div class="setAvatar" v-if="isOwnProfile" title="Upload new avatar" @click="chooseAvatar">
 				<img src="/assets/svg/file_upload_white_24dp.svg">
 			</div>
-			<img :src="avatarSrc">
+			<img :src="avatarSrc" :style="{ opacity: avatarOpacity }">
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
 	</div>
@@ -30,7 +30,11 @@ export default Vue.defineComponent({
 	},
 	computed: {
 		avatarSrc(): string {
+			if (!this.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
 			return `/api/account/${this.profileInfo.id}/avatar?v=${this.$store.state.avatarVersion}&size=256`;
+		},
+		avatarOpacity(): number {
+			return this.profileInfo.hasAvatar? 1 : 0.75;
 		},
 		shouldSetAvatar(): boolean {
 			return this.isOwnProfile && !this.profileInfo.hasAvatar;
@@ -79,7 +83,6 @@ export default Vue.defineComponent({
 	height: 128px;
 	margin: auto;
 	margin-top: 20px;
-	background: gray;
 	border-radius: 1000px;
 	overflow: hidden;
 	position: relative;
@@ -119,6 +122,7 @@ h1 {
 	width: 100%;
 	height: 100%;
 	border-radius: 10000px;
+	z-index: 1;
 }
 
 .setAvatar:hover {

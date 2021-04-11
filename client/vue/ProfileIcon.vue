@@ -64,10 +64,11 @@ img {
 }
 img.containsAvatar {
 	border: 2px solid rgb(220, 220, 220);
+	opacity: 1;
 }
 
 img:hover {
-	box-shadow: 0px 0px 5px #000000;
+	box-shadow: 0px 0px 5px #0000009f;
 }
 
 .options {
