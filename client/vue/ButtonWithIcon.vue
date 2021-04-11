@@ -26,6 +26,7 @@ export default Vue.defineComponent({
 	cursor: pointer;
 	border: 2px solid transparent;
 	box-sizing: border-box;
+	border-radius: 5px;
 }
 
 .mainButton:hover {

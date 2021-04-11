@@ -5,6 +5,9 @@ import SignUp from '../vue/pages/SignUp.vue';
 import SignIn from '../vue/pages/SignIn.vue';
 import Profile from '../vue/pages/Profile.vue';
 import Upload from '../vue/pages/Upload.vue';
+import Packs from '../vue/pages/Packs.vue';
+import CreatePack from '../vue/pages/CreatePack.vue';
+import Pack from '../vue/pages/Pack.vue';
 
 const routes = [{
 	path: '/',
@@ -30,6 +33,18 @@ const routes = [{
 	path: '/upload',
 	name: 'Upload',
 	component: Upload
+}, {
+	path: '/packs',
+	name: 'Packs',
+	component: Packs
+}, {
+	path: '/create-pack',
+	name: 'CreatePack',
+	component: CreatePack
+}, {
+	path: '/pack/:id',
+	name: 'Pack',
+	component: Pack
 }];
 
 const router = createRouter({

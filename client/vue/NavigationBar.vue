@@ -3,7 +3,7 @@
 		<h1>CLA</h1>
 		<div><router-link to="/">Search</router-link></div>
 		<div><router-link to="/upload">Upload</router-link></div>
-		<div>Packs</div>
+		<div><router-link to="/packs">Packs</router-link></div>
 		<div>About</div>
 		<profile-icon class="profileIcon"></profile-icon>
 	</header>

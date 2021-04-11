@@ -19,6 +19,7 @@
 		</template>
 		<h3>Uploaded levels</h3>
 		<level-list :levels="profileInfo.uploadedLevels" :defaultCount="4" noLevelsNotice="This user has yet to upload any levels."></level-list>
+		<h3>Compiled packs</h3>
 	</div>
 </template>
 

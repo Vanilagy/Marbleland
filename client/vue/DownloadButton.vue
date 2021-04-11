@@ -1,6 +1,6 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;" class="notSelectable">
-		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest')">Download Level</button-with-icon>
+		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest')" style="border-radius: 0px;">{{ buttonText }}</button-with-icon>
 		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
 		<div v-if="expanded">
 			<p v-for="assumption of assuming" :key="assumption.name" @click="download(assumption.name)" v-html="assumption.label"></p>
@@ -14,7 +14,8 @@ import ButtonWithIcon from './ButtonWithIcon.vue';
 
 export default Vue.defineComponent({
 	props: {
-		levelId: Number as PropType<number>
+		mode: String as PropType<'level' | 'pack'>,
+		id: Number as PropType<number>
 	},
 	data() {
 		return {
@@ -32,13 +33,19 @@ export default Vue.defineComponent({
 		};
 	},
 	computed: {
+		buttonText(): string {
+			return this.mode === 'level'? 'Download Level' : 'Download Pack';
+		},
 		chevronTransform(): string {
 			return this.expanded? 'rotate(180deg)' : '';
 		}
 	},
 	methods: {
 		download(assumption: string) {
-			window.location.href = window.location.origin + `/api/level/${this.levelId}/zip?assuming=${assumption}`;
+			window.location.href = window.location.origin + 
+				((this.mode === 'level')? `/api/level/${this.id}/zip?assuming=${assumption}`
+				: `/api/pack/${this.id}/zip?assuming=${assumption}`);
+			;
 		}
 	},
 	components: {

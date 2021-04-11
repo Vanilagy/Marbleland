@@ -8,8 +8,9 @@ import { LevelInfo, ProfileInfo } from "../../shared/types";
 import * as sharp from 'sharp';
 import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getProfileInfo, TOKEN_TTL } from "./account";
 import * as bcrypt from 'bcryptjs';
-import * as jszip from 'jszip';
+import JSZip, * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
+import { getPackInfo, PackDoc } from "./pack";
 
 app.use(express.raw({
 	limit: '15mb'
@@ -47,7 +48,7 @@ app.get('/api/level/:levelId/zip', async (req, res) => {
 	let stream = zip.generateNodeStream();
 
 	res.set('Content-Type', 'application/zip');
-	res.set('Content-Disposition', `attachment; filename="${doc._id}.zip"`);
+	res.set('Content-Disposition', `attachment; filename="level-${doc._id}.zip"`);
 	stream.pipe(res);
 });
 
@@ -412,4 +413,72 @@ app.post('/api/level/submit', async (req, res) => {
 	res.send({
 		levelId: missionDoc._id
 	});
+});
+
+app.post('/api/pack/create', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	if (!req.body.name || !req.body.description) {
+		res.status(401).end();
+		return;
+	}
+
+	let id = keyValue.get('packId');
+	keyValue.set('packId', id + 1);
+
+	let packDoc: PackDoc = {
+		_id: id,
+		name: req.body.name,
+		description: req.body.description,
+		createdAt: Date.now(),
+		createdBy: doc._id,
+		levels: []
+	};
+	await db.packs.insert(packDoc);
+
+	res.send({
+		packId: id
+	});
+});
+
+app.get('/api/pack/:packId/info', async (req, res) => {
+	let doc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+	if (!doc) {
+		res.status(404).send("404\nNo pack exists with this ID.");
+		return;
+	}
+
+	let packInfo = await getPackInfo(doc);
+	res.send(packInfo);
+});
+
+app.get('/api/pack/:packId/zip', async (req, res) => {
+	let doc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+	if (!doc) {
+		res.status(404).send("No pack exists with this ID.");
+		return;
+	}
+
+	let assuming = req.query.assuming as string;
+	if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest';
+
+	let zip = new JSZip();
+
+	for (let levelId of doc.levels) {
+		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		if (!missionDoc) continue;
+
+		let mission = Mission.fromDoc(missionDoc);
+		await mission.addToZip(zip, assuming as ('none' | 'gold' | 'platinumquest'));
+	}
+
+	let stream = zip.generateNodeStream();
+
+	res.set('Content-Type', 'application/zip');
+	res.set('Content-Disposition', `attachment; filename="pack-${doc._id}.zip"`);
+	stream.pipe(res);
 });

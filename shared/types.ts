@@ -46,3 +46,12 @@ export interface ExtendedProfileInfo extends ProfileInfo {
 	bio: string,
 	uploadedLevels: LevelInfo[]
 }
+
+export interface PackInfo {
+	id: number,
+	name: string,
+	description: string,
+	createdBy: ProfileInfo,
+	createdAt: number,
+	levels: LevelInfo[]
+}

@@ -178,7 +178,11 @@ export class Mission {
 
 	async createZip(assuming: 'none' | 'gold' | 'platinumquest') {
 		let zip = new JSZip();
+		this.addToZip(zip, assuming);
+		return zip;
+	}
 
+	async addToZip(zip: JSZip, assuming: 'none' | 'gold' | 'platinumquest') {
 		for (let dependency of this.dependencies) {
 			let normalized = this.normalizeDependency(dependency);
 			if (assuming === 'gold' && Util.directoryStructureHasPath(structureMBG, normalized)) continue;
@@ -198,8 +202,6 @@ export class Mission {
 				zip.file(normalized, stream);
 			}
 		}
-
-		return zip;
 	}
 
 	normalizeDependency(dependency: string) {

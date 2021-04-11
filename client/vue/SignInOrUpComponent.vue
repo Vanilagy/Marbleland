@@ -118,6 +118,7 @@ input {
 	border-radius: 5px;
 	padding-left: 10px;
 	margin-bottom: 10px;
+	box-sizing: border-box;
 }
 
 input:focus {

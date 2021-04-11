@@ -4,14 +4,14 @@
 		<div class="top-part">
 			<aside>
 				<img :src="imageSource" class="thumbnail">
-				<download-button style="margin-top: 10px" :levelId="levelInfo.id"></download-button>
+				<download-button style="margin-top: 10px" :id="levelInfo.id" mode="level"></download-button>
 				<p class="addedDate">Added on {{ formattedDate }}</p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
 			<div>
 				<h1>{{ levelInfo.name }}</h1>
 				<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
-				<h3>Description</h3>
+				<h3 v-if="levelInfo.desc">Description</h3>
 				<p class="regularParagraph">{{ levelInfo.desc }}</p>
 				<h3>Details</h3>
 				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
