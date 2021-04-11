@@ -1,6 +1,6 @@
 <template>
 	<search-bar></search-bar>
-	<level-list :levels="filteredLevels" :noLevelsNotice="noLevelsNotice" :defaultCount="24" ref="levelList" @shownCountChange="storeShownCount"></level-list>
+	<level-list :levels="filteredLevels" :noLevelsNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></level-list>
 </template>
 
 <script lang="ts">
@@ -14,6 +14,7 @@ import { Search } from '../../ts/search';
 const levelSearchStrings = new Map<LevelInfo, string>();
 
 export default Vue.defineComponent({
+	name: 'search',
 	data() {
 		return {
 			searchState: this.$store.state.searchState,
@@ -27,10 +28,8 @@ export default Vue.defineComponent({
 		LevelList
 	},
 	mounted() {
-		if (this.loaded) this.updateFilteredLevels(false);
+		if (this.loaded) this.updateFilteredLevels();
 		else Search.loadLevels();
-
-		(this.$refs.levelList as any).shownCount = Number(this.$store.state.searchState.shownCount);
 	},
 	computed: {
 		noLevelsNotice(): string {
@@ -47,29 +46,22 @@ export default Vue.defineComponent({
 		normalizeString(str: string) {
 			return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/g, '').toLowerCase();
 		},
-		updateFilteredLevels(resetShownCount: boolean) {
+		updateFilteredLevels() {
 			let filtered = Search.filter();
-
-			//if (resetShownCount) this.searchState.shownCount = 24;
 
 			this.lastFilteredLevels = this.filteredLevels.slice();
 			this.filteredLevels = filtered;
-		},
-		storeShownCount() {
-			if (!this.$refs.levelList) return;
-			
-			this.$store.state.searchState.shownCount = (this.$refs.levelList as any).shownCount;
 		}
 	},
 	watch: {
 		searchBar: {
 			handler(newState, old) {
-				if (this.loaded) this.updateFilteredLevels(true);
+				if (this.loaded) this.updateFilteredLevels();
 			},
 			deep: true
 		},
 		levelsVersion() {
-			this.updateFilteredLevels(false);
+			this.updateFilteredLevels();
 		}
 	}
 });

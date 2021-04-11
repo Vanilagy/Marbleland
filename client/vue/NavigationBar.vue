@@ -1,7 +1,7 @@
 <template>
 	<header>
 		<h1>CLA</h1>
-		<div>Search</div>
+		<div><router-link to="/">Search</router-link></div>
 		<div><router-link to="/upload">Upload</router-link></div>
 		<div>Packs</div>
 		<div>About</div>

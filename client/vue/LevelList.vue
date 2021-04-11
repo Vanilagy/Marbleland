@@ -50,9 +50,6 @@ export default Vue.defineComponent({
 	watch: {
 		levels() {
 			this.shownCount = this.defaultCount;
-		},
-		shownCount() {
-			this.$emit('shownCountChange');
 		}
 	}
 });

@@ -2,7 +2,11 @@
 	<div id="center">
 		<navigation-bar></navigation-bar>
 		<hr>
-		<router-view></router-view>
+		<router-view v-slot="{ Component }">
+			<keep-alive include="search">
+				<component :is="Component"></component>
+			</keep-alive>
+		</router-view>
 	</div>
 </template>
 
