@@ -64,7 +64,9 @@ export const store = createStore({
 			levelsVersion: 0
 		},
 		loggedInAccount: null as ProfileInfo,
-		avatarVersion: 0
+		avatarVersion: 0,
+		showLevelCreated: false,
+		showAccountCreated: false
 	}
 });
 

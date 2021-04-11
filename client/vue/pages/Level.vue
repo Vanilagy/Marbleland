@@ -1,5 +1,6 @@
 <template>
 	<template v-if="levelInfo">
+		<info-banner v-if="creationBannerShown">Level submitted successfully!</info-banner>
 		<div class="top-part">
 			<aside>
 				<img :src="imageSource" class="thumbnail">
@@ -26,20 +27,28 @@ import Vue from 'vue'
 import { ExtendedLevelInfo, Modification } from '../../../shared/types';
 import DownloadButton from '../DownloadButton.vue';
 import ProfileBanner from '../ProfileBanner.vue';
+import InfoBanner from '../InfoBanner.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 
 export default Vue.defineComponent({
 	components: {
 		DownloadButton,
-		ProfileBanner
+		ProfileBanner,
+		InfoBanner
 	},
 	data() {
 		return {
-			levelInfo: null as ExtendedLevelInfo
+			levelInfo: null as ExtendedLevelInfo,
+			creationBannerShown: false
 		};
 	},
 	async created() {
+		if (this.$store.state.showLevelCreated) {
+			this.creationBannerShown = true;
+			this.$store.state.showLevelCreated = false;
+		}
+
 		let id = Number(this.$route.params.id);
 		let response = await fetch(`/api/level/${id}/extended-info`);
 		let levelInfo = await response.json() as ExtendedLevelInfo;

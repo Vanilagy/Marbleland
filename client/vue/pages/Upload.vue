@@ -108,6 +108,7 @@ export default Vue.defineComponent({
 				let json = await response.json() as {
 					levelId: number
 				};
+				this.$store.state.showLevelCreated = true;
 				this.$router.push({ name: 'Level', params: { id: json.levelId } });
 			} else {
 				alert("There was an error submitting your level. This is either because of a bug or because you waited too long to submit after initially uploading your .zip. If you want to try again, refresh this page.");

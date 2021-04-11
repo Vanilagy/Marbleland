@@ -1,5 +1,6 @@
 <template>
 	<div v-if="profileInfo">
+		<info-banner v-if="creationBannerShown">Account created successfully!</info-banner>
 		<p v-if="shouldSetAvatar" class="noAvatarNotice">❗ You should set your profile avatar. Do so by clicking the avatar icon. ❗</p>
 		<div class="avatar">
 			<div class="setAvatar" v-if="isOwnProfile" title="Upload new avatar" @click="chooseAvatar">
@@ -14,11 +15,13 @@
 <script lang="ts">
 import Vue from 'vue';
 import { ProfileInfo } from '../../../shared/types';
+import InfoBanner from '../InfoBanner.vue';
 
 export default Vue.defineComponent({
 	data() {
 		return {
-			profileInfo: null as ProfileInfo
+			profileInfo: null as ProfileInfo,
+			creationBannerShown: false
 		};
 	},
 	async mounted() {
@@ -27,6 +30,11 @@ export default Vue.defineComponent({
 		let json = await response.json() as ProfileInfo;
 
 		this.profileInfo = json;
+
+		if (this.$store.state.showAccountCreated) {
+			this.creationBannerShown = true;
+			this.$store.state.showAccountCreated = false;
+		}
 	},
 	computed: {
 		avatarSrc(): string {
@@ -73,6 +81,9 @@ export default Vue.defineComponent({
 				}
 			});
 		}
+	},
+	components: {
+		InfoBanner
 	}
 });
 </script>

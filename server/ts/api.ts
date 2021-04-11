@@ -185,6 +185,11 @@ app.get('/api/account/register', async (req, res) => {
 		res.status(400).send({ status: 'error', reason: "Username already in use." });
 		return;
 	}
+	
+	if (q.username.length < 2) {
+		res.status(400).send({ status: 'error', reason: 'Username too short.' });
+		return;
+	}
 
 	if (q.password.length < 8) {
 		res.status(400).send({ status: 'error', reason: "Password too short." });
@@ -228,11 +233,11 @@ app.get('/api/account/check-token', async (req, res) => {
 });
 
 app.get('/api/account/sign-in', async (req, res) => {
-	let doc = await db.accounts.findOne({ email: req.query.email }) as AccountDoc;
+	let doc = await db.accounts.findOne({ $or: [{ email: req.query.email_or_username }, { username: req.query.email_or_username }] }) as AccountDoc;
 	if (!doc) {
 		res.status(400).send({
 			status: 'error',
-			reason: 'An account with this email does not exist.'
+			reason: 'An account with this email or username does not exist.'
 		});
 		return;
 	}

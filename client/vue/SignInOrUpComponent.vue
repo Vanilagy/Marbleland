@@ -1,7 +1,7 @@
 <template>
 	<div :class="{ disabled: waitingForResponse }" v-if="!$store.state.loggedInAccount">
 		<h1>{{ (type === 'signUp')? 'Create an account' : 'Sign in to an account' }}</h1>
-		<input type="email" placeholder="Email" v-model.trim="email" @keydown.enter="submit">
+		<input type="email" :placeholder="emailPlaceholder" v-model.trim="email" @keydown.enter="submit">
 		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24">
 		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit">
 		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit">
@@ -61,6 +61,9 @@ export default Vue.defineComponent({
 		canSubmit(): boolean {
 			return true;
 			return this.filledOut && this.problems.length === 0;
+		},
+		emailPlaceholder(): string {
+			return (this.type === 'signUp')? 'Email' : 'Email or username';
 		}
 	},
 	methods: {
@@ -72,7 +75,7 @@ export default Vue.defineComponent({
 
 			let url = (this.type === 'signUp')?
 				`/api/account/register?email=${encodeURIComponent(this.email)}&username=${encodeURIComponent(this.username)}&password=${this.password}` :
-				`/api/account/sign-in?email=${encodeURIComponent(this.email)}&password=${this.password}`;
+				`/api/account/sign-in?email_or_username=${encodeURIComponent(this.email)}&password=${this.password}`;
 			let response = await fetch(url);
 
 			let json = await response.json() as {
@@ -88,6 +91,7 @@ export default Vue.defineComponent({
 			} else {
 				localStorage.setItem('token', json.token);
 				this.$store.state.loggedInAccount = json.profileInfo;
+				if (this.type === 'signUp') this.$store.state.showAccountCreated = true;
 				this.$router.push({ name: 'Profile', params: { id: json.profileInfo.id } });
 			}
 		}
