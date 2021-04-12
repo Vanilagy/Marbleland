@@ -6,9 +6,10 @@
 				<div class="name">{{levelInfo.name}}</div>
 				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
 			</div>
-			<div class="options" :style="optionsStyle" v-if="options && Object.keys(options).length">
-				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="options.removeFromPack" title="Remove level from pack" @click.stop="options.removeFromPack(levelInfo)">
-				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="options.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()">
+			<div class="actions" :style="actionsStyle">
+				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions?.removeFromPack" title="Remove level from pack" @click.stop="actions.removeFromPack(levelInfo)">
+				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions?.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()">
+				<img src="/assets/svg/download_black_24dp.svg" title="Download level" @click.stop="download">
 			</div>
 		</div>
 		<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
@@ -21,18 +22,15 @@ import { LevelInfo } from '../../shared/types';
 import { Util } from '../ts/util';
 import PackAdder from './PackAdder.vue';
 
-export interface LevelPanelOptions {
+export interface LevelPanelActions {
 	removeFromPack?: (info: LevelInfo) => void,
 	addToPack?: boolean
 }
 
 export default Vue.defineComponent({
 	props: {
-		levelInfo: {
-			type: Object as PropType<LevelInfo>,
-			required: true
-		},
-		options: Object as PropType<LevelPanelOptions>
+		levelInfo: Object as PropType<LevelInfo>,
+		actions: Object as PropType<LevelPanelActions>
 	},
 	data() {
 		return {
@@ -43,9 +41,9 @@ export default Vue.defineComponent({
 		imageSource(): string {
 			return `/api/level/${this.levelInfo.id}/image`;
 		},
-		optionsStyle(): Record<string, string> {
+		actionsStyle(): Record<string, string> {
 			return {
-				display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the options if there's no hovering on the device
+				display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the actions if there's no hovering on the device
 			};
 		}
 	},
@@ -55,6 +53,9 @@ export default Vue.defineComponent({
 		},
 		imageLoadError() {
 			this.imageShown = false;
+		},
+		download() {
+			window.location.href = window.location.origin + `/api/level/${this.levelInfo.id}/zip`;
 		}
 	},
 	components: {
@@ -83,7 +84,7 @@ export default Vue.defineComponent({
 	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 }
 
-.panel:hover .options {
+.panel:hover .actions {
 	display: block;
 }
 
@@ -125,7 +126,7 @@ export default Vue.defineComponent({
 	opacity: 0.5;
 }
 
-.options {
+.actions {
 	position: absolute;
 	top: 0px;
 	right: 0px;
@@ -134,7 +135,7 @@ export default Vue.defineComponent({
 	display: none;
 }
 
-.options img {
+.actions img {
 	cursor: pointer;
 	padding: 5px;
 	vertical-align: top;
@@ -142,7 +143,7 @@ export default Vue.defineComponent({
 	width: 20px;
 }
 
-.options img:hover {
+.actions img:hover {
 	opacity: 0.75;
 }
 

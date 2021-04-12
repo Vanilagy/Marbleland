@@ -8,7 +8,7 @@
 			<download-button :id="packInfo.id" mode="pack"></download-button>
 		</div>
 		<h3>Included levels ({{ packInfo.levels.length }})</h3>
-		<panel-list mode="level" :entries="packInfo.levels" :defaultCount="24" :levelPanelOptions="levelPanelOptions" noEntriesNotice="This pack contains no levels."></panel-list>
+		<panel-list mode="level" :entries="packInfo.levels" :defaultCount="24" :levelPanelActions="levelPanelActions" noEntriesNotice="This pack contains no levels."></panel-list>
 		<p v-if="isOwnPack && packInfo.levels.length === 0" class="howToAdd">Add levels to this pack by searching for the levels you want to add and then adding them from there.</p>
 	</div>
 </template>
@@ -20,7 +20,7 @@ import { Util } from '../../ts/util';
 import ProfileBanner from '../ProfileBanner.vue';
 import DownloadButton from '../DownloadButton.vue';
 import PanelList from '../PanelList.vue';
-import { LevelPanelOptions } from '../LevelPanel.vue';
+import { LevelPanelActions } from '../LevelPanel.vue';
 
 export default Vue.defineComponent({
 	data() {
@@ -41,7 +41,7 @@ export default Vue.defineComponent({
 		isOwnPack(): boolean {
 			return this.packInfo.createdBy.id === this.$store.state.loggedInAccount?.id;
 		},
-		levelPanelOptions(): LevelPanelOptions {
+		levelPanelActions(): LevelPanelActions {
 			let self = this;
 
 			if (!this.isOwnPack) return null;

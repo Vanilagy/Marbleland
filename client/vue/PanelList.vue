@@ -6,7 +6,7 @@
 		<template v-else>
 			<template v-if="shownEntries.length > 0">
 				<template v-if="mode === 'level'">
-					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :options="passedLevelPanelOptions" class="entryPanel"></level-panel>
+					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :actions="passedLevelPanelActions" class="entryPanel"></level-panel>
 				</template>
 				<template v-else>
 					<pack-panel v-for="info of shownEntries" :key="info.id" :packInfo="info" class="entryPanel"></pack-panel>
@@ -22,7 +22,7 @@
 import Vue, { PropType } from 'vue';
 import { LevelInfo, PackInfo } from '../../shared/types';
 import { store } from '../ts/store';
-import LevelPanel, { LevelPanelOptions } from './LevelPanel.vue';
+import LevelPanel, { LevelPanelActions } from './LevelPanel.vue';
 import PanelSkeleton from './PanelSkeleton.vue';
 import PackPanel from './PackPanel.vue';
 
@@ -32,7 +32,7 @@ export default Vue.defineComponent({
 		entries: Array as PropType<LevelInfo[] | PackInfo[]>,
 		noEntriesNotice: String as PropType<string>,
 		defaultCount: Number as PropType<number>,
-		levelPanelOptions: Object as PropType<LevelPanelOptions>
+		levelPanelActions: Object as PropType<LevelPanelActions>
 	},
 	data() {
 		return {
@@ -46,8 +46,8 @@ export default Vue.defineComponent({
 		canShowMore(): boolean {
 			return this.shownEntries.length < this.entries.length;
 		},
-		passedLevelPanelOptions(): LevelPanelOptions {
-			if (this.levelPanelOptions) return this.levelPanelOptions;
+		passedLevelPanelActions(): LevelPanelActions {
+			if (this.levelPanelActions) return this.levelPanelActions;
 			if (this.$store.state.loggedInAccount) return { addToPack: true };
 			return null;
 		}

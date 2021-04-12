@@ -9,6 +9,9 @@
 					<p>{{packInfo.createdBy.username}}</p>
 				</div>
 			</div>
+			<div class="actions" :style="actionsStyle">
+				<img src="/assets/svg/download_black_24dp.svg" title="Download pack" @click.stop="download">
+			</div>
 		</div>
 	</div>
 </template>
@@ -38,6 +41,11 @@ export default Vue.defineComponent({
 		avatarOpacity(): number {
 			return this.packInfo.createdBy.hasAvatar? 1 : 0.75;
 		},
+		actionsStyle(): Record<string, string> {
+			return {
+				display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the actions if there's no hovering on the device
+			};
+		}
 	},
 	methods: {
 		clicked(): void {
@@ -45,6 +53,9 @@ export default Vue.defineComponent({
 		},
 		imageLoadError() {
 			this.imageShown = false;
+		},
+		download() {
+			window.location.href = window.location.origin + `/api/pack/${this.packInfo.id}/zip`;
 		}
 	}
 });
@@ -68,6 +79,10 @@ export default Vue.defineComponent({
 
 .panel:hover {
 	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+.panel:hover .actions {
+	display: block;
 }
 
 .mainImage {
@@ -116,4 +131,26 @@ export default Vue.defineComponent({
 	width: 100%;
 	background: rgba(240, 240, 240, 0.9);
 }
+
+.actions {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	background: rgba(240, 240, 240, 0.9);
+	border-bottom-left-radius: 5px;
+	display: none;
+}
+
+.actions img {
+	cursor: pointer;
+	padding: 5px;
+	vertical-align: top;
+	opacity: 0.5;
+	width: 20px;
+}
+
+.actions img:hover {
+	opacity: 0.75;
+}
+
 </style>
