@@ -7,8 +7,9 @@ import { DtsParser } from './dts_parser';
 import JSZip from 'jszip';
 import { Config } from './config';
 import { db, keyValue, structureMBG, structurePQ } from './globals';
-import { Modification, GameType, LevelInfo, ExtendedLevelInfo } from '../../shared/types';
+import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
+import { getPackInfo, PackDoc } from './pack';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
@@ -263,12 +264,18 @@ export class Mission {
 
 	async createExtendedLevelInfo(): Promise<ExtendedLevelInfo> {
 		let levelInfo = this.createLevelInfo();
-
 		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
+		let packDocs = await db.packs.find({ levels: this.id }) as PackDoc[];
+		let packInfos: PackInfo[] = [];
+
+		for (let packDoc of packDocs) {
+			packInfos.push(await getPackInfo(packDoc));
+		}
 
 		return Object.assign(levelInfo, {
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
-			remarks: this.remarks
+			remarks: this.remarks,
+			packs: packInfos
 		});
 	}
 

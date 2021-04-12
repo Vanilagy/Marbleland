@@ -20,7 +20,8 @@ export interface LevelInfo {
 
 export interface ExtendedLevelInfo extends LevelInfo {
 	addedBy: ProfileInfo,
-	remarks: string
+	remarks: string,
+	packs: PackInfo[]
 }
 
 export enum GameType {

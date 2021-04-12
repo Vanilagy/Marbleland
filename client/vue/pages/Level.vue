@@ -25,6 +25,10 @@
 				<p class="regularParagraph" v-if="levelInfo.remarks">{{ levelInfo.remarks }}</p>
 			</div>
 		</div>
+		<template v-if="levelInfo.packs.length">
+			<h3>Appears in</h3>
+			<panel-list mode="pack" :entries="levelInfo.packs" :defaultCount="4" noEntriesNotice="This level doesn't appear in any packs."></panel-list>
+		</template>
 	</template>
 </template>
 
@@ -35,6 +39,7 @@ import DownloadButton from '../DownloadButton.vue';
 import ProfileBanner from '../ProfileBanner.vue';
 import InfoBanner from '../InfoBanner.vue';
 import PackAdder from '../PackAdder.vue';
+import PanelList from '../PanelList.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 
@@ -43,7 +48,8 @@ export default Vue.defineComponent({
 		DownloadButton,
 		ProfileBanner,
 		InfoBanner,
-		PackAdder
+		PackAdder,
+		PanelList
 	},
 	data() {
 		return {
