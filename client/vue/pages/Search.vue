@@ -19,8 +19,7 @@ export default Vue.defineComponent({
 		return {
 			searchState: this.$store.state.searchState,
 			searchBar: this.$store.state.searchState.searchBar,
-			lastFilteredLevels: [] as LevelInfo[],
-			filteredLevels: [] as LevelInfo[]
+			filteredLevels: null as LevelInfo[]
 		};
 	},
 	components: {
@@ -47,10 +46,7 @@ export default Vue.defineComponent({
 			return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/g, '').toLowerCase();
 		},
 		updateFilteredLevels() {
-			let filtered = Search.filter();
-
-			this.lastFilteredLevels = this.filteredLevels.slice();
-			this.filteredLevels = filtered;
+			this.filteredLevels = Search.filter();
 		}
 	},
 	watch: {

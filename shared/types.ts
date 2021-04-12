@@ -47,6 +47,15 @@ export interface ExtendedProfileInfo extends ProfileInfo {
 	uploadedLevels: LevelInfo[]
 }
 
+export interface SignInInfo {
+	profile: ProfileInfo,
+	packs: {
+		id: number,
+		name: string,
+		levelIds: number[]
+	}[]
+}
+
 export interface PackInfo {
 	id: number,
 	name: string,

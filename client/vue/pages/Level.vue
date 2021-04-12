@@ -8,14 +8,20 @@
 				<p class="addedDate">Added on {{ formattedDate }}</p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
-			<div>
+			<div style="flex: 1 1 auto;">
+				<div class="actions">
+					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="isOwnLevel">
+					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="isOwnLevel">
+					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.toggle()">
+					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
+				</div>
 				<h1>{{ levelInfo.name }}</h1>
 				<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
 				<h3 v-if="levelInfo.desc">Description</h3>
 				<p class="regularParagraph">{{ levelInfo.desc }}</p>
 				<h3>Details</h3>
 				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
-				<h3>Remarks</h3>
+				<h3 v-if="levelInfo.remarks">Remarks</h3>
 				<p class="regularParagraph" v-if="levelInfo.remarks">{{ levelInfo.remarks }}</p>
 			</div>
 		</div>
@@ -28,6 +34,7 @@ import { ExtendedLevelInfo, Modification } from '../../../shared/types';
 import DownloadButton from '../DownloadButton.vue';
 import ProfileBanner from '../ProfileBanner.vue';
 import InfoBanner from '../InfoBanner.vue';
+import PackAdder from '../PackAdder.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 
@@ -35,7 +42,8 @@ export default Vue.defineComponent({
 	components: {
 		DownloadButton,
 		ProfileBanner,
-		InfoBanner
+		InfoBanner,
+		PackAdder
 	},
 	data() {
 		return {
@@ -80,6 +88,9 @@ export default Vue.defineComponent({
 		},
 		formattedDate(): string {
 			return Util.formatDate(new Date(this.levelInfo.addedAt));
+		},
+		isOwnLevel(): boolean {
+			return !!this.$store.state.loggedInAccount && this.levelInfo.addedBy?.id === this.$store.state.loggedInAccount?.id;
 		}
 	},
 	methods: {
@@ -149,5 +160,28 @@ h3 {
 
 .detail {
 	font-size: 13px;
+}
+
+.actions {
+	float: right;
+	margin-top: -5px;
+	position: relative;
+}
+
+.actions img {
+	opacity: 0.5;
+	padding: 5px;
+	cursor: pointer;
+}
+
+.actions img:hover {
+	opacity: 0.75;
+}
+
+.packAdder {
+	position: absolute;
+	top: 30px;
+	right: 0px;
+	z-index: 1;
 }
 </style>

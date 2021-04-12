@@ -1,5 +1,5 @@
 import { createStore } from "vuex";
-import { ProfileInfo } from "../../shared/types";
+import { ProfileInfo, SignInInfo } from "../../shared/types";
 
 export const store = createStore({
 	state: {
@@ -63,6 +63,7 @@ export const store = createStore({
 			levelsVersion: 0
 		},
 		loggedInAccount: null as ProfileInfo,
+		ownPacks: null as SignInInfo["packs"],
 		avatarVersion: 0,
 		showLevelCreated: false,
 		showAccountCreated: false

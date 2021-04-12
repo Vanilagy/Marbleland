@@ -47,4 +47,8 @@ export class Util {
 	
 		return output;
 	}
+
+	static deviceSupportsHover() {
+		return matchMedia('(hover: hover)').matches;
+	}
 }

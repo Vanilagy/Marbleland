@@ -1,5 +1,5 @@
 import * as Vue from 'vue';
-import { ProfileInfo } from '../../shared/types';
+import { ProfileInfo, SignInInfo } from '../../shared/types';
 import App from '../vue/App.vue';
 import router from './router';
 import { store } from './store';
@@ -18,8 +18,9 @@ const checkLoginToken = async () => {
 		if (!response.ok) {
 			localStorage.removeItem('token');
 		} else {
-			let json = await response.json() as { profileInfo: ProfileInfo };
-			store.state.loggedInAccount = json.profileInfo;
+			let json = await response.json() as SignInInfo;
+			store.state.loggedInAccount = json.profile;
+			store.state.ownPacks = json.packs;
 		}
 	}
 

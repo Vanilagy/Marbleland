@@ -1,11 +1,11 @@
 <template>
 	<div class="outer">
 		<template v-if="!levels">
-			<level-panel-skeleton v-for="n in defaultCount" :key="n"></level-panel-skeleton>
+			<level-panel-skeleton v-for="n in defaultCount" :key="n" style="margin: 5px;"></level-panel-skeleton>
 		</template>
 		<template v-else>
 			<template v-if="shownLevels.length > 0">
-				<level-panel v-for="info of shownLevels" :key="info.id" :levelInfo="info"></level-panel>
+				<level-panel v-for="info of shownLevels" :key="info.id" :levelInfo="info" :options="passedLevelPanelOptions" class="levelPanel"></level-panel>
 			</template>
 			<p v-else class="noLevelsNotice">{{ noLevelsNotice }}</p>
 			<img src="/assets/svg/expand_more_black_24dp.svg" class="more" @click="showMore" v-if="canShowMore" title="Show more">
@@ -16,14 +16,16 @@
 <script lang="ts">
 import Vue, { PropType } from 'vue';
 import { LevelInfo } from '../../shared/types';
-import LevelPanel from './LevelPanel.vue';
+import { store } from '../ts/store';
+import LevelPanel, { LevelPanelOptions } from './LevelPanel.vue';
 import LevelPanelSkeleton from './LevelPanelSkeleton.vue';
 
 export default Vue.defineComponent({
 	props: {
 		levels: Array as PropType<LevelInfo[]>,
 		noLevelsNotice: String as PropType<string>,
-		defaultCount: Number as PropType<number>
+		defaultCount: Number as PropType<number>,
+		levelPanelOptions: Object as PropType<LevelPanelOptions>
 	},
 	data() {
 		return {
@@ -36,6 +38,11 @@ export default Vue.defineComponent({
 		},
 		canShowMore(): boolean {
 			return this.shownLevels.length < this.levels.length;
+		},
+		passedLevelPanelOptions(): LevelPanelOptions {
+			if (this.levelPanelOptions) return this.levelPanelOptions;
+			if (this.$store.state.loggedInAccount) return { addToPack: true };
+			return null;
 		}
 	},
 	components: {
@@ -63,7 +70,7 @@ export default Vue.defineComponent({
 	flex-wrap: wrap;
 }
 
-.outer > div {
+.levelPanel {
 	margin: 5px;
 }
 

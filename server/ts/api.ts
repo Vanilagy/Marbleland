@@ -6,7 +6,7 @@ import { app } from "./server";
 import * as express from 'express';
 import { LevelInfo, ProfileInfo } from "../../shared/types";
 import * as sharp from 'sharp';
-import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getProfileInfo, TOKEN_TTL } from "./account";
+import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getProfileInfo, getSignInInfo, TOKEN_TTL } from "./account";
 import * as bcrypt from 'bcryptjs';
 import JSZip, * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
@@ -220,7 +220,7 @@ app.get('/api/account/register', async (req, res) => {
 
 	await db.accounts.insert(doc);
 
-	res.status(200).send({ status: 'success', token: newToken, profileInfo: await getProfileInfo(doc) });
+	res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
 });
 
 app.get('/api/account/check-token', async (req, res) => {
@@ -230,9 +230,7 @@ app.get('/api/account/check-token', async (req, res) => {
 		return;
 	}
 
-	res.send({
-		profileInfo: await getProfileInfo(doc)
-	});
+	res.send(await getSignInInfo(doc));
 });
 
 app.get('/api/account/sign-in', async (req, res) => {
@@ -262,7 +260,7 @@ app.get('/api/account/sign-in', async (req, res) => {
 
 	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 
-	res.status(200).send({ status: 'success', token: newToken, profileInfo: await getProfileInfo(doc) });
+	res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
 });
 
 app.get('/api/account/sign-out', async (req, res) => {
@@ -330,7 +328,7 @@ app.post('/api/account/:accountId/set-avatar', async (req, res) => {
 	}
 
 	if (doc._id !== Number(req.params.accountId)) {
-		res.status(400).end();
+		res.status(403).end();
 		return;
 	}
 
@@ -344,6 +342,11 @@ app.post('/api/account/:accountId/set-bio', async (req, res) => {
 	let doc = await authorize(req);
 	if (!doc) {
 		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	if (doc._id !== Number(req.params.accountId)) {
+		res.status(403).end();
 		return;
 	}
 
@@ -481,4 +484,39 @@ app.get('/api/pack/:packId/zip', async (req, res) => {
 	res.set('Content-Type', 'application/zip');
 	res.set('Content-Disposition', `attachment; filename="pack-${doc._id}.zip"`);
 	stream.pipe(res);
+});
+
+app.post('/api/pack/:packId/set-levels', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+	if (!packDoc) {
+		res.status(400).end();
+		return;
+	}
+
+	if (packDoc.createdBy !== doc._id) {
+		res.status(403).end();
+		return;
+	}
+
+	if ((req.body as unknown[]).some(x => typeof x !== 'number')) {
+		res.status(400).end();
+		return;
+	}
+
+	// No double entries
+	if (new Set(req.body).size !== req.body.length) {
+		res.status(400).end();
+		return;
+	}
+
+	packDoc.levels = req.body;
+	await db.packs.update({ _id: packDoc._id }, packDoc);
+
+	res.end();
 });

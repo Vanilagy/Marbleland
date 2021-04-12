@@ -16,7 +16,7 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue'
-import { ProfileInfo } from '../../shared/types';
+import { ProfileInfo, SignInInfo } from '../../shared/types';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
@@ -82,7 +82,7 @@ export default Vue.defineComponent({
 				status: 'success' | 'error',
 				reason?: string,
 				token?: string,
-				profileInfo?: ProfileInfo
+				signInInfo?: SignInInfo
 			};
 
 			if (json.status === 'error') {
@@ -90,9 +90,10 @@ export default Vue.defineComponent({
 				this.waitingForResponse = false;
 			} else {
 				localStorage.setItem('token', json.token);
-				this.$store.state.loggedInAccount = json.profileInfo;
+				this.$store.state.loggedInAccount = json.signInInfo.profile;
+				this.$store.state.ownPacks = json.signInInfo.packs;
 				if (this.type === 'signUp') this.$store.state.showAccountCreated = true;
-				this.$router.push({ name: 'Profile', params: { id: json.profileInfo.id } });
+				this.$router.push({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
 			}
 		}
 	}

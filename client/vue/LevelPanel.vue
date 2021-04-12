@@ -1,23 +1,38 @@
 <template>
-	<div class="outer notSelectable" @click="clicked">
-		<img :src="imageSource" @error="imageLoadError" v-if="imageShown">
-		<div class="bottom">
-			<div class="name">{{levelInfo.name}}</div>
-			<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
+	<div class="levelPanelWrapper">
+		<div class="panel notSelectable" @click="clicked">
+			<img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage">
+			<div class="bottom">
+				<div class="name">{{levelInfo.name}}</div>
+				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
+			</div>
+			<div class="options" :style="optionsStyle" v-if="options && Object.keys(options).length">
+				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="options.removeFromPack" title="Remove level from pack" @click.stop="options.removeFromPack(levelInfo)">
+				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="options.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()">
+			</div>
 		</div>
+		<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 	</div>
 </template>
 
 <script lang="ts">
 import Vue, { PropType } from 'vue'
 import { LevelInfo } from '../../shared/types';
+import { Util } from '../ts/util';
+import PackAdder from './PackAdder.vue';
+
+export interface LevelPanelOptions {
+	removeFromPack?: (info: LevelInfo) => void,
+	addToPack?: boolean
+}
 
 export default Vue.defineComponent({
 	props: {
 		levelInfo: {
 			type: Object as PropType<LevelInfo>,
 			required: true
-		}
+		},
+		options: Object as PropType<LevelPanelOptions>
 	},
 	data() {
 		return {
@@ -27,6 +42,11 @@ export default Vue.defineComponent({
 	computed: {
 		imageSource(): string {
 			return `/api/level/${this.levelInfo.id}/image`;
+		},
+		optionsStyle(): Record<string, string> {
+			return {
+				display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the options if there's no hovering on the device
+			};
 		}
 	},
 	methods: {
@@ -36,12 +56,19 @@ export default Vue.defineComponent({
 		imageLoadError() {
 			this.imageShown = false;
 		}
+	},
+	components: {
+		PackAdder
 	}
 });
 </script>
 
 <style scoped>
-.outer {
+.levelPanelWrapper {
+	position: relative;
+}
+
+.panel {
 	width: 242px;
 	height: 200px;
 	background: rgb(240, 240, 240);
@@ -52,11 +79,15 @@ export default Vue.defineComponent({
 	transition: box-shadow 0.15s;
 }
 
-.outer:hover {
+.panel:hover {
 	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 }
 
-img {
+.panel:hover .options {
+	display: block;
+}
+
+.mainImage {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
@@ -92,5 +123,33 @@ img {
 .missingArtist {
 	font-style: italic;
 	opacity: 0.5;
+}
+
+.options {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	background: rgba(240, 240, 240, 0.9);
+	border-bottom-left-radius: 5px;
+	display: none;
+}
+
+.options img {
+	cursor: pointer;
+	padding: 5px;
+	vertical-align: top;
+	opacity: 0.5;
+	width: 20px;
+}
+
+.options img:hover {
+	opacity: 0.75;
+}
+
+.packAdder {
+	position: absolute;
+	top: 30px;
+	right: 0px;
+	z-index: 1;
 }
 </style>
