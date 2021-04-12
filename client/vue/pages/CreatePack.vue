@@ -5,7 +5,7 @@
 			<input type="text" placeholder="Name" maxlength="256" v-model.trim="name">
 			<textarea class="description" placeholder="Description" maxlength="1000" v-model.trim="description"></textarea>
 			<p class="note"><b>Note:</b> You can add levels to this pack once you've created it.</p>
-			<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createButton" @click="create">Create</button-with-icon>
+			<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createButton" @click="create" :class="{ disabled: !canCreate }">Create</button-with-icon>
 		</div>
 	</template>
 	<p v-else class="notSignedIn">You need to be signed in to create a level pack.</p>
@@ -53,6 +53,11 @@ export default Vue.defineComponent({
 			if (response.ok) {
 				let json = await response.json() as { packId: number };
 				this.$router.push({ name: 'Pack', params: { id: json.packId } });
+				this.$store.state.ownPacks.push({
+					id: json.packId,
+					name: this.name,
+					levelIds: []
+				});
 			} else {
 				this.creating = false;
 				alert("Something went wrong.");
