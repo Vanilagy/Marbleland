@@ -1,13 +1,18 @@
 <template>
 	<div class="outer">
-		<template v-if="!levels">
-			<level-panel-skeleton v-for="n in defaultCount" :key="n" style="margin: 5px;"></level-panel-skeleton>
+		<template v-if="!entries">
+			<panel-skeleton v-for="n in defaultCount" :key="n" style="margin: 5px;"></panel-skeleton>
 		</template>
 		<template v-else>
-			<template v-if="shownLevels.length > 0">
-				<level-panel v-for="info of shownLevels" :key="info.id" :levelInfo="info" :options="passedLevelPanelOptions" class="levelPanel"></level-panel>
+			<template v-if="shownEntries.length > 0">
+				<template v-if="mode === 'level'">
+					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :options="passedLevelPanelOptions" class="entryPanel"></level-panel>
+				</template>
+				<template v-else>
+					<pack-panel v-for="info of shownEntries" :key="info.id" :packInfo="info" class="entryPanel"></pack-panel>
+				</template>
 			</template>
-			<p v-else class="noLevelsNotice">{{ noLevelsNotice }}</p>
+			<p v-else class="noEntriesNotice">{{ noEntriesNotice }}</p>
 			<img src="/assets/svg/expand_more_black_24dp.svg" class="more" @click="showMore" v-if="canShowMore" title="Show more">
 		</template>
 	</div>
@@ -15,15 +20,17 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue';
-import { LevelInfo } from '../../shared/types';
+import { LevelInfo, PackInfo } from '../../shared/types';
 import { store } from '../ts/store';
 import LevelPanel, { LevelPanelOptions } from './LevelPanel.vue';
-import LevelPanelSkeleton from './LevelPanelSkeleton.vue';
+import PanelSkeleton from './PanelSkeleton.vue';
+import PackPanel from './PackPanel.vue';
 
 export default Vue.defineComponent({
 	props: {
-		levels: Array as PropType<LevelInfo[]>,
-		noLevelsNotice: String as PropType<string>,
+		mode: String as PropType<'level' | 'pack'>,
+		entries: Array as PropType<LevelInfo[] | PackInfo[]>,
+		noEntriesNotice: String as PropType<string>,
 		defaultCount: Number as PropType<number>,
 		levelPanelOptions: Object as PropType<LevelPanelOptions>
 	},
@@ -33,11 +40,11 @@ export default Vue.defineComponent({
 		};
 	},
 	computed: {
-		shownLevels(): LevelInfo[] {
-			return this.levels.slice(0, this.shownCount);
+		shownEntries(): (LevelInfo[] | PackInfo[]) {
+			return this.entries.slice(0, this.shownCount);
 		},
 		canShowMore(): boolean {
-			return this.shownLevels.length < this.levels.length;
+			return this.shownEntries.length < this.entries.length;
 		},
 		passedLevelPanelOptions(): LevelPanelOptions {
 			if (this.levelPanelOptions) return this.levelPanelOptions;
@@ -47,7 +54,8 @@ export default Vue.defineComponent({
 	},
 	components: {
 		LevelPanel,
-		LevelPanelSkeleton
+		PanelSkeleton,
+		PackPanel
 	},
 	methods: {
 		showMore() {
@@ -55,7 +63,7 @@ export default Vue.defineComponent({
 		}
 	},
 	watch: {
-		levels() {
+		entries() {
 			this.shownCount = this.defaultCount;
 		}
 	}
@@ -70,11 +78,11 @@ export default Vue.defineComponent({
 	flex-wrap: wrap;
 }
 
-.levelPanel {
+.entryPanel {
 	margin: 5px;
 }
 
-.noLevelsNotice {
+.noEntriesNotice {
 	margin: 5px;
 	margin-bottom: 15px;
 	width: 100%;

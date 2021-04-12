@@ -1,5 +1,5 @@
 <template>
-	<div class="outer" v-if="shown">
+	<div class="outer notSelectable" v-if="shown">
 		<p v-if="packs.length === 0" class="noPacks">You haven't created any packs that you could add this level to.</p>
 		<template v-else>
 			<div v-for="pack of packs" :key="pack.id" class="row" :title="rowTitle(pack.id)" @click="selectPack(pack.id)">

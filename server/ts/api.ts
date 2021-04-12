@@ -10,7 +10,7 @@ import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, 
 import * as bcrypt from 'bcryptjs';
 import JSZip, * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
-import { getPackInfo, PackDoc } from "./pack";
+import { createPackThumbnail, getPackInfo, getPackThumbnailPath, PackDoc } from "./pack";
 
 app.use(express.raw({
 	limit: '15mb'
@@ -52,20 +52,8 @@ app.get('/api/level/:levelId/zip', async (req, res) => {
 	stream.pipe(res);
 });
 
-app.get('/api/level/:levelId/image', async (req, res) => {
-	let levelId = await verifyLevelId(req, res);
-	if (levelId === null) return;
-
-	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-	let mission = Mission.fromDoc(doc);
-
-	let imagePath = mission.getImagePath();
-	if (!imagePath) {
-		res.status(404).send("This level is missing an image thumbnail.");
-		return;
-	}
-
-	let buffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
+const compressAndSendImage = async (imagePath: string, req: express.Request, res: express.Response, defaultDimensions: {width: number, height: number}) => {
+	let buffer = await fs.readFile(imagePath);
 
 	if ('original' in req.query) {
 		res.set('Content-Type', imagePath.endsWith('.png')? 'image/png' : 'image/jpeg');
@@ -95,9 +83,25 @@ app.get('/api/level/:levelId/image', async (req, res) => {
 	}
 	
 	// Default
-	let resized = await sharp(buffer).resize({width: 640, height: 480, fit: 'inside', withoutEnlargement: true}).jpeg({quality: 60}).toBuffer();
+	let resized = await sharp(buffer).resize({width: defaultDimensions.width, height: defaultDimensions.height, fit: 'inside', withoutEnlargement: true}).jpeg({quality: 60}).toBuffer();
 	res.set('Content-Type', imagePath.endsWith('.png')? 'image/png' : 'image/jpeg');
 	res.send(resized);
+};
+
+app.get('/api/level/:levelId/image', async (req, res) => {
+	let levelId = await verifyLevelId(req, res);
+	if (levelId === null) return;
+
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+	let mission = Mission.fromDoc(doc);
+
+	let imagePath = mission.getImagePath();
+	if (!imagePath) {
+		res.status(404).send("This level is missing an image thumbnail.");
+		return;
+	}
+
+	await compressAndSendImage(path.join(mission.baseDirectory, imagePath), req, res, { width: 640, height: 480 });
 });
 
 app.get('/api/level/:levelId/dependencies', async (req, res) => {
@@ -519,4 +523,21 @@ app.post('/api/pack/:packId/set-levels', async (req, res) => {
 	await db.packs.update({ _id: packDoc._id }, packDoc);
 
 	res.end();
+
+	await createPackThumbnail(packDoc);
+});
+
+app.get('/api/pack/:packId/image', async (req, res) => {
+	let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+	if (!packDoc) {
+		res.status(400).end();
+		return;
+	}
+
+	let imagePath = getPackThumbnailPath(packDoc);
+	let exists = await fs.pathExists(imagePath);
+	if (!exists) await createPackThumbnail(packDoc);
+
+	res.set('Cache-Control', 'no-cache, no-store'); // Could change any time
+	await compressAndSendImage(imagePath, req, res, { width: 512, height: 512 });
 });

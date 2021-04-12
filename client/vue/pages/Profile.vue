@@ -18,8 +18,9 @@
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="saveBio" @click="saveBio">Save bio</button-with-icon>
 		</template>
 		<h3>Uploaded levels</h3>
-		<level-list :levels="profileInfo.uploadedLevels" :defaultCount="4" noLevelsNotice="This user has yet to upload any levels."></level-list>
-		<h3>Compiled packs</h3>
+		<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
+		<h3>Created packs</h3>
+		<panel-list mode="pack" :entries="profileInfo.createdPacks" :defaultCount="4" noEntriesNotice="This user has yet to create any packs."></panel-list>
 	</div>
 </template>
 
@@ -27,8 +28,9 @@
 import Vue from 'vue';
 import { ExtendedProfileInfo } from '../../../shared/types';
 import InfoBanner from '../InfoBanner.vue';
-import LevelList from '../LevelList.vue';
+import PanelList from '../PanelList.vue';
 import ButtonWithIcon from '../ButtonWithIcon.vue';
+import PackPanel from '../PackPanel.vue';
 
 export default Vue.defineComponent({
 	data() {
@@ -114,8 +116,9 @@ export default Vue.defineComponent({
 	},
 	components: {
 		InfoBanner,
-		LevelList,
-		ButtonWithIcon
+		PanelList,
+		ButtonWithIcon,
+		PackPanel
 	}
 });
 </script>

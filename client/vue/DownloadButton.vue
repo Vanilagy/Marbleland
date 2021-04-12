@@ -34,7 +34,7 @@ export default Vue.defineComponent({
 	},
 	computed: {
 		buttonText(): string {
-			return this.mode === 'level'? 'Download Level' : 'Download Pack';
+			return this.mode === 'level'? 'Download level' : 'Download pack';
 		},
 		chevronTransform(): string {
 			return this.expanded? 'rotate(180deg)' : '';

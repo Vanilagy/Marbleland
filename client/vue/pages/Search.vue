@@ -1,12 +1,12 @@
 <template>
 	<search-bar></search-bar>
-	<level-list :levels="filteredLevels" :noLevelsNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></level-list>
+	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></panel-list>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
 import SearchBar from '../SearchBar.vue';
-import LevelList from '../LevelList.vue';
+import PanelList from '../PanelList.vue';
 import { LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
@@ -24,7 +24,7 @@ export default Vue.defineComponent({
 	},
 	components: {
 		SearchBar,
-		LevelList
+		PanelList
 	},
 	mounted() {
 		if (this.loaded) this.updateFilteredLevels();

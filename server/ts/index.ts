@@ -9,6 +9,7 @@ import './api';
 const init = async () => {
 	fs.ensureDirSync(path.join(__dirname, 'storage'));
 	fs.ensureDirSync(path.join(__dirname, 'storage/avatars'));
+	fs.ensureDirSync(path.join(__dirname, 'storage/pack_thumbnails'));
 	initGlobals();
 
 	let argv = minimist(process.argv.slice(2));

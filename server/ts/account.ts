@@ -3,9 +3,9 @@ import { db } from './globals';
 import * as express from 'express';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { ExtendedProfileInfo, LevelInfo, ProfileInfo, SignInInfo } from '../../shared/types';
+import { ExtendedProfileInfo, LevelInfo, PackInfo, ProfileInfo, SignInInfo } from '../../shared/types';
 import { Mission, MissionDoc } from './mission';
-import { PackDoc } from './pack';
+import { getPackInfo, PackDoc } from './pack';
 
 export interface AccountDoc {
 	_id: number,
@@ -86,9 +86,17 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 		uploadedLevels.push(mission.createLevelInfo());
 	}
 
+	let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+	let createdPacks: PackInfo[] = [];
+
+	for (let doc of packDocs) {
+		createdPacks.push(await getPackInfo(doc));
+	}
+
 	return Object.assign(profileInfo, {
 		bio: doc.bio,
-		uploadedLevels
+		uploadedLevels,
+		createdPacks
 	});
 };
 

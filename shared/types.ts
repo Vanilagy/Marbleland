@@ -44,7 +44,8 @@ export interface ProfileInfo {
 
 export interface ExtendedProfileInfo extends ProfileInfo {
 	bio: string,
-	uploadedLevels: LevelInfo[]
+	uploadedLevels: LevelInfo[],
+	createdPacks: PackInfo[]
 }
 
 export interface SignInInfo {
