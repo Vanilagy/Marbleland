@@ -1,7 +1,6 @@
 node_modules
 server/bundle.js
 server/server_bundle.js
-server/data/data_pq
 storage
 todo.txt
 missions.json
