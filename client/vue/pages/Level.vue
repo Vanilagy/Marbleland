@@ -34,7 +34,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import { ExtendedLevelInfo, Modification } from '../../../shared/types';
+import { ExtendedLevelInfo, Modification, PackInfo } from '../../../shared/types';
 import DownloadButton from '../DownloadButton.vue';
 import ProfileBanner from '../ProfileBanner.vue';
 import InfoBanner from '../InfoBanner.vue';
@@ -42,6 +42,7 @@ import PackAdder from '../PackAdder.vue';
 import PanelList from '../PanelList.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
+import { emitter } from '../../ts/emitter';
 
 export default Vue.defineComponent({
 	components: {
@@ -57,7 +58,7 @@ export default Vue.defineComponent({
 			creationBannerShown: false
 		};
 	},
-	async created() {
+	async mounted() {
 		if (this.$store.state.showLevelCreated) {
 			this.creationBannerShown = true;
 			this.$store.state.showLevelCreated = false;
@@ -70,6 +71,10 @@ export default Vue.defineComponent({
 		this.levelInfo = levelInfo;
 
 		Search.checkForRefresh(this.levelInfo.id);
+		emitter.on('packUpdate', this.updatePacks);
+	},
+	unmounted() {
+		emitter.off('packUpdate', this.updatePacks);
 	},
 	computed: {
 		imageSource(): string {
@@ -108,6 +113,12 @@ export default Vue.defineComponent({
 				case Modification.Ultra: return 'Ultra';
 				case Modification.PlatinumQuest: return 'PlatinumQuest';
 			}
+		},
+		async updatePacks() {
+			let response = await fetch(`/api/level/${this.levelInfo.id}/packs`);
+			let json = await response.json() as PackInfo[];
+			
+			this.levelInfo.packs = json;
 		}
 	}
 });

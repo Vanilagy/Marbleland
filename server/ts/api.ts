@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
-import { LevelInfo, ProfileInfo } from "../../shared/types";
+import { LevelInfo, PackInfo, ProfileInfo } from "../../shared/types";
 import * as sharp from 'sharp';
 import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getProfileInfo, getSignInInfo, TOKEN_TTL } from "./account";
 import * as bcrypt from 'bcryptjs';
@@ -147,6 +147,20 @@ app.get('/api/level/:levelId/mission-info', async (req, res) => {
 	let mission = Mission.fromDoc(doc);
 
 	res.send(mission.info);
+});
+
+app.get('/api/level/:levelId/packs', async (req, res) => {
+	let levelId = await verifyLevelId(req, res);
+	if (levelId === null) return;
+
+	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+	let packDocs = await db.packs.find({ levels: doc._id }) as PackDoc[];
+	let packInfos: PackInfo[] = [];
+	for (let packDoc of packDocs) {
+		packInfos.push(await getPackInfo(packDoc));
+	}
+
+	res.send(packInfos);
 });
 
 app.get('/api/list', async (req, res) => {

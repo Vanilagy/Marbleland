@@ -13,6 +13,7 @@
 <script lang="ts">
 import Vue, { PropType } from 'vue';
 import { SignInInfo } from '../../shared/types';
+import { emitter } from '../ts/emitter';
 export default Vue.defineComponent({
 	props: {
 		levelId: Number as PropType<number>
@@ -36,7 +37,7 @@ export default Vue.defineComponent({
 			let pack = this.packs.find(x => x.id === packId);
 			return (!contains)? `Add level to pack "${pack.name}"` : `Remove level from pack "${pack.name}"`;
 		},
-		selectPack(packId: number) {
+		async selectPack(packId: number) {
 			let contains = this.contains(packId);
 			let pack = this.packs.find(x => x.id === packId);
 
@@ -47,8 +48,10 @@ export default Vue.defineComponent({
 				pack.levelIds.push(this.levelId);
 			}
 
+			this.shown = false;
+
 			let token = localStorage.getItem('token');
-			fetch(`/api/pack/${packId}/set-levels`, {
+			await fetch(`/api/pack/${packId}/set-levels`, {
 				method: 'POST',
 				body: JSON.stringify(pack.levelIds),
 				headers: {
@@ -57,7 +60,7 @@ export default Vue.defineComponent({
 				}
 			});
 
-			this.shown = false;
+			emitter.emit('packUpdate', packId);
 		},
 		toggle() {
 			this.shown = !this.shown;

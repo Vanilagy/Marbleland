@@ -19,6 +19,7 @@
 <script lang="ts">
 import Vue, { PropType } from 'vue'
 import { PackInfo } from '../../shared/types';
+import { emitter } from '../ts/emitter';
 import { Util } from '../ts/util';
 
 export default Vue.defineComponent({
@@ -27,12 +28,13 @@ export default Vue.defineComponent({
 	},
 	data() {
 		return {
-			imageShown: true
+			imageShown: true,
+			imageVersion: 0
 		};
 	},
 	computed: {
 		imageSource(): string {
-			return `/api/pack/${this.packInfo.id}/image`;
+			return `/api/pack/${this.packInfo.id}/image?version=${this.imageVersion}`;
 		},
 		avatarSrc(): string {
 			if (!this.packInfo.createdBy.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
@@ -56,7 +58,16 @@ export default Vue.defineComponent({
 		},
 		download() {
 			window.location.href = window.location.origin + `/api/pack/${this.packInfo.id}/zip`;
+		},
+		refreshThumbnail(packId: number) {
+			if (packId === this.packInfo.id) this.imageVersion++;
 		}
+	},
+	mounted() {
+		emitter.on('packUpdate', this.refreshThumbnail);
+	},
+	unmounted() {
+		emitter.off('packUpdate', this.refreshThumbnail);
 	}
 });
 </script>

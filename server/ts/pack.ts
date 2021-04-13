@@ -41,6 +41,11 @@ export const getPackThumbnailPath = (doc: PackDoc) => {
 };
 
 export const createPackThumbnail = async (doc: PackDoc) => {
+	let thumbnailPath = getPackThumbnailPath(doc);
+	try {
+		await fs.unlink(thumbnailPath);
+	} catch {} // Thing gon' throw an error if the file doesn't exist
+
 	let width = 512;
 	let height = 512;
 
@@ -85,5 +90,5 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 	let toComposite = await Promise.all(promises);
 	let resultBuffer = await image.composite(toComposite).jpeg({ quality: 100 }).toBuffer();
 
-	await fs.writeFile(getPackThumbnailPath(doc), resultBuffer);
+	await fs.writeFile(thumbnailPath, resultBuffer);
 };
