@@ -10,7 +10,7 @@ import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, 
 import * as bcrypt from 'bcryptjs';
 import JSZip, * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
-import { createPackThumbnail, getPackInfo, getPackThumbnailPath, PackDoc } from "./pack";
+import { createPackThumbnail, getExtendedPackInfo, getPackInfo, getPackThumbnailPath, PackDoc } from "./pack";
 
 app.use(express.raw({
 	limit: '15mb'
@@ -461,9 +461,7 @@ app.post('/api/pack/create', async (req, res) => {
 	};
 	await db.packs.insert(packDoc);
 
-	res.send({
-		packId: id
-	});
+	res.send({ packId: id });
 });
 
 app.get('/api/pack/:packId/info', async (req, res) => {
@@ -473,7 +471,7 @@ app.get('/api/pack/:packId/info', async (req, res) => {
 		return;
 	}
 
-	let packInfo = await getPackInfo(doc);
+	let packInfo = await getExtendedPackInfo(doc);
 	res.send(packInfo);
 });
 

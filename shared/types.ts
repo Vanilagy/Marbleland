@@ -61,6 +61,14 @@ export interface SignInInfo {
 export interface PackInfo {
 	id: number,
 	name: string,
+	createdBy: ProfileInfo,
+	createdAt: number,
+	levelIds: number[]
+}
+
+export interface ExtendedPackInfo {
+	id: number,
+	name: string,
 	description: string,
 	createdBy: ProfileInfo,
 	createdAt: number,

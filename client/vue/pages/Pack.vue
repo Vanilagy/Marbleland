@@ -15,7 +15,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import { LevelInfo, PackInfo } from '../../../shared/types';
+import { ExtendedPackInfo, LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import ProfileBanner from '../ProfileBanner.vue';
 import DownloadButton from '../DownloadButton.vue';
@@ -25,12 +25,12 @@ import { LevelPanelActions } from '../LevelPanel.vue';
 export default Vue.defineComponent({
 	data() {
 		return {
-			packInfo: null as PackInfo
+			packInfo: null as ExtendedPackInfo
 		};
 	},
 	async mounted() {
 		let response = await fetch(`/api/pack/${this.$route.params.id}/info`);
-		let json = await response.json() as PackInfo;
+		let json = await response.json() as ExtendedPackInfo;
 
 		this.packInfo = json;
 	},

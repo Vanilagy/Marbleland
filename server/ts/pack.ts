@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { LevelInfo, PackInfo } from "../../shared/types";
+import { ExtendedPackInfo, LevelInfo, PackInfo } from "../../shared/types";
 import { AccountDoc, getProfileInfo } from "./account";
 import { db } from "./globals";
 import { Mission, MissionDoc } from "./mission";
@@ -15,7 +15,20 @@ export interface PackDoc {
 	levels: number[]
 }
 
+
 export const getPackInfo = async (doc: PackDoc): Promise<PackInfo> => {
+	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
+
+	return {
+		id: doc._id,
+		name: doc.name,
+		createdBy: await getProfileInfo(accountDoc),
+		createdAt: doc.createdAt,
+		levelIds: doc.levels
+	};
+};
+
+export const getExtendedPackInfo = async (doc: PackDoc): Promise<ExtendedPackInfo> => {
 	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
 	let levelInfos: LevelInfo[] = [];
 
