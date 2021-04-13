@@ -43,7 +43,8 @@ export default Vue.defineComponent({
 							{ name: 'levelCount', label: 'Level count'}
 						]
 					}
-				}
+				},
+				reversed: false
 			},
 			packs: null as PackInfoWrapper[],
 			filteredPacks: null as PackInfo[]
@@ -106,6 +107,7 @@ export default Vue.defineComponent({
 			}
 
 			result.sort(sortingFunction);
+			if (this.searchBarConfig.reversed) result.reverse();
 
 			this.filteredPacks = result.map(x => x.info);
 		},

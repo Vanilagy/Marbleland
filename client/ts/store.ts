@@ -58,7 +58,8 @@ export const store = createStore({
 							{ name: 'gemCount', label: 'Gem count'},
 						]
 					}
-				}
+				},
+				reversed: false
 			},
 			levelsVersion: 0
 		},

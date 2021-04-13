@@ -79,6 +79,7 @@ export abstract class Search {
 		}
 
 		filtered.sort(sortingFunction);
+		if (searchState.searchBar.reversed) filtered.reverse();
 
 		return filtered.map(x => x.info);
 	}

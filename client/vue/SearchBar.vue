@@ -10,11 +10,14 @@
 			<p>{{ config.label }}</p>
 			<dropdown-component v-model="config.value" :options="config.options"></dropdown-component>
 		</div>
+		<div class="reverseButton" title="Reverse order" :class="{ pressed: config.reversed }" @click="config.reversed = !config.reversed">
+			<img src="/assets/svg/import_export_black_24dp.svg" >
+		</div>
 	</div>
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue'
+import Vue, { PropType } from 'vue';
 import { store } from '../ts/store';
 import DropdownComponent from './DropdownComponent.vue';
 
@@ -28,7 +31,8 @@ export interface SearchBarConfig {
 			name: string,
 			label: string
 		}[]
-	}>
+	}>,
+	reversed: boolean
 }
 
 export default Vue.defineComponent({
@@ -126,5 +130,27 @@ export default Vue.defineComponent({
 .labeled-dropdown > p {
 	margin: 0;
 	font-size: 14px;
+}
+
+.reverseButton {
+	padding: 3px;
+	background: rgb(240, 240, 240);
+	border-radius: 5px;
+	margin: 5px;
+	margin-top: 26px;
+	cursor: pointer;
+}
+
+.reverseButton img {
+	vertical-align: top;
+	opacity: 0.25;
+}
+
+.reverseButton.pressed img {
+	opacity: 0.75;
+}
+
+.reverseButton:hover {
+	background: rgb(220, 220, 220);
 }
 </style>
