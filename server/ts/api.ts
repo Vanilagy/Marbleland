@@ -4,13 +4,14 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
-import { LevelInfo, PackInfo } from "../../shared/types";
+import { CommentInfo, LevelInfo, PackInfo } from "../../shared/types";
 import * as sharp from 'sharp';
 import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getSignInInfo } from "./account";
 import * as bcrypt from 'bcryptjs';
 import JSZip, * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
 import { createPackThumbnail, getExtendedPackInfo, getPackInfo, getPackThumbnailPath, PackDoc } from "./pack";
+import { CommentDoc, getCommentInfo, getCommentInfosForLevel } from "./comment";
 
 app.use(express.raw({
 	limit: '15mb'
@@ -231,6 +232,61 @@ app.delete('/api/level/:levelId/delete', async (req, res) => {
 	}
 
 	res.end();
+});
+
+app.post('/api/level/:levelId/comment', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let levelId = await verifyLevelId(req, res);
+	if (levelId === null) return;
+
+	if (typeof req.body.content !== 'string' || !req.body.content.trim()) {
+		res.status(400).end();
+		return;
+	}
+
+	let id = keyValue.get('commentId');
+	keyValue.set('commentId', id + 1);
+
+	let comment: CommentDoc = {
+		_id: id,
+		for: levelId,
+		forType: 'level',
+		author: doc._id,
+		time: Date.now(),
+		content: req.body.content
+	};
+	await db.comments.insert(comment);
+
+	res.send(await getCommentInfosForLevel(levelId));
+});
+
+app.post('/api/comment/:commentId/delete', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let commentDoc = await db.comments.findOne({ _id: Number(req.params.commentId) }) as CommentDoc;
+	if (!commentDoc) {
+		res.status(400).end();
+		return;
+	}
+
+	if (commentDoc.author !== doc._id) {
+		res.status(403).end();
+		return;
+	}
+
+	await db.comments.remove({ _id: commentDoc._id }, {});
+
+	// NOTE! Adjust this for when there's gonna be comment for more than just levels.
+	res.send(await getCommentInfosForLevel(commentDoc.for));
 });
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;

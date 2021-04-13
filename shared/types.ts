@@ -21,7 +21,8 @@ export interface LevelInfo {
 export interface ExtendedLevelInfo extends LevelInfo {
 	addedBy: ProfileInfo,
 	remarks: string,
-	packs: PackInfo[]
+	packs: PackInfo[],
+	comments: CommentInfo[]
 }
 
 export enum GameType {
@@ -73,4 +74,11 @@ export interface ExtendedPackInfo {
 	createdBy: ProfileInfo,
 	createdAt: number,
 	levels: LevelInfo[]
+}
+
+export interface CommentInfo {
+	id: number,
+	author: ProfileInfo,
+	time: number,
+	content: string
 }

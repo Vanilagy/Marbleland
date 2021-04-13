@@ -31,18 +31,27 @@
 			<h3>Appears in</h3>
 			<panel-list mode="pack" :entries="levelInfo.packs" :defaultCount="4" noEntriesNotice="This level doesn't appear in any packs."></panel-list>
 		</template>
+		<h3 style="margin-bottom: 10px;">Comments ({{ levelInfo.comments.length }})</h3>
+		<template v-if="$store.state.loggedInAccount">
+			<textarea class="basicTextarea commentBox" placeholder="Write a public comment" v-model.trim="commentInput" maxlength="2000" :class="{ disabled: sendingComment }"></textarea>
+			<button-with-icon icon="/assets/svg/comment_black_24dp.svg" class="commentButton" :class="{ disabled: !canComment || sendingComment }" @click="comment">Comment</button-with-icon>
+		</template>
+		<div>
+			<comment-element v-for="comment of levelInfo.comments" :key="comment.id" :commentInfo="comment" @delete="deleteComment(comment.id)"></comment-element>
+		</div>
 	</template>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
-import { ExtendedLevelInfo, Modification, PackInfo } from '../../../shared/types';
+import { CommentInfo, ExtendedLevelInfo, Modification, PackInfo } from '../../../shared/types';
 import DownloadButton from '../DownloadButton.vue';
 import ProfileBanner from '../ProfileBanner.vue';
 import InfoBanner from '../InfoBanner.vue';
 import PackAdder from '../PackAdder.vue';
 import PanelList from '../PanelList.vue';
 import ButtonWithIcon from '../ButtonWithIcon.vue';
+import CommentElement from '../CommentElement.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
@@ -54,13 +63,16 @@ export default Vue.defineComponent({
 		InfoBanner,
 		PackAdder,
 		PanelList,
-		ButtonWithIcon
+		ButtonWithIcon,
+		CommentElement
 	},
 	data() {
 		return {
 			levelInfo: null as ExtendedLevelInfo,
 			editing: false,
-			deleting: false
+			deleting: false,
+			commentInput: '',
+			sendingComment: false
 		};
 	},
 	async mounted() {
@@ -102,6 +114,9 @@ export default Vue.defineComponent({
 		},
 		isOwnLevel(): boolean {
 			return !!this.$store.state.loggedInAccount && this.levelInfo.addedBy?.id === this.$store.state.loggedInAccount?.id;
+		},
+		canComment(): boolean {
+			return !!this.commentInput;
 		}
 	},
 	methods: {
@@ -163,6 +178,40 @@ export default Vue.defineComponent({
 				this.deleting = false;
 				alert("Something went wrong.");
 			}
+		},
+		async comment() {
+			this.sendingComment = true;
+
+			let token = localStorage.getItem('token');
+			let response = await fetch(`/api/level/${this.levelInfo.id}/comment`, {
+				method: 'POST',
+				body: JSON.stringify({
+					content: this.commentInput
+				}),
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
+				}
+			});
+			let json = await response.json() as CommentInfo[];
+
+			this.levelInfo.comments = json;
+			this.commentInput = '';
+			this.sendingComment = false;
+		},
+		async deleteComment(commentId: number) {
+			if (!confirm("Are you sure you want to delete this comment?")) return;
+
+			let token = localStorage.getItem('token');
+			let response = await fetch(`/api/comment/${commentId}/delete`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+			let json = await response.json();
+
+			this.levelInfo.comments = json;
 		}
 	}
 });
@@ -254,5 +303,15 @@ h3 {
 
 .saveChangesButton {
 	width: 200px;
+}
+
+.commentBox {
+	width: 100%;
+}
+
+.commentButton {
+	width: 200px;
+	margin-top: 10px;
+	margin-bottom: 20px;
 }
 </style>

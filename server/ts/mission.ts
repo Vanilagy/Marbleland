@@ -11,6 +11,7 @@ import { db, keyValue, structureMBG, structurePQ } from './globals';
 import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
+import { getCommentInfosForLevel } from './comment';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
@@ -273,9 +274,9 @@ export class Mission {
 	async createExtendedLevelInfo(): Promise<ExtendedLevelInfo> {
 		let levelInfo = this.createLevelInfo();
 		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
+
 		let packDocs = await db.packs.find({ levels: this.id }) as PackDoc[];
 		let packInfos: PackInfo[] = [];
-
 		for (let packDoc of packDocs) {
 			packInfos.push(await getPackInfo(packDoc));
 		}
@@ -283,7 +284,8 @@ export class Mission {
 		return Object.assign(levelInfo, {
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
 			remarks: this.remarks,
-			packs: packInfos
+			packs: packInfos,
+			comments: await getCommentInfosForLevel(this.id)
 		});
 	}
 
