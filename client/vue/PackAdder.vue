@@ -60,7 +60,10 @@ export default Vue.defineComponent({
 				}
 			});
 
-			emitter.emit('packUpdate', packId);
+			emitter.emit('packUpdate', {
+				id: packId,
+				levelIds: pack.levelIds
+			});
 		},
 		toggle() {
 			this.shown = !this.shown;

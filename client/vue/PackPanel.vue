@@ -8,6 +8,7 @@
 					<img :src="avatarSrc" :style="{ opacity: avatarOpacity }">
 					<p>{{packInfo.createdBy.username}}</p>
 				</div>
+				<div class="levelCount">{{ packInfo.levelIds.length }} levels</div>
 			</div>
 			<div class="actions" :style="actionsStyle">
 				<img src="/assets/svg/download_black_24dp.svg" title="Download pack" @click.stop="download">
@@ -59,15 +60,20 @@ export default Vue.defineComponent({
 		download() {
 			window.location.href = window.location.origin + `/api/pack/${this.packInfo.id}/zip`;
 		},
-		refreshThumbnail(packId: number) {
-			if (packId === this.packInfo.id) this.imageVersion++;
+		onPackUpdate(updateInfo: { id: number, levelIds?: number[] }) {
+			if (updateInfo.id !== this.packInfo.id) return;
+
+			if (updateInfo.levelIds) {
+				this.imageVersion++;
+				this.packInfo.levelIds = updateInfo.levelIds;
+			}
 		}
 	},
 	mounted() {
-		emitter.on('packUpdate', this.refreshThumbnail);
+		emitter.on('packUpdate', this.onPackUpdate);
 	},
 	unmounted() {
-		emitter.off('packUpdate', this.refreshThumbnail);
+		emitter.off('packUpdate', this.onPackUpdate);
 	}
 });
 </script>
@@ -141,6 +147,7 @@ export default Vue.defineComponent({
 	padding: 3px 9px;
 	width: 100%;
 	background: rgba(240, 240, 240, 0.9);
+	box-sizing: border-box;
 }
 
 .actions {
@@ -164,4 +171,10 @@ export default Vue.defineComponent({
 	opacity: 0.75;
 }
 
+.levelCount {
+	position: absolute;
+	bottom: 3px;
+	right: 8px;
+	font-size: 12px;
+}
 </style>

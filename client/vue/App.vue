@@ -3,7 +3,7 @@
 		<navigation-bar></navigation-bar>
 		<hr>
 		<router-view v-slot="{ Component }">
-			<keep-alive include="search">
+			<keep-alive include="search,packs">
 				<component :is="Component"></component>
 			</keep-alive>
 		</router-view>

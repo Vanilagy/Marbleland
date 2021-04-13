@@ -1,12 +1,12 @@
 <template>
 	<div class="search-bar notSelectable">
 		<img src="/assets/svg/search_black_24dp.svg">
-		<input type="text" placeholder="Search for level" v-model="searchBar.query" @focus="focused = true" @blur="focused = false">
-		<img src="/assets/svg/tune_black_24dp.svg" @click="searchBar.filterShown = !searchBar.filterShown" class="toggle-filter" :title="searchBar.filterShown? 'Hide filter' : 'Show filter'">
+		<input type="text" :placeholder="placeholder" v-model="config.query" @focus="focused = true" @blur="focused = false">
+		<img src="/assets/svg/tune_black_24dp.svg" @click="config.filterShown = !config.filterShown" class="toggle-filter" :title="config.filterShown? 'Hide filter' : 'Show filter'">
 		<div class="search-bar-border" :class="{ active: focused }"></div>
 	</div>
-	<div v-if="searchBar.filterShown" class="filter">
-		<div class="labeled-dropdown" v-for="(config, key) in searchBar.filter" :key="key">
+	<div v-if="config.filterShown" class="filter">
+		<div class="labeled-dropdown" v-for="(config, key) in config.filter" :key="key">
 			<p>{{ config.label }}</p>
 			<dropdown-component v-model="config.value" :options="config.options"></dropdown-component>
 		</div>
@@ -14,26 +14,31 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import Vue, { PropType } from 'vue'
 import { store } from '../ts/store';
 import DropdownComponent from './DropdownComponent.vue';
 
+export interface SearchBarConfig {
+	query: string,
+	filterShown: boolean,
+	filter: Record<string, {
+		label: string,
+		value: string,
+		options: {
+			name: string,
+			label: string
+		}[]
+	}>
+}
+
 export default Vue.defineComponent({
+	props: {
+		config: Object as PropType<SearchBarConfig>,
+		placeholder: String as PropType<string>
+	},
 	data() {
 		return {
-			searchBar: this.$store.state.searchState.searchBar,
-			focused: false,
-			shit: 'a',
-			options: [{
-				name: 'a',
-				label: 'A'
-			}, {
-				name: 'b',
-				label: 'B'
-			}, {
-				name: 'c',
-				label: 'C'
-			}]
+			focused: false
 		};
 	},
 	computed: {

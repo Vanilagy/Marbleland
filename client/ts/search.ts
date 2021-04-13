@@ -16,7 +16,7 @@ export abstract class Search {
 	static async loadLevels(reload = false) {
 		if (this.levels && !reload) return;
 
-		let response = await fetch('/api/list');
+		let response = await fetch('/api/level/list');
 		let levelList = await response.json() as LevelInfo[];
 
 		this.levels = levelList;
@@ -73,7 +73,7 @@ export abstract class Search {
 		switch (filter.sort.value) {
 			case 'name': sortingFunction = (a, b) => cmpStr(a.sortName, b.sortName); break;
 			case 'artist': sortingFunction = (a, b) => cmpStr(a.sortArtist, b.sortArtist); break;
-			case 'date': throw new Error("Not yet implemeneted!"); break;
+			case 'date': sortingFunction = (a, b) => a.info.addedAt - b.info.addedAt; break;
 			case 'id': sortingFunction = (a, b) => a.info.id - b.info.id; break;
 			case 'gemCount': sortingFunction = (a, b) => a.info.gems - b.info.gems; break;
 		}

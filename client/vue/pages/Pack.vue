@@ -21,6 +21,7 @@ import ProfileBanner from '../ProfileBanner.vue';
 import DownloadButton from '../DownloadButton.vue';
 import PanelList from '../PanelList.vue';
 import { LevelPanelActions } from '../LevelPanel.vue';
+import { emitter } from '../../ts/emitter';
 
 export default Vue.defineComponent({
 	data() {
@@ -33,6 +34,12 @@ export default Vue.defineComponent({
 		let json = await response.json() as ExtendedPackInfo;
 
 		this.packInfo = json;
+
+		emitter.emit('packView', this.packInfo.id);
+		emitter.on('packUpdate', this.onPackUpdate);
+	},
+	unmounted() {
+		emitter.off('packUpdate', this.onPackUpdate);
 	},
 	computed: {
 		createdText(): string {
@@ -47,13 +54,14 @@ export default Vue.defineComponent({
 			if (!this.isOwnPack) return null;
 
 			return {
-				removeFromPack(info: LevelInfo) {
+				addToPack: true,
+				async removeFromPack(info: LevelInfo) {
 					self.packInfo.levels = self.packInfo.levels.filter(x => x.id !== info.id);
 					let ownPack = self.$store.state.ownPacks.find(x => x.id === self.packInfo.id);
-					if (ownPack) ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
+					ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
 
 					let token = localStorage.getItem('token');
-					fetch(`/api/pack/${self.packInfo.id}/set-levels`, {
+					await fetch(`/api/pack/${self.packInfo.id}/set-levels`, {
 						method: 'POST',
 						body: JSON.stringify(self.packInfo.levels.map(x => x.id)),
 						headers: {
@@ -61,8 +69,22 @@ export default Vue.defineComponent({
 							'Authorization': `Bearer ${token}`
 						}
 					});
+
+					emitter.emit('packUpdate', {
+						id: self.packInfo.id,
+						levelIds: ownPack.levelIds
+					});
 				}
 			};
+		}
+	},
+	methods: {
+		onPackUpdate(updateInfo: { id: number, levelIds?: number[] }) {
+			if (this.packInfo.id !== updateInfo.id) return;
+
+			if (updateInfo.levelIds) {
+				this.packInfo.levels = this.packInfo.levels.filter(x => updateInfo.levelIds.includes(x.id));
+			}
 		}
 	},
 	components: {

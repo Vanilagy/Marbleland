@@ -4,9 +4,9 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
-import { LevelInfo, PackInfo, ProfileInfo } from "../../shared/types";
+import { LevelInfo, PackInfo } from "../../shared/types";
 import * as sharp from 'sharp';
-import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getProfileInfo, getSignInInfo, TOKEN_TTL } from "./account";
+import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getSignInInfo } from "./account";
 import * as bcrypt from 'bcryptjs';
 import JSZip, * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
@@ -33,6 +33,18 @@ const verifyLevelId = async (req: express.Request, res: express.Response) => {
 
 	return levelId;
 };
+
+app.get('/api/level/list', async (req, res) => {
+	let docs = await db.missions.find({}) as MissionDoc[];
+	let response: LevelInfo[] = [];
+
+	for (let doc of docs) {
+		let mission = Mission.fromDoc(doc);
+		response.push(mission.createLevelInfo());
+	}
+
+	res.send(response);
+});
 
 app.get('/api/level/:levelId/zip', async (req, res) => {
 	let levelId = await verifyLevelId(req, res);
@@ -161,18 +173,6 @@ app.get('/api/level/:levelId/packs', async (req, res) => {
 	}
 
 	res.send(packInfos);
-});
-
-app.get('/api/list', async (req, res) => {
-	let docs = await db.missions.find({}) as MissionDoc[];
-	let response: LevelInfo[] = [];
-
-	for (let doc of docs) {
-		let mission = Mission.fromDoc(doc);
-		response.push(mission.createLevelInfo());
-	}
-
-	res.send(response);
 });
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
@@ -462,6 +462,17 @@ app.post('/api/pack/create', async (req, res) => {
 	await db.packs.insert(packDoc);
 
 	res.send({ packId: id });
+});
+
+app.get('/api/pack/list', async (req, res) => {
+	let packDocs = await db.packs.find({}) as PackDoc[];
+	let packInfos: PackInfo[] = [];
+
+	for (let doc of packDocs) {
+		packInfos.push(await getPackInfo(doc));
+	}
+
+	res.send(packInfos);
 });
 
 app.get('/api/pack/:packId/info', async (req, res) => {

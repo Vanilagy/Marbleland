@@ -1,11 +1,11 @@
 <template>
-	<search-bar></search-bar>
+	<search-bar :config="$store.state.searchState.searchBar" placeholder="Search for levels"></search-bar>
 	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></panel-list>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
-import SearchBar from '../SearchBar.vue';
+import SearchBar, { SearchBarConfig } from '../SearchBar.vue';
 import PanelList from '../PanelList.vue';
 import { LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
@@ -18,7 +18,6 @@ export default Vue.defineComponent({
 	data() {
 		return {
 			searchState: this.$store.state.searchState,
-			searchBar: this.$store.state.searchState.searchBar,
 			filteredLevels: null as LevelInfo[]
 		};
 	},
@@ -39,6 +38,9 @@ export default Vue.defineComponent({
 		},
 		loaded(): boolean {
 			return this.levelsVersion !== 0;
+		},
+		searchBar(): SearchBarConfig {
+			return this.searchState.searchBar;
 		}
 	},
 	methods: {
