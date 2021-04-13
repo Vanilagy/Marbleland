@@ -1,6 +1,7 @@
 import * as jszip from 'jszip';
 import * as path from 'path';
 import * as fs from 'fs-extra';
+import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementType } from './mis_parser';
 import { Config } from './config';
 import hxDif from '../lib/hxDif';
@@ -60,6 +61,13 @@ export class MissionUpload {
 
 		let text = await misFiles[0].async('text'); // This might fuck up in extremely rare cases due to encoding stuff
 		let misFile: MisFile;
+
+		let misHash = crypto.createHash('sha256').update(text).digest('base64');
+		let existing = await db.missions.findOne({ misHash: misHash });
+		if (existing) {
+			this.problems.add("Duplicate: This mission has already been uploaded.");
+			return false;
+		}
 
 		try {
 			let parser = new MisParser(text);

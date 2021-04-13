@@ -1,5 +1,6 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './mis_parser';
 import hxDif from '../lib/hxDif';
 import { Util } from './util';
@@ -9,7 +10,7 @@ import { Config } from './config';
 import { db, keyValue, structureMBG, structurePQ } from './globals';
 import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
-import { getPackInfo, PackDoc } from './pack';
+import { getPackInfo, PackDoc } from './pack'
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
@@ -24,6 +25,7 @@ export interface MissionDoc {
 	modification: Modification,
 	gems: number,
 	hasEasterEgg: boolean,
+	misHash: string,
 	addedAt: number,
 	addedBy?: number,
 	remarks?: string
@@ -39,6 +41,7 @@ export class Mission {
 	modification: Modification;
 	gems: number = 0;
 	hasEasterEgg: boolean = false;
+	misHash: string;
 	visitedPaths = new Set<string>();
 	id: number;
 	addedAt: number;
@@ -65,6 +68,7 @@ export class Mission {
 		mission.modification = doc.modification;
 		mission.gems = doc.gems;
 		mission.hasEasterEgg = doc.hasEasterEgg;
+		mission.misHash = doc.misHash;
 		mission.addedAt = doc.addedAt;
 		mission.addedBy = doc.addedBy;
 		mission.remarks = doc.remarks;
@@ -83,6 +87,9 @@ export class Mission {
 		let missionText = (await fs.readFile(path.join(this.baseDirectory, this.relativePath))).toString();
 		let misFile = new MisParser(missionText).parse();
 		this.mis = misFile;
+
+		let misHash = crypto.createHash('sha256').update(missionText).digest('base64');
+		this.misHash = misHash;
 	}
 
 	async findDependencies() {
@@ -236,6 +243,7 @@ export class Mission {
 			modification: this.modification,
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg,
+			misHash: this.misHash,
 			addedAt: Date.now()
 		};
 	}

@@ -71,6 +71,7 @@ export default Vue.defineComponent({
 					if (json.status === 'error') {
 						this.problems = json.problems;
 						this.uploadState = 'negative';
+						this.uploading = false;
 					} else if (json.status === 'success') {
 						this.successResponse = json;
 						this.uploadState = 'positive';
