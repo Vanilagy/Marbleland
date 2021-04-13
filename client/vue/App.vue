@@ -64,7 +64,45 @@ img {
 }
 
 .disabled {
-	pointer-events: none;
-	opacity: 0.333;
+	pointer-events: none !important;
+	opacity: 0.333 !important;
+}
+
+.basicTextInput {
+	display: block;
+	height: 40px;
+	background: rgb(240, 240, 240);
+	font-size: 16px;
+	font-family: inherit;
+	color: inherit;
+	border: 2px solid transparent;
+	border-radius: 5px;
+	padding-left: 10px;
+	box-sizing: border-box;
+}
+
+.basicTextInput:focus {
+	outline: none;
+	border: 2px solid rgb(220, 220, 220);
+}
+
+.basicTextarea {
+	display: block;
+	height: 100px;
+	background: rgb(240, 240, 240);
+	font-size: 16px;
+	font-family: inherit;
+	color: inherit;
+	border: 2px solid transparent;
+	border-radius: 5px;
+	padding: 5px;
+	padding-left: 10px;
+    box-sizing: border-box;
+    resize: none;
+}
+
+.basicTextarea:focus {
+	outline: none;
+	border: 2px solid rgb(220, 220, 220);
 }
 </style>

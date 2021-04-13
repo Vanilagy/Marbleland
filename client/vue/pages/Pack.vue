@@ -1,13 +1,17 @@
 <template>
-	<div v-if="packInfo" class="outer">
-		<h1>{{ packInfo.name }}</h1>
+	<info-banner v-if="packInfo"></info-banner>
+	<div v-if="packInfo" class="outer" :class="{ disabled: deleting }">
+		<h1 v-if="!editing">{{ packInfo.name }}</h1>
+		<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name">
 		<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
 		<h3>Description</h3>
-		<p class="regularParagraph">{{ packInfo.description }}</p>
+		<p v-if="!editing" class="regularParagraph">{{ packInfo.description }}</p>
+		<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description"></textarea>
+		<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" :class="{ disabled: !canSubmitChanges }" @click="submitChanges">Save changes</button-with-icon>
 		<div class="topRight">
 			<div class="actions" v-if="isOwnPack">
-				<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack">
-				<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack">
+				<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack">
+				<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }">
 			</div>
 			<download-button :id="packInfo.id" mode="pack"></download-button>
 		</div>
@@ -24,13 +28,17 @@ import { Util } from '../../ts/util';
 import ProfileBanner from '../ProfileBanner.vue';
 import DownloadButton from '../DownloadButton.vue';
 import PanelList from '../PanelList.vue';
+import ButtonWithIcon from '../ButtonWithIcon.vue';
+import InfoBanner from '../InfoBanner.vue';
 import { LevelPanelActions } from '../LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
 
 export default Vue.defineComponent({
 	data() {
 		return {
-			packInfo: null as ExtendedPackInfo
+			packInfo: null as ExtendedPackInfo,
+			editing: false,
+			deleting: false
 		};
 	},
 	async mounted() {
@@ -50,7 +58,7 @@ export default Vue.defineComponent({
 			return `Created this pack on ${Util.formatDate(new Date(this.packInfo.createdAt))}`;
 		},
 		isOwnPack(): boolean {
-			return this.packInfo.createdBy.id === this.$store.state.loggedInAccount?.id;
+			return this.packInfo && this.packInfo.createdBy.id === this.$store.state.loggedInAccount?.id;
 		},
 		levelPanelActions(): LevelPanelActions {
 			let self = this;
@@ -80,6 +88,9 @@ export default Vue.defineComponent({
 					});
 				}
 			};
+		},
+		canSubmitChanges(): boolean {
+			return !!(this.packInfo.name && this.packInfo.description);
 		}
 	},
 	methods: {
@@ -89,12 +100,62 @@ export default Vue.defineComponent({
 			if (updateInfo.levelIds) {
 				this.packInfo.levels = this.packInfo.levels.filter(x => updateInfo.levelIds.includes(x.id));
 			}
+		},
+		async submitChanges() {
+			this.editing = false;
+			let ownPack = this.$store.state.ownPacks.find(x => x.id === this.packInfo.id);
+			ownPack.name = this.packInfo.name;
+
+			let token = localStorage.getItem('token');
+			await fetch(`/api/pack/${this.packInfo.id}/edit`, {
+				method: 'POST',
+				body: JSON.stringify({
+					name: this.packInfo.name,
+					description: this.packInfo.description
+				}),
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
+				}
+			});
+
+			emitter.emit('packView', -1); // Hack: Pretend that we're viewing a pack with an ID that for sure won't exist, forcing the pack list to re-fetch
+		},
+		async deletePack() {
+			if (!confirm(`Are you sure you want to delete your pack "${this.packInfo.name}"?`)) return;
+
+			this.deleting = true;
+
+			let token = localStorage.getItem('token');
+			let response = await fetch(`/api/pack/${this.packInfo.id}/delete`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+
+			if (response.ok) {
+				this.$store.state.ownPacks = this.$store.state.ownPacks.filter(x => x.id !== this.packInfo.id);
+				emitter.emit('packView', -1); // Same hack as above
+				this.$store.state.nextInfoBannerMessage = `Pack "${this.packInfo.name}" has been deleted successfully.`;
+				this.$router.push({ name: 'Profile', params: { id: this.$store.state.loggedInAccount.id } });
+			} else {
+				this.deleting = false;
+				alert("Something went wrong.");
+			}
 		}
 	},
 	components: {
 		ProfileBanner,
 		DownloadButton,
-		PanelList
+		PanelList,
+		ButtonWithIcon,
+		InfoBanner
+	},
+	watch: {
+		isOwnPack() {
+			if (!this.isOwnPack) this.editing = false;
+		}
 	}
 });
 </script>
@@ -154,5 +215,14 @@ h3 {
 
 .actions img:hover {
 	opacity: 0.75;
+}
+
+.nameInput, .descriptionInput {
+	width: 500px;
+	margin-bottom: 10px;
+}
+
+.saveChangesButton {
+	width: 200px;
 }
 </style>

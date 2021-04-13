@@ -1,6 +1,6 @@
 <template>
 	<div v-if="shown">
-		<p><slot></slot></p>
+		<p>{{ content }}</p>
 		<img src="/assets/svg/close_black_24dp.svg" @click="shown = false">
 	</div>
 </template>
@@ -10,7 +10,15 @@ import Vue, { PropType } from 'vue';
 export default Vue.defineComponent({
 	data() {
 		return {
-			shown: true
+			shown: false,
+			content: ''
+		}
+	},
+	mounted() {
+		if (this.$store.state.nextInfoBannerMessage) {
+			this.content = this.$store.state.nextInfoBannerMessage;
+			this.$store.state.nextInfoBannerMessage = null;
+			this.shown = true;
 		}
 	}
 });

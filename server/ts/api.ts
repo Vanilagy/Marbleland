@@ -564,3 +564,56 @@ app.get('/api/pack/:packId/image', async (req, res) => {
 	res.set('Cache-Control', 'no-cache, no-store'); // Could change any time
 	await compressAndSendImage(imagePath, req, res, { width: 512, height: 512 });
 });
+
+app.post('/api/pack/:packId/edit', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+	if (!packDoc) {
+		res.status(400).end();
+		return;
+	}
+
+	if (packDoc.createdBy !== doc._id) {
+		res.status(403).end();
+		return;
+	}
+
+	if (!req.body.name || !req.body.description) {
+		res.status(401).end();
+		return;
+	}
+
+	packDoc.name = req.body.name;
+	packDoc.description = req.body.description;
+	await db.packs.update({ _id: packDoc._id }, packDoc);
+
+	res.end();
+});
+
+app.post('/api/pack/:packId/delete', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+	if (!packDoc) {
+		res.status(400).end();
+		return;
+	}
+
+	if (packDoc.createdBy !== doc._id) {
+		res.status(403).end();
+		return;
+	}
+
+	await db.packs.remove({ _id: packDoc._id }, {});
+
+	res.end();
+});

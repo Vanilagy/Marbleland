@@ -1,6 +1,6 @@
 <template>
 	<template v-if="levelInfo">
-		<info-banner v-if="creationBannerShown">Level submitted successfully!</info-banner>
+		<info-banner></info-banner>
 		<div class="top-part">
 			<aside>
 				<img :src="imageSource" class="thumbnail">
@@ -54,16 +54,10 @@ export default Vue.defineComponent({
 	},
 	data() {
 		return {
-			levelInfo: null as ExtendedLevelInfo,
-			creationBannerShown: false
+			levelInfo: null as ExtendedLevelInfo
 		};
 	},
 	async mounted() {
-		if (this.$store.state.showLevelCreated) {
-			this.creationBannerShown = true;
-			this.$store.state.showLevelCreated = false;
-		}
-
 		let id = Number(this.$route.params.id);
 		let response = await fetch(`/api/level/${id}/extended-info`);
 		let levelInfo = await response.json() as ExtendedLevelInfo;

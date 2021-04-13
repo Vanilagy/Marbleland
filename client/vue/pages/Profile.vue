@@ -1,6 +1,6 @@
 <template>
 	<div v-if="profileInfo">
-		<info-banner v-if="creationBannerShown">Account created successfully!</info-banner>
+		<info-banner></info-banner>
 		<p v-if="shouldSetAvatar" class="noAvatarNotice">❗ You should set your profile avatar. Do so by clicking the avatar icon. ❗</p>
 		<div class="avatar">
 			<div class="setAvatar" v-if="isOwnProfile" title="Upload new avatar" @click="chooseAvatar">
@@ -36,7 +36,6 @@ export default Vue.defineComponent({
 	data() {
 		return {
 			profileInfo: null as ExtendedProfileInfo,
-			creationBannerShown: false,
 			editingBio: false
 		};
 	},
@@ -46,11 +45,6 @@ export default Vue.defineComponent({
 		let json = await response.json() as ExtendedProfileInfo;
 
 		this.profileInfo = json;
-
-		if (this.$store.state.showAccountCreated) {
-			this.creationBannerShown = true;
-			this.$store.state.showAccountCreated = false;
-		}
 	},
 	computed: {
 		avatarSrc(): string {

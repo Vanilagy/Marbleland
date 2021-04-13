@@ -66,8 +66,7 @@ export const store = createStore({
 		loggedInAccount: null as ProfileInfo,
 		ownPacks: null as SignInInfo["packs"],
 		avatarVersion: 0,
-		showLevelCreated: false,
-		showAccountCreated: false
+		nextInfoBannerMessage: null as string
 	}
 });
 
