@@ -175,6 +175,64 @@ app.get('/api/level/:levelId/packs', async (req, res) => {
 	res.send(packInfos);
 });
 
+app.post('/api/level/:levelId/edit', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let levelId = await verifyLevelId(req, res);
+	if (levelId === null) return;
+
+	if (req.body.remarks !== null && typeof req.body.remarks !== 'string') {
+		res.status(400).end();
+		return;
+	}
+
+	let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+
+	if (missionDoc.addedBy !== doc._id) {
+		res.status(403).end();
+		return;
+	}
+
+	missionDoc.remarks = req.body.remarks;
+	await db.missions.update({ _id: levelId }, missionDoc);
+
+	res.end();
+});
+
+app.delete('/api/level/:levelId/delete', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let levelId = await verifyLevelId(req, res);
+	if (levelId === null) return;
+
+	let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+
+	if (missionDoc.addedBy !== doc._id) {
+		res.status(403).end();
+		return;
+	}
+
+	await db.missions.remove({ _id: levelId }, {});
+
+	// Remove the level from all packs that contained it
+	let packDocs = await db.packs.find({ levels: levelId }) as PackDoc[];
+	for (let packDoc of packDocs) {
+		packDoc.levels = packDoc.levels.filter(x => x !== levelId);
+		await db.packs.update({ _id: packDoc._id }, packDoc);
+		createPackThumbnail(packDoc);
+	}
+
+	res.end();
+});
+
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
 app.get('/api/account/register', async (req, res) => {
@@ -595,7 +653,7 @@ app.post('/api/pack/:packId/edit', async (req, res) => {
 	res.end();
 });
 
-app.post('/api/pack/:packId/delete', async (req, res) => {
+app.delete('/api/pack/:packId/delete', async (req, res) => {
 	let doc = await authorize(req);
 	if (!doc) {
 		res.status(401).send("401\nInvalid token.");
@@ -614,6 +672,10 @@ app.post('/api/pack/:packId/delete', async (req, res) => {
 	}
 
 	await db.packs.remove({ _id: packDoc._id }, {});
+
+	try {
+		await fs.unlink(getPackThumbnailPath(packDoc)); // Delete the pack thumbnail
+	} catch {}
 
 	res.end();
 });

@@ -17,9 +17,9 @@
 			<textarea class="bioTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="saveBio" @click="saveBio">Save bio</button-with-icon>
 		</template>
-		<h3>Uploaded levels</h3>
+		<h3>Uploaded levels ({{ profileInfo.uploadedLevels.length }})</h3>
 		<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
-		<h3>Created packs</h3>
+		<h3>Created packs ({{ profileInfo.createdPacks.length }})</h3>
 		<panel-list mode="pack" :entries="profileInfo.createdPacks" :defaultCount="4" noEntriesNotice="This user has yet to create any packs."></panel-list>
 	</div>
 </template>

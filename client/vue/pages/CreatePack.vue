@@ -2,8 +2,8 @@
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Create new level pack</h1>
 		<div :class="{ disabled: creating }">
-			<input type="text" placeholder="Name" maxlength="64" v-model.trim="name">
-			<textarea class="description" placeholder="Description" maxlength="1000" v-model.trim="description"></textarea>
+			<input type="text" placeholder="Name" :maxlength="$store.state.packNameMaxLength" v-model.trim="name">
+			<textarea class="description" placeholder="Description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="description"></textarea>
 			<p class="note"><b>Note:</b> You can add levels to this pack once you've created it.</p>
 			<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createButton" @click="create" :class="{ disabled: !canCreate }">Create</button-with-icon>
 		</div>

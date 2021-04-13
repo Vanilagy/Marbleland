@@ -1,5 +1,5 @@
 <template>
-	<template v-if="levelInfo">
+	<template v-if="levelInfo" :class="{ disabled: deleting }">
 		<info-banner></info-banner>
 		<div class="top-part">
 			<aside>
@@ -10,8 +10,8 @@
 			</aside>
 			<div style="flex: 1 1 auto;">
 				<div class="actions">
-					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="isOwnLevel">
-					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="isOwnLevel">
+					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="isOwnLevel" @click="deleteLevel">
+					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="isOwnLevel" :class="{ disabled: editing }" @click="editing = true">
 					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.toggle()">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
@@ -21,8 +21,10 @@
 				<p class="regularParagraph">{{ levelInfo.desc }}</p>
 				<h3>Details</h3>
 				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
-				<h3 v-if="levelInfo.remarks">Remarks</h3>
-				<p class="regularParagraph" v-if="levelInfo.remarks">{{ levelInfo.remarks }}</p>
+				<h3 v-if="levelInfo.remarks || editing">Remarks</h3>
+				<p class="regularParagraph" v-if="!editing && levelInfo.remarks">{{ levelInfo.remarks }}</p>
+				<textarea v-if="editing" class="basicTextarea remarksInput" v-model.trim="levelInfo.remarks" :maxlength="$store.state.levelRemarksMaxLength"></textarea>
+				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" @click="submitChanges">Save changes</button-with-icon>
 			</div>
 		</div>
 		<template v-if="levelInfo.packs.length">
@@ -40,6 +42,7 @@ import ProfileBanner from '../ProfileBanner.vue';
 import InfoBanner from '../InfoBanner.vue';
 import PackAdder from '../PackAdder.vue';
 import PanelList from '../PanelList.vue';
+import ButtonWithIcon from '../ButtonWithIcon.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
@@ -50,11 +53,14 @@ export default Vue.defineComponent({
 		ProfileBanner,
 		InfoBanner,
 		PackAdder,
-		PanelList
+		PanelList,
+		ButtonWithIcon
 	},
 	data() {
 		return {
-			levelInfo: null as ExtendedLevelInfo
+			levelInfo: null as ExtendedLevelInfo,
+			editing: false,
+			deleting: false
 		};
 	},
 	async mounted() {
@@ -113,6 +119,50 @@ export default Vue.defineComponent({
 			let json = await response.json() as PackInfo[];
 			
 			this.levelInfo.packs = json;
+		},
+		async submitChanges() {
+			this.editing = false;
+
+			let token = localStorage.getItem('token');
+			await fetch(`/api/level/${this.levelInfo.id}/edit`, {
+				method: 'POST',
+				body: JSON.stringify({
+					remarks: this.levelInfo.remarks
+				}),
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
+				}
+			});
+		},
+		async deleteLevel() {
+			if (!confirm("Are you sure you want to delete this level? This will also remove it from all packs that currently contain it.")) return;
+
+			this.deleting = true;
+
+			let token = localStorage.getItem('token');
+			let response = await fetch(`/api/level/${this.levelInfo.id}/delete`, {
+				method: 'DELETE',
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+
+			if (response.ok) {
+				// Remove the level from all own packs
+				for (let pack of this.$store.state.ownPacks) {
+					pack.levelIds = pack.levelIds.filter(x => x !== this.levelInfo.id);
+				}
+
+				Search.checkForRefresh(-1); // Same hack as the one we use in Pack.vue
+				emitter.emit('packView', -1); // Reload all packs
+
+				this.$store.state.nextInfoBannerMessage = `Level "${this.levelInfo.name}" has been deleted successfully.`;
+				this.$router.push({ name: 'Profile', params: { id: this.$store.state.loggedInAccount.id } });
+			} else {
+				this.deleting = false;
+				alert("Something went wrong.");
+			}
 		}
 	}
 });
@@ -194,5 +244,15 @@ h3 {
 	top: 30px;
 	right: 0px;
 	z-index: 1;
+}
+
+.remarksInput {
+	width: 100%;
+	height: 200px;
+	margin-bottom: 10px;
+}
+
+.saveChangesButton {
+	width: 200px;
 }
 </style>

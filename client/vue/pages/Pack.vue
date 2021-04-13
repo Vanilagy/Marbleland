@@ -2,11 +2,11 @@
 	<info-banner v-if="packInfo"></info-banner>
 	<div v-if="packInfo" class="outer" :class="{ disabled: deleting }">
 		<h1 v-if="!editing">{{ packInfo.name }}</h1>
-		<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name">
+		<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="$store.state.packNameMaxLength">
 		<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
 		<h3>Description</h3>
 		<p v-if="!editing" class="regularParagraph">{{ packInfo.description }}</p>
-		<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description"></textarea>
+		<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description" :maxlength="$store.state.packDescriptionMaxLength"></textarea>
 		<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" :class="{ disabled: !canSubmitChanges }" @click="submitChanges">Save changes</button-with-icon>
 		<div class="topRight">
 			<div class="actions" v-if="isOwnPack">
@@ -128,7 +128,7 @@ export default Vue.defineComponent({
 
 			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/pack/${this.packInfo.id}/delete`, {
-				method: 'POST',
+				method: 'DELETE',
 				headers: {
 					'Authorization': `Bearer ${token}`
 				}

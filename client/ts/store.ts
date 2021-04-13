@@ -66,7 +66,10 @@ export const store = createStore({
 		loggedInAccount: null as ProfileInfo,
 		ownPacks: null as SignInInfo["packs"],
 		avatarVersion: 0,
-		nextInfoBannerMessage: null as string
+		nextInfoBannerMessage: null as string,
+		levelRemarksMaxLength: 10000,
+		packNameMaxLength: 64,
+		packDescriptionMaxLength: 1000
 	}
 });
 
