@@ -1,10 +1,14 @@
 <template>
 	<div v-if="packInfo" class="outer">
 		<h1>{{ packInfo.name }}</h1>
-		<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText"></profile-banner>
+		<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
 		<h3>Description</h3>
 		<p class="regularParagraph">{{ packInfo.description }}</p>
-		<div class="downloadButton">
+		<div class="topRight">
+			<div class="actions" v-if="isOwnPack">
+				<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack">
+				<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack">
+			</div>
 			<download-button :id="packInfo.id" mode="pack"></download-button>
 		</div>
 		<h3>Included levels ({{ packInfo.levels.length }})</h3>
@@ -119,7 +123,7 @@ h3 {
 	margin: 0;
 }
 
-.downloadButton {
+.topRight {
 	width: 300px;
 	position: absolute;
 	top: 0;
@@ -131,5 +135,24 @@ h3 {
 	margin: 0;
 	font-size: 14px;
 	text-align: center;
+}
+
+.profileBanner {
+	width: 300px;
+}
+
+.actions {
+	text-align: right;
+	margin-top: -5px;
+}
+
+.actions img {
+	opacity: 0.5;
+	padding: 5px;
+	cursor: pointer;
+}
+
+.actions img:hover {
+	opacity: 0.75;
 }
 </style>
