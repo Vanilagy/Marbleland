@@ -2,20 +2,24 @@
 	<loader v-if="!packInfo"></loader>
 	<info-banner v-if="packInfo"></info-banner>
 	<div v-if="packInfo" class="outer" :class="{ disabled: deleting }">
-		<h1 v-if="!editing">{{ packInfo.name }}</h1>
-		<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="$store.state.packNameMaxLength">
-		<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
-		<h3>Description</h3>
-		<p v-if="!editing" class="regularParagraph">{{ packInfo.description }}</p>
-		<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description" :maxlength="$store.state.packDescriptionMaxLength"></textarea>
-		<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" :class="{ disabled: !canSubmitChanges }" @click="submitChanges">Save changes</button-with-icon>
-		<div class="topRight">
-			<div class="actions" v-if="isOwnPack">
-				<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack">
-				<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }">
+		<div style="display: flex; flex-wrap: wrap;">
+			<div style="flex: 1 1 auto; min-width: 300px;">
+				<h1 v-if="!editing">{{ packInfo.name }}</h1>
+				<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="$store.state.packNameMaxLength">
+				<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
+				<h3>Description</h3>
+				<p v-if="!editing" class="regularParagraph">{{ packInfo.description }}</p>
+				<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description" :maxlength="$store.state.packDescriptionMaxLength"></textarea>
+				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" :class="{ disabled: !canSubmitChanges }" @click="submitChanges">Save changes</button-with-icon>
 			</div>
-			<download-button :id="packInfo.id" mode="pack" @download="packInfo.downloads++"></download-button>
-			<p class="additionalInfo">Downloads: {{ packInfo.downloads }}</p>
+			<div class="topRight">
+				<div class="actions" v-if="isOwnPack">
+					<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack">
+					<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }">
+				</div>
+				<download-button :id="packInfo.id" mode="pack" @download="packInfo.downloads++"></download-button>
+				<p class="additionalInfo">Downloads: {{ packInfo.downloads }}</p>
+			</div>
 		</div>
 		<h3>Included levels ({{ packInfo.levels.length }})</h3>
 		<panel-list mode="level" :entries="packInfo.levels" :defaultCount="24" :levelPanelActions="levelPanelActions" noEntriesNotice="This pack contains no levels."></panel-list>
@@ -190,9 +194,12 @@ h3 {
 
 .topRight {
 	width: 300px;
-	position: absolute;
-	top: 0;
-	right: 0;
+}
+
+@media (max-width: 629px) {
+	.topRight {
+		width: 100%;
+	}
 }
 
 .howToAdd {

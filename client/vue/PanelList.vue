@@ -1,7 +1,7 @@
 <template>
 	<div class="outer">
 		<template v-if="!entries">
-			<panel-skeleton v-for="n in defaultCount" :key="n" style="margin: 5px;"></panel-skeleton>
+			<panel-skeleton v-for="n in defaultCount" :key="n"></panel-skeleton>
 		</template>
 		<template v-else>
 			<template v-if="shownEntries.length > 0">
@@ -76,10 +76,6 @@ export default Vue.defineComponent({
 	margin: -5px;
 	margin-top: 5px;
 	flex-wrap: wrap;
-}
-
-.entryPanel {
-	margin: 5px;
 }
 
 .noEntriesNotice {

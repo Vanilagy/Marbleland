@@ -28,6 +28,7 @@ export default Vue.defineComponent({
 .homeAction {
 	width: 200px;
 	height: 200px;
+	min-width: 200px;
 	background: rgb(240, 240, 240);
 	border-radius: 5px;
 	position: relative;

@@ -1,5 +1,6 @@
 <template>
-	<div>
+	<div class="panelSkeleton">
+		<div class="inner"></div>
 	</div>
 </template>
 
@@ -17,13 +18,36 @@ export default Vue.defineComponent({
 	100% {background: rgb(240, 240, 240);}
 }
 
-div {
-	width: 242px;
+.panelSkeleton {
 	height: 200px;
+	box-sizing: border-box;
+	padding: 5px;
+	width: calc(100% / 4);
+}
+
+.inner {
+	height: 100%;
 	background: rgb(240, 240, 240);
 	overflow: hidden;
 	border-radius: 5px;
-	position: relative;
 	animation: pulse 1.5s infinite ease;
+}
+
+@media (max-width: 1045px) {
+	.panelSkeleton {
+		width: calc(100% / 3);
+	}
+}
+
+@media (max-width: 792px) {
+	.panelSkeleton {
+		width: calc(100% / 2);
+	}
+}
+
+@media (max-width: 540px) {
+	.panelSkeleton {
+		width: calc(100% / 1);
+	}
 }
 </style>

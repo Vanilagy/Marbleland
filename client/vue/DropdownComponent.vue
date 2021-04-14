@@ -38,7 +38,8 @@ export default Vue.defineComponent({
 		},
 		wrapperStyle(): Record<string, string> {
 			return {
-				'box-shadow': this.expanded? '0px 0px 5px #00000052' : ''
+				'box-shadow': this.expanded? '0px 0px 5px #00000052' : '',
+				'z-index': this.expanded? 1 : ''
 			};
 		}
 	},
@@ -83,7 +84,6 @@ export default Vue.defineComponent({
 	border-radius: 5px;
 	overflow: hidden;
 	width: 100%;
-	z-index: 1;
 }
 
 img {

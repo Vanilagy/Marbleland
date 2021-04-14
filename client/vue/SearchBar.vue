@@ -119,12 +119,14 @@ export default Vue.defineComponent({
 	margin: -5px;
 	margin-top: 5px;
 	display: flex;
+	flex-wrap: wrap;
 }
 
 .labeled-dropdown {
 	width: 20%;
 	margin: 5px;
 	flex: 1 1 0;
+	min-width: 180px;
 }
 
 .labeled-dropdown > p {

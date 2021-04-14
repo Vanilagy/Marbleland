@@ -82,6 +82,7 @@ h2 {
 	margin: -5px;
 	justify-content: center;
 	margin-bottom: 20px;
+	flex-wrap: wrap;
 }
 
 .actions > div {

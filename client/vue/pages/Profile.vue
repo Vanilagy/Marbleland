@@ -181,7 +181,7 @@ h1 {
 	text-align: center;
 	margin: 0;
 	margin: auto;
-	width: 500px;
+	max-width: 500px;
 	white-space: pre-wrap;
 }
 
@@ -203,7 +203,8 @@ h1 {
 
 .bioTextarea {
 	display: block;
-	width: 500px;
+	width: 100%;
+	max-width: 500px;
 	height: 200px;
 	margin: auto;
 	background: rgb(240, 240, 240);
@@ -216,6 +217,7 @@ h1 {
     box-sizing: border-box;
     resize: none;
 	margin-top: 10px;
+	box-sizing: border-box;
 }
 
 .bioTextarea:focus {
