@@ -73,9 +73,25 @@ export default Vue.defineComponent({
 			this.waitingForResponse = true;
 
 			let url = (this.type === 'signUp')?
-				`/api/account/register?email=${encodeURIComponent(this.email)}&username=${encodeURIComponent(this.username)}&password=${this.password}` :
-				`/api/account/sign-in?email_or_username=${encodeURIComponent(this.email)}&password=${this.password}`;
-			let response = await fetch(url);
+				'/api/account/register' :
+				'/api/account/sign-in';
+			let body = (this.type === 'signUp')?
+				({
+					email: this.email,
+					username: this.username,
+					password: this.password
+				}) :
+				({
+					emailOrUsername: this.email,
+					password: this.password
+				});
+			let response = await fetch(url, {
+				method: 'POST',
+				body: JSON.stringify(body),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
 
 			let json = await response.json() as {
 				status: 'success' | 'error',

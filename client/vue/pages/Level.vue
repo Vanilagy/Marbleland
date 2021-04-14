@@ -143,7 +143,7 @@ export default Vue.defineComponent({
 
 			let token = localStorage.getItem('token');
 			await fetch(`/api/level/${this.levelInfo.id}/edit`, {
-				method: 'POST',
+				method: 'PATCH',
 				body: JSON.stringify({
 					remarks: this.levelInfo.remarks
 				}),
@@ -207,7 +207,7 @@ export default Vue.defineComponent({
 
 			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/comment/${commentId}/delete`, {
-				method: 'POST',
+				method: 'DELETE',
 				headers: {
 					'Authorization': `Bearer ${token}`
 				}

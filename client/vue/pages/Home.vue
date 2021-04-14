@@ -1,7 +1,6 @@
 <template>
 	<h1>Welcome to Marbleland</h1>
 	<h2>A custom level sharing platform for Marble Blast</h2>
-	<p class="actionHeader">Things you could do:</p>
 	<div class="actions">
 		<home-action v-for="action of actions" :key="action.name" :icon="action.icon" :name="action.name" :description="action.description" :path="action.path"></home-action>		
 	</div>
@@ -36,7 +35,7 @@ export default Vue.defineComponent({
 			}, {
 				icon: '/assets/svg/code_black_24dp.svg',
 				name: 'API',
-				description: 'Access every functionality programmatically.',
+				description: 'Access every functionality using code.',
 				path: 'https://github.com/Vanilagy/CLA'
 			}],
 			homeInfo: null as HomeInfo
@@ -67,14 +66,7 @@ h2 {
 	margin: 0;
 	font-weight: normal;
 	font-size: 18px;
-	margin-bottom: 30px;
-}
-
-.actionHeader {
-	margin: 0;
-	font-size: 14px;
-	text-align: center;
-	margin-bottom: 10px;
+	margin-bottom: 40px;
 }
 
 .actions {

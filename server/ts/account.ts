@@ -45,18 +45,23 @@ setInterval(async () => {
 	}
 }, 1000 * 60 * 60 * 24);
 
-export const authorize = async (req: express.Request) => {
+export const getTokenFromAuthHeader = (req: express.Request) => {
 	let header = req.headers.authorization as string;
 	if (!header) return null;
 
 	let parts = header.split(' ');
 	if (parts[0] !== 'Bearer') return null;
 
-	let doc = await db.accounts.findOne({ 'tokens.value': parts[1] }) as AccountDoc;
+	return parts[1] ?? null;
+};
+
+export const authorize = async (req: express.Request) => {
+	let tokenString = getTokenFromAuthHeader(req);
+	let doc = await db.accounts.findOne({ 'tokens.value': tokenString }) as AccountDoc;
 	if (!doc) return null;
 
 	let now = Date.now();
-	let token = doc.tokens.find(x => x.value === parts[1]);;
+	let token = doc.tokens.find(x => x.value === tokenString);;
 	if (now - token.lastUsed >= TOKEN_TTL) return null;
 
 	token.lastUsed = Date.now();

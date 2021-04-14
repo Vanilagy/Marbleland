@@ -4,14 +4,14 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
-import { CommentInfo, HomeInfo, LevelInfo, PackInfo } from "../../shared/types";
+import { HomeInfo, LevelInfo, PackInfo } from "../../shared/types";
 import * as sharp from 'sharp';
-import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getSignInInfo } from "./account";
+import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getSignInInfo, getTokenFromAuthHeader } from "./account";
 import * as bcrypt from 'bcryptjs';
 import JSZip, * as jszip from 'jszip';
 import { MissionUpload, ongoingUploads } from "./mission_upload";
 import { createPackThumbnail, getExtendedPackInfo, getPackInfo, getPackThumbnailPath, PackDoc } from "./pack";
-import { CommentDoc, getCommentInfo, getCommentInfosForLevel } from "./comment";
+import { CommentDoc, getCommentInfosForLevel } from "./comment";
 
 app.use(express.raw({
 	limit: '15mb'
@@ -179,7 +179,69 @@ app.get('/api/level/:levelId/packs', async (req, res) => {
 	res.send(packInfos);
 });
 
-app.post('/api/level/:levelId/edit', async (req, res) => {
+app.post('/api/level/upload', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let problems: string[] = [];
+	let zip: jszip;
+	let upload: MissionUpload;
+
+	try {
+		zip = await jszip.loadAsync(req.body);
+	} catch (e) {
+		problems.push("The uploaded file couldn't be unzipped.");
+	}
+
+	if (zip) {
+		try {
+			upload = new MissionUpload(zip);
+			await upload.process();
+			problems.push(...upload.problems);
+		} catch (e) {
+			problems.push("An error occurred during processing.");
+		}
+	}
+
+	if (problems.length > 0) {
+		res.status(400).send({
+			status: 'error',
+			problems: problems
+		});
+	} else {
+		ongoingUploads.set(upload.id, upload);
+
+		res.send({
+			status: 'success',
+			uploadId: upload.id
+		});
+	}
+});
+
+app.post('/api/level/submit', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
+		return;
+	}
+
+	let upload = ongoingUploads.get(req.body.uploadId);
+	if (!upload) {
+		res.status(400).end();
+		return;
+	}
+
+	let missionDoc = await upload.submit(doc._id, req.body.remarks);
+
+	res.send({
+		levelId: missionDoc._id
+	});
+});
+
+app.patch('/api/level/:levelId/edit', async (req, res) => {
 	let doc = await authorize(req);
 	if (!doc) {
 		res.status(401).send("401\nInvalid token.");
@@ -268,7 +330,7 @@ app.post('/api/level/:levelId/comment', async (req, res) => {
 	res.send(await getCommentInfosForLevel(levelId));
 });
 
-app.post('/api/comment/:commentId/delete', async (req, res) => {
+app.delete('/api/comment/:commentId/delete', async (req, res) => {
 	let doc = await authorize(req);
 	if (!doc) {
 		res.status(401).send("401\nInvalid token.");
@@ -294,8 +356,8 @@ app.post('/api/comment/:commentId/delete', async (req, res) => {
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
-app.get('/api/account/register', async (req, res) => {
-	let q = req.query as {email: string, username: string, password: string};
+app.post('/api/account/register', async (req, res) => {
+	let q = req.body as {email: string, username: string, password: string};
 	if (!q.email || !q.username || !q.password) {
 		res.status(400).send({ status: 'error', reason: "Missing parameters" });
 		return;
@@ -368,8 +430,8 @@ app.get('/api/account/check-token', async (req, res) => {
 	res.send(await getSignInInfo(doc));
 });
 
-app.get('/api/account/sign-in', async (req, res) => {
-	let doc = await db.accounts.findOne({ $or: [{ email: req.query.email_or_username }, { username: req.query.email_or_username }] }) as AccountDoc;
+app.post('/api/account/sign-in', async (req, res) => {
+	let doc = await db.accounts.findOne({ $or: [{ email: req.body.emailOrUsername }, { username: req.body.emailOrUsername }] }) as AccountDoc;
 	if (!doc) {
 		res.status(400).send({
 			status: 'error',
@@ -378,7 +440,7 @@ app.get('/api/account/sign-in', async (req, res) => {
 		return;
 	}
 
-	let pwMatches = await bcrypt.compare((req.query.password as string) ?? '', doc.passwordHash);
+	let pwMatches = await bcrypt.compare((req.body.password as string) ?? '', doc.passwordHash);
 	if (!pwMatches) {
 		res.status(400).send({
 			status: 'error',
@@ -398,17 +460,16 @@ app.get('/api/account/sign-in', async (req, res) => {
 	res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
 });
 
-app.get('/api/account/sign-out', async (req, res) => {
-	if (!req.query.token) {
-		res.status(400);
+app.post('/api/account/sign-out', async (req, res) => {
+	let doc = await authorize(req);
+	if (!doc) {
+		res.status(401).send("401\nInvalid token.");
 		return;
 	}
 
-	let doc = await db.accounts.findOne({ 'tokens.value': req.query.token }) as AccountDoc;
-	if (doc) {
-		doc.tokens = doc.tokens.filter(x => x.value !== req.query.token);
-		await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
-	}
+	let token = getTokenFromAuthHeader(req);
+	doc.tokens = doc.tokens.filter(x => x.value !== token);
+	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 	
 	res.end();
 });
@@ -489,68 +550,6 @@ app.post('/api/account/:accountId/set-bio', async (req, res) => {
 	await db.accounts.update({ _id: doc._id }, doc);
 
 	res.end();
-});
-
-app.post('/api/level/upload', async (req, res) => {
-	let doc = await authorize(req);
-	if (!doc) {
-		res.status(401).send("401\nInvalid token.");
-		return;
-	}
-
-	let problems: string[] = [];
-	let zip: jszip;
-	let upload: MissionUpload;
-
-	try {
-		zip = await jszip.loadAsync(req.body);
-	} catch (e) {
-		problems.push("The uploaded file couldn't be unzipped.");
-	}
-
-	if (zip) {
-		try {
-			upload = new MissionUpload(zip);
-			await upload.process();
-			problems.push(...upload.problems);
-		} catch (e) {
-			problems.push("An error occurred during processing.");
-		}
-	}
-
-	if (problems.length > 0) {
-		res.status(400).send({
-			status: 'error',
-			problems: problems
-		});
-	} else {
-		ongoingUploads.set(upload.id, upload);
-
-		res.send({
-			status: 'success',
-			uploadId: upload.id
-		});
-	}
-});
-
-app.post('/api/level/submit', async (req, res) => {
-	let doc = await authorize(req);
-	if (!doc) {
-		res.status(401).send("401\nInvalid token.");
-		return;
-	}
-
-	let upload = ongoingUploads.get(req.body.uploadId);
-	if (!upload) {
-		res.status(400).end();
-		return;
-	}
-
-	let missionDoc = await upload.submit(doc._id, req.body.remarks);
-
-	res.send({
-		levelId: missionDoc._id
-	});
 });
 
 app.post('/api/pack/create', async (req, res) => {
@@ -689,7 +688,7 @@ app.get('/api/pack/:packId/image', async (req, res) => {
 	await compressAndSendImage(imagePath, req, res, { width: 512, height: 512 });
 });
 
-app.post('/api/pack/:packId/edit', async (req, res) => {
+app.patch('/api/pack/:packId/edit', async (req, res) => {
 	let doc = await authorize(req);
 	if (!doc) {
 		res.status(401).send("401\nInvalid token.");

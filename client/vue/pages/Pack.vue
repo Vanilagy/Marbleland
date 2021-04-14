@@ -115,7 +115,7 @@ export default Vue.defineComponent({
 
 			let token = localStorage.getItem('token');
 			await fetch(`/api/pack/${this.packInfo.id}/edit`, {
-				method: 'POST',
+				method: 'PATCH',
 				body: JSON.stringify({
 					name: this.packInfo.name,
 					description: this.packInfo.description

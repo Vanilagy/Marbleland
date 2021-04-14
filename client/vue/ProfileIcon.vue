@@ -49,7 +49,13 @@ export default Vue.defineComponent({
 				}, {
 					label: 'Sign out',
 					onClick() {
-						fetch(`/api/account/sign-out?token=${localStorage.getItem('token')}`);
+						let token = localStorage.getItem('token');
+						fetch('/api/account/sign-out', {
+							method: 'POST',
+							headers: {
+								'Authorization': `Bearer ${token}`
+							}
+						});
 						localStorage.removeItem('token');
 						self.$store.state.loggedInAccount = null;
 					}
