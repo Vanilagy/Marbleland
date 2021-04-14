@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { app } from "./server";
 import * as express from 'express';
-import { CommentInfo, LevelInfo, PackInfo } from "../../shared/types";
+import { CommentInfo, HomeInfo, LevelInfo, PackInfo } from "../../shared/types";
 import * as sharp from 'sharp';
 import { AccountDoc, authorize, generateNewAccessToken, getExtendedProfileInfo, getSignInInfo } from "./account";
 import * as bcrypt from 'bcryptjs';
@@ -744,4 +744,22 @@ app.delete('/api/pack/:packId/delete', async (req, res) => {
 	} catch {}
 
 	res.end();
+});
+
+app.get('/api/home/info', async (req, res) => {
+	let missionDocs = await db.missions.find({}) as MissionDoc[];
+	missionDocs.sort((a, b) => b.addedAt - a.addedAt);
+	missionDocs = missionDocs.slice(0, 8);
+
+	let levelInfos: LevelInfo[] = [];
+	for (let missionDoc of missionDocs) {
+		let mission = Mission.fromDoc(missionDoc);
+		levelInfos.push(mission.createLevelInfo());
+	}
+
+	let result: HomeInfo = {
+		latestLevels: levelInfos
+	};
+
+	res.send(result);
 });

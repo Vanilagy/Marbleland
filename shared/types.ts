@@ -84,3 +84,7 @@ export interface CommentInfo {
 	time: number,
 	content: string
 }
+
+export interface HomeInfo {
+	latestLevels: LevelInfo[]
+}

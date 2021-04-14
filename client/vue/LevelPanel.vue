@@ -97,7 +97,8 @@ export default Vue.defineComponent({
 
 .name {
 	font-size: 16px;
-	height: 20px;
+	height: 24px;
+	margin-bottom: -4px;
 	overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
