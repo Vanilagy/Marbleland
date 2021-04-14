@@ -190,7 +190,7 @@ export class Mission {
 
 	async createZip(assuming: 'none' | 'gold' | 'platinumquest') {
 		let zip = new JSZip();
-		this.addToZip(zip, assuming);
+		await this.addToZip(zip, assuming);
 		return zip;
 	}
 
