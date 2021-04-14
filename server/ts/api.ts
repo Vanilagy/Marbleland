@@ -288,7 +288,7 @@ app.delete('/api/level/:levelId/delete', async (req, res) => {
 
 	if (missionDoc.addedBy !== doc._id) {
 		res.status(403).end();
-		return;
+		return; 
 	}
 
 	await db.missions.remove({ _id: levelId }, {});
