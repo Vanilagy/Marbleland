@@ -1,4 +1,5 @@
 <template>
+	<loader v-if="!levelInfo"></loader>
 	<template v-if="levelInfo" :class="{ disabled: deleting }">
 		<info-banner></info-banner>
 		<div class="top-part">
@@ -52,6 +53,7 @@ import PackAdder from '../PackAdder.vue';
 import PanelList from '../PanelList.vue';
 import ButtonWithIcon from '../ButtonWithIcon.vue';
 import CommentElement from '../CommentElement.vue';
+import Loader from '../Loader.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
@@ -64,7 +66,8 @@ export default Vue.defineComponent({
 		PackAdder,
 		PanelList,
 		ButtonWithIcon,
-		CommentElement
+		CommentElement,
+		Loader
 	},
 	data() {
 		return {

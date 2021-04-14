@@ -37,6 +37,10 @@ body, html {
 	margin-bottom: 10px;
 }
 
+body {
+	margin: 0px 15px;
+}
+
 * {
 	-webkit-user-drag: none;
 	-moz-user-drag: none;

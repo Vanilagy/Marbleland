@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import Home from '../vue/pages/Home.vue';
 import Search from '../vue/pages/Search.vue';
 import Level from '../vue/pages/Level.vue';
 import SignUp from '../vue/pages/SignUp.vue';
@@ -12,6 +13,10 @@ import Pack from '../vue/pages/Pack.vue';
 const routes = [{
 	path: '/',
 	name: 'Home',
+	component: Home
+}, {
+	path: '/search',
+	name: 'Search',
 	component: Search
 }, {
 	path: '/level/:id',

@@ -1,4 +1,5 @@
 <template>
+	<loader v-if="!packInfo"></loader>
 	<info-banner v-if="packInfo"></info-banner>
 	<div v-if="packInfo" class="outer" :class="{ disabled: deleting }">
 		<h1 v-if="!editing">{{ packInfo.name }}</h1>
@@ -31,6 +32,7 @@ import DownloadButton from '../DownloadButton.vue';
 import PanelList from '../PanelList.vue';
 import ButtonWithIcon from '../ButtonWithIcon.vue';
 import InfoBanner from '../InfoBanner.vue';
+import Loader from '../Loader.vue';
 import { LevelPanelActions } from '../LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
 
@@ -151,7 +153,8 @@ export default Vue.defineComponent({
 		DownloadButton,
 		PanelList,
 		ButtonWithIcon,
-		InfoBanner
+		InfoBanner,
+		Loader
 	},
 	watch: {
 		isOwnPack() {

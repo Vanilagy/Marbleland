@@ -1,4 +1,5 @@
 <template>
+	<loader v-if="!profileInfo"></loader>
 	<div v-if="profileInfo">
 		<info-banner></info-banner>
 		<p v-if="shouldSetAvatar" class="noAvatarNotice">❗ You should set your profile avatar. Do so by clicking the avatar icon. ❗</p>
@@ -31,6 +32,7 @@ import InfoBanner from '../InfoBanner.vue';
 import PanelList from '../PanelList.vue';
 import ButtonWithIcon from '../ButtonWithIcon.vue';
 import PackPanel from '../PackPanel.vue';
+import Loader from '../Loader.vue';
 
 export default Vue.defineComponent({
 	data() {
@@ -112,7 +114,8 @@ export default Vue.defineComponent({
 		InfoBanner,
 		PanelList,
 		ButtonWithIcon,
-		PackPanel
+		PackPanel,
+		Loader
 	}
 });
 </script>
