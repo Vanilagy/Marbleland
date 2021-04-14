@@ -1,7 +1,7 @@
 {
-  "name": "cla",
+  "name": "marbleland",
   "version": "1.0.0",
-  "description": "Level browser for Marble Blast",
+  "description": "Custom level sharing platform for Marble Blast",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
