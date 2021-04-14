@@ -1,9 +1,9 @@
 <template>
 	<div :class="{ disabled: waitingForResponse }" v-if="!$store.state.loggedInAccount">
 		<h1>{{ (type === 'signUp')? 'Create an account' : 'Sign in to an account' }}</h1>
-		<input type="email" :placeholder="emailPlaceholder" v-model.trim="email" @keydown.enter="submit">
-		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24">
-		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit">
+		<input type="email" :placeholder="emailPlaceholder" v-model.trim="email" @keydown.enter="submit" autofocus name="email" :autocomplete="(type === 'signIn')? 'username' : 'off'">
+		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24" name="username" autocomplete="off">
+		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit" :name="(type === 'signIn')? 'current-password' : 'new-password'" :autocomplete="(type === 'signIn')? 'current-password' : 'off'">
 		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit">
 		<p v-for="problem of problems" :key="problem" class="problem">- {{ problem }}</p>
 		<p class="problem">{{ responseError }}</p>
@@ -59,7 +59,6 @@ export default Vue.defineComponent({
 			return problems;
 		},
 		canSubmit(): boolean {
-			return true;
 			return this.filledOut && this.problems.length === 0;
 		},
 		emailPlaceholder(): string {
