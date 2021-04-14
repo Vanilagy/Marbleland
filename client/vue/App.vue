@@ -14,7 +14,7 @@
 import Vue from 'vue'
 import NavigationBar from './NavigationBar.vue';
 export default Vue.defineComponent({
-	components: { NavigationBar },
+	components: { NavigationBar }
 });
 </script>
 

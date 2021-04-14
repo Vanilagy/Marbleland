@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,15 @@
 		<title>Marbleland</title>
 	</head>
 	<body>
+		<script>
+			// Run this script immediately as the body starts parsing so that we set the theme immediately
+			if (localStorage.getItem('colorTheme')) {
+				if (localStorage.getItem('colorTheme') === 'dark') document.documentElement.classList.add('dark');
+			} else if (matchMedia('(prefers-color-scheme: dark)').matches) {
+				document.documentElement.classList.add('dark');
+			}
+		</script>
+
 		<div id="app"></div>
 
 		<script src="/lib/vue.global.prod.js"></script>

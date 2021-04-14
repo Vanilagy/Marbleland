@@ -23,30 +23,49 @@ export default Vue.defineComponent({
 		},
 		options(): { label: string, onClick: () => void }[] {
 			let self = this;
+			let themeOption = {
+				label: 'Toggle theme',
+				onClick: self.toggleColorTheme
+			};
 
-			if (this.$store.state.loggedInAccount === null) return [{
-				label: 'Sign in',
-				onClick() {
-					self.$router.push('/sign-in');
-				}
-			}, {
-				label: 'Sign up',
-				onClick() {
-					self.$router.push('/sign-up');
-				}
-			}]; else return [{
-				label: 'View profile',
-				onClick() {
-					self.$router.push({ name: 'Profile', params: { id: self.$store.state.loggedInAccount.id } });
-				}
-			}, {
-				label: 'Sign out',
-				onClick() {
-					fetch(`/api/account/sign-out?token=${localStorage.getItem('token')}`);
-					localStorage.removeItem('token');
-					self.$store.state.loggedInAccount = null;
-				}
-			}];
+			if (this.$store.state.loggedInAccount === null) {
+				return [{
+					label: 'Sign in',
+					onClick() {
+						self.$router.push('/sign-in');
+					}
+				}, {
+					label: 'Sign up',
+					onClick() {
+						self.$router.push('/sign-up');
+					}
+				}, themeOption];
+			} else {
+				return [{
+					label: 'View profile',
+					onClick() {
+						self.$router.push({ name: 'Profile', params: { id: self.$store.state.loggedInAccount.id } });
+					}
+				}, {
+					label: 'Sign out',
+					onClick() {
+						fetch(`/api/account/sign-out?token=${localStorage.getItem('token')}`);
+						localStorage.removeItem('token');
+						self.$store.state.loggedInAccount = null;
+					}
+				}, themeOption];
+			}
+		}
+	},
+	methods: {
+		toggleColorTheme() {
+			if (document.documentElement.classList.contains('dark')) {
+				document.documentElement.classList.remove('dark');
+				localStorage.setItem('colorTheme', 'light');
+			} else {
+				document.documentElement.classList.add('dark');
+				localStorage.setItem('colorTheme', 'dark');
+			}
 		}
 	}
 });
@@ -79,7 +98,7 @@ img:hover {
 	border-radius: 5px;
 	overflow: hidden;
 	box-shadow: 0px 0px 5px #00000052;
-	width: 120px;
+	width: 150px;
 	z-index: 1;
 }
 
