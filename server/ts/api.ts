@@ -19,6 +19,11 @@ app.use(express.raw({
 app.use(express.json());
 app.use(express.text());
 
+app.use('/api', (req, res, next) => {
+	res.set('Access-Control-Allow-Origin', '*');
+	next();
+});
+
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	let levelId = Number(req.params.levelId);
 	if (!Number.isInteger(levelId)) {
