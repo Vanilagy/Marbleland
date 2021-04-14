@@ -29,7 +29,8 @@ export interface MissionDoc {
 	misHash: string,
 	addedAt: number,
 	addedBy?: number,
-	remarks?: string
+	remarks?: string,
+	downloads: number
 }
 
 export class Mission {
@@ -48,6 +49,7 @@ export class Mission {
 	addedAt: number;
 	addedBy: number;
 	remarks: string;
+	downloads: number = 0;
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -73,6 +75,7 @@ export class Mission {
 		mission.addedAt = doc.addedAt;
 		mission.addedBy = doc.addedBy;
 		mission.remarks = doc.remarks;
+		mission.downloads = doc.downloads;
 
 		return mission;
 	}
@@ -245,7 +248,8 @@ export class Mission {
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg,
 			misHash: this.misHash,
-			addedAt: Date.now()
+			addedAt: Date.now(),
+			downloads: this.downloads
 		};
 	}
 
@@ -285,7 +289,8 @@ export class Mission {
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
 			remarks: this.remarks,
 			packs: packInfos,
-			comments: await getCommentInfosForLevel(this.id)
+			comments: await getCommentInfosForLevel(this.id),
+			downloads: this.downloads ?? 0
 		});
 	}
 

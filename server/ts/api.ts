@@ -60,6 +60,9 @@ app.get('/api/level/:levelId/zip', async (req, res) => {
 	let zip = await mission.createZip(assuming as ('none' | 'gold' | 'platinumquest'));
 	let stream = zip.generateNodeStream();
 
+	doc.downloads = (doc.downloads ?? 0) + 1;
+	await db.missions.update({ _id: levelId }, doc);
+
 	res.set('Content-Type', 'application/zip');
 	res.set('Content-Disposition', `attachment; filename="level-${doc._id}.zip"`);
 	stream.pipe(res);
@@ -571,7 +574,8 @@ app.post('/api/pack/create', async (req, res) => {
 		description: req.body.description,
 		createdAt: Date.now(),
 		createdBy: doc._id,
-		levels: []
+		levels: [],
+		downloads: 0
 	};
 	await db.packs.insert(packDoc);
 
@@ -618,9 +622,15 @@ app.get('/api/pack/:packId/zip', async (req, res) => {
 
 		let mission = Mission.fromDoc(missionDoc);
 		await mission.addToZip(zip, assuming as ('none' | 'gold' | 'platinumquest'));
+		
+		missionDoc.downloads = (missionDoc.downloads ?? 0) + 1;
+		await db.missions.update({ _id: levelId }, missionDoc);
 	}
 
 	let stream = zip.generateNodeStream();
+
+	doc.downloads = (doc.downloads ?? 0) + 1;
+	await db.packs.update({ _id: doc._id }, doc);
 
 	res.set('Content-Type', 'application/zip');
 	res.set('Content-Disposition', `attachment; filename="pack-${doc._id}.zip"`);

@@ -12,7 +12,8 @@ export interface PackDoc {
 	description: string,
 	createdAt: number,
 	createdBy: number,
-	levels: number[]
+	levels: number[],
+	downloads: number
 }
 
 
@@ -45,7 +46,8 @@ export const getExtendedPackInfo = async (doc: PackDoc): Promise<ExtendedPackInf
 		description: doc.description,
 		createdBy: await getProfileInfo(accountDoc),
 		createdAt: doc.createdAt,
-		levels: levelInfos
+		levels: levelInfos,
+		downloads: doc.downloads ?? 0
 	};
 };
 

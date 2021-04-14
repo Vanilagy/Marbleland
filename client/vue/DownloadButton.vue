@@ -46,6 +46,7 @@ export default Vue.defineComponent({
 				((this.mode === 'level')? `/api/level/${this.id}/zip?assuming=${assumption}`
 				: `/api/pack/${this.id}/zip?assuming=${assumption}`);
 			;
+			this.$emit('download');
 		}
 	},
 	components: {

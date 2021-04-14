@@ -13,7 +13,8 @@
 				<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack">
 				<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }">
 			</div>
-			<download-button :id="packInfo.id" mode="pack"></download-button>
+			<download-button :id="packInfo.id" mode="pack" @download="packInfo.downloads++"></download-button>
+			<p class="additionalInfo">Downloads: {{ packInfo.downloads }}</p>
 		</div>
 		<h3>Included levels ({{ packInfo.levels.length }})</h3>
 		<panel-list mode="level" :entries="packInfo.levels" :defaultCount="24" :levelPanelActions="levelPanelActions" noEntriesNotice="This pack contains no levels."></panel-list>
@@ -224,5 +225,12 @@ h3 {
 
 .saveChangesButton {
 	width: 200px;
+}
+
+.additionalInfo {
+	margin: 0;
+	margin-top: 5px;
+	opacity: 0.75;
+	font-size: 14px;
 }
 </style>

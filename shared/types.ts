@@ -22,7 +22,8 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	addedBy: ProfileInfo,
 	remarks: string,
 	packs: PackInfo[],
-	comments: CommentInfo[]
+	comments: CommentInfo[],
+	downloads: number
 }
 
 export enum GameType {
@@ -73,7 +74,8 @@ export interface ExtendedPackInfo {
 	description: string,
 	createdBy: ProfileInfo,
 	createdAt: number,
-	levels: LevelInfo[]
+	levels: LevelInfo[],
+	downloads: number
 }
 
 export interface CommentInfo {

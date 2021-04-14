@@ -4,8 +4,8 @@
 		<div class="top-part">
 			<aside>
 				<img :src="imageSource" class="thumbnail">
-				<download-button style="margin-top: 10px" :id="levelInfo.id" mode="level"></download-button>
-				<p class="addedDate">Added on {{ formattedDate }}</p>
+				<download-button style="margin-top: 10px" :id="levelInfo.id" mode="level" @download="levelInfo.downloads++"></download-button>
+				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Added on {{ formattedDate }}</p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
 			<div style="flex: 1 1 auto;">
@@ -236,7 +236,7 @@ aside {
 	display: block;
 }
 
-.addedDate {
+.additionalInfo {
 	margin: 0;
 	margin-top: 5px;
 	opacity: 0.75;
