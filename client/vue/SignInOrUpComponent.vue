@@ -92,7 +92,7 @@ export default Vue.defineComponent({
 				this.$store.state.loggedInAccount = json.signInInfo.profile;
 				this.$store.state.ownPacks = json.signInInfo.packs;
 				if (this.type === 'signUp') this.$store.state.nextInfoBannerMessage = "Account created successfully!";
-				this.$router.push({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
+				this.$router.replace({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
 			}
 		}
 	}
