@@ -29,7 +29,7 @@ export default Vue.defineComponent({
 				icon: '/assets/svg/file_upload_black_24dp.svg',
 				label: 'Upload'
 			}, {
-				path: 'https://github.com/Vanilagy/CLA',
+				path: 'https://github.com/Vanilagy/Marbleland',
 				icon: '/assets/svg/code_black_24dp.svg',
 				label: 'API'
 			}]

@@ -36,7 +36,7 @@ export default Vue.defineComponent({
 				icon: '/assets/svg/code_black_24dp.svg',
 				name: 'API',
 				description: 'Access every functionality using code.',
-				path: 'https://github.com/Vanilagy/CLA'
+				path: 'https://github.com/Vanilagy/Marbleland'
 			}],
 			homeInfo: null as HomeInfo
 		};

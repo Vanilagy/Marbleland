@@ -59,7 +59,7 @@ hr {
 
 body, html {
 	margin: 0;
-	font-family: 'Titillium Web', sans-serif;
+	font-family: 'Nunito Sans', sans-serif;
 	color: var(--text-color);
 	margin-bottom: 10px;
 	background: var(--background-color);
