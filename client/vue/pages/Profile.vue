@@ -97,7 +97,7 @@ export default Vue.defineComponent({
 			this.editingBio = false;
 
 			let token = localStorage.getItem('token');
-			fetch(`/api/account/${this.profileInfo.bio}/set-bio`, {
+			fetch(`/api/account/${this.profileInfo.id}/set-bio`, {
 				method: 'POST',
 				body: this.profileInfo.bio ?? '',
 				headers: {

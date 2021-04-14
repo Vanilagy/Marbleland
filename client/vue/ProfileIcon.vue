@@ -111,7 +111,7 @@ img:hover {
 .options > p {
 	margin: 0;
 	padding: 5px;
-	padding-left: 8px;
+	padding-left: 10px;
 	cursor: pointer;
 }
 
