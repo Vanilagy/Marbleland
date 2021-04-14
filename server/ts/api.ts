@@ -301,6 +301,12 @@ app.delete('/api/level/:levelId/delete', async (req, res) => {
 		createPackThumbnail(packDoc);
 	}
 
+	// Delete all comments for this level
+	await db.comments.remove({ forType: 'level', for: levelId }, { multi: true });
+
+	// Delete the level's folder
+	await fs.remove(missionDoc.baseDirectory);
+
 	res.end();
 });
 
