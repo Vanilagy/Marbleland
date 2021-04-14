@@ -1,10 +1,10 @@
 <template>
 	<div :class="{ disabled: waitingForResponse }" v-if="!$store.state.loggedInAccount">
 		<h1>{{ (type === 'signUp')? 'Create an account' : 'Sign in to an account' }}</h1>
-		<input type="email" :placeholder="emailPlaceholder" v-model.trim="email" @keydown.enter="submit" autofocus name="email" :autocomplete="(type === 'signIn')? 'username' : 'off'">
-		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24" name="username" autocomplete="off">
-		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit" :name="(type === 'signIn')? 'current-password' : 'new-password'" :autocomplete="(type === 'signIn')? 'current-password' : 'off'">
-		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit">
+		<input type="email" :placeholder="emailPlaceholder" v-model.trim="email" @keydown.enter="submit" autofocus name="email" :autocomplete="(type === 'signIn')? 'username' : 'off'" class="basicTextInput">
+		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24" name="username" autocomplete="off" class="basicTextInput">
+		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit" :name="(type === 'signIn')? 'current-password' : 'new-password'" :autocomplete="(type === 'signIn')? 'current-password' : 'off'" class="basicTextInput">
+		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit" class="basicTextInput">
 		<p v-for="problem of problems" :key="problem" class="problem">- {{ problem }}</p>
 		<p class="problem">{{ responseError }}</p>
 		<button-with-icon icon="/assets/svg/login_black_24dp.svg" class="submitButton" :class="{ disabled: !canSubmit }" @click="submit">
@@ -106,24 +106,9 @@ h1 {
 }
 
 input {
-	display: block;
 	width: 300px;
-	height: 40px;
 	margin: auto;
-	background: rgb(240, 240, 240);
-	font-size: 16px;
-	font-family: inherit;
-	color: inherit;
-	border: 2px solid transparent;
-	border-radius: 5px;
-	padding-left: 10px;
 	margin-bottom: 10px;
-	box-sizing: border-box;
-}
-
-input:focus {
-	outline: none;
-	border: 2px solid rgb(220, 220, 220);
 }
 
 .submitButton {

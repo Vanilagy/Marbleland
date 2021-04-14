@@ -9,7 +9,7 @@
 		</div>
 		<div v-else-if="successResponse" class="successContainer" :class="{ disabled: submitting }">
 			<h3>Your level has been processed successfully! If you want to, add a few additional remarks describing the level and its creation before submitting it.</h3>
-			<textarea class="remarks" placeholder="Additional remarks" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks"></textarea>
+			<textarea class="remarks basicTextarea" placeholder="Additional remarks" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks"></textarea>
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit">Submit level</button-with-icon>
 		</div>
 	</template>
@@ -167,23 +167,8 @@ h3 {
 }
 
 .remarks {
-	display: block;
+	margin-top: 10px;
 	width: 100%;
 	height: 200px;
-	background: rgb(240, 240, 240);
-	font-size: 16px;
-	font-family: inherit;
-	color: inherit;
-	border: 2px solid transparent;
-	border-radius: 5px;
-	padding: 5px;
-    box-sizing: border-box;
-    resize: none;
-	margin-top: 10px;
-}
-
-.remarks:focus {
-	outline: none;
-	border: 2px solid rgb(220, 220, 220);
 }
 </style>

@@ -9,11 +9,11 @@
 				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Added on {{ formattedDate }}</p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
-			<div style="flex: 1 1 auto; min-width: 300px; margin-bottom: 10px;">
+			<div style="flex: 1 1 auto; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
-					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="isOwnLevel" @click="deleteLevel">
-					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="isOwnLevel" :class="{ disabled: editing }" @click="editing = true">
-					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.toggle()">
+					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="isOwnLevel" @click="deleteLevel" class="basicIcon">
+					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="isOwnLevel" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
+					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.toggle()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
 				<h1>{{ levelInfo.name }}</h1>

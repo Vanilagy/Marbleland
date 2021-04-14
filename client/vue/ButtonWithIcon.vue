@@ -1,6 +1,6 @@
 <template>
 	<div class="mainButton notSelectable">
-		<img :src="icon" style="margin-right: 10px;">
+		<img :src="icon" style="margin-right: 10px;" class="basicIcon">
 		<span><slot></slot></span>
 	</div>
 </template>
@@ -18,7 +18,7 @@ export default Vue.defineComponent({
 <style scoped>
 .mainButton {
 	width: 100%;
-	background:  rgb(240, 240, 240);
+	background: var(--background-1);
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -30,11 +30,11 @@ export default Vue.defineComponent({
 }
 
 .mainButton:hover {
-	border: 2px solid rgb(220, 220, 220);
+	border: 2px solid var(--background-2);
 }
 
 .mainButton:active {
-	background: rgb(220, 220, 220);
+	background:var(--background-2);
 }
 
 img {

@@ -1,6 +1,6 @@
 <template>
 	<div class="notSelectable">
-		<img :src="iconSrc" @click="expanded = !expanded" :class="{ containsAvatar: $store.state.loggedInAccount?.hasAvatar }">
+		<img :src="iconSrc" @click="expanded = !expanded" :class="{ containsAvatar: $store.state.loggedInAccount?.hasAvatar, basicIcon: !$store.state.loggedInAccount?.hasAvatar }">
 		<div v-if="expanded" class="options">
 			<p v-for="option of options" :key="option.label" @click="expanded = false, option.onClick()">{{ option.label }}</p>
 		</div>
@@ -63,7 +63,7 @@ img {
 	transition: box-shadow 0.15s;
 }
 img.containsAvatar {
-	border: 2px solid rgb(220, 220, 220);
+	border: 2px solid var(--background-2);
 	opacity: 1;
 }
 
@@ -75,7 +75,7 @@ img:hover {
 	position: absolute;
 	top: 30px;
 	right: 0px;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	border-radius: 5px;
 	overflow: hidden;
 	box-shadow: 0px 0px 5px #00000052;
@@ -91,6 +91,6 @@ img:hover {
 }
 
 .options > p:hover {
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 }
 </style>

@@ -23,18 +23,46 @@ hr {
 	border: none;
 	height: 1px;
 	width: 100%;
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 	margin: 0;
 	margin-bottom: 10px;
 }
 </style>
 
 <style>
+:root {
+	--background-color: white;
+	--text-color: rgb(64, 64, 64);
+	--background-1: rgb(240, 240, 240);
+	--background-2: rgb(220, 220, 220);
+	--level-panel-bottom-background: rgba(240, 240, 240, 0.9);
+	--panel-skeleton-animation-background: rgb(250, 250, 250);
+}
+
+:root.dark {
+	--background-color: rgb(35, 35, 35);
+	--text-color: rgb(255, 255, 255);
+	--background-1: rgb(49, 49, 49);
+	--background-2: rgb(65, 65, 65);
+	--level-panel-bottom-background: rgba(49, 49, 49, 0.9);
+	--panel-skeleton-animation-background: rgb(40, 40, 40);
+}
+
+.basicIcon {
+	opacity: 0.75;
+}
+
+:root.dark .basicIcon {
+	opacity: 1;
+	filter: invert(1);
+}
+
 body, html {
 	margin: 0;
 	font-family: 'Titillium Web', sans-serif;
-	color: rgb(64, 64, 64);
+	color: var(--text-color);
 	margin-bottom: 10px;
+	background: var(--background-color);
 }
 
 body {
@@ -75,7 +103,7 @@ img {
 .basicTextInput {
 	display: block;
 	height: 40px;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	font-size: 16px;
 	font-family: inherit;
 	color: inherit;
@@ -87,13 +115,13 @@ img {
 
 .basicTextInput:focus {
 	outline: none;
-	border: 2px solid rgb(220, 220, 220);
+	border: 2px solid var(--background-2);
 }
 
 .basicTextarea {
 	display: block;
 	height: 100px;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	font-size: 16px;
 	font-family: inherit;
 	color: inherit;
@@ -107,6 +135,6 @@ img {
 
 .basicTextarea:focus {
 	outline: none;
-	border: 2px solid rgb(220, 220, 220);
+	border: 2px solid var(--background-2);
 }
 </style>

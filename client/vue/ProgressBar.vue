@@ -21,7 +21,7 @@ export default Vue.defineComponent({
 			return (completion * 100) + '%';
 		},
 		color(): string {
-			if (this.state === 'neutral') return 'rgb(220, 220, 220)';
+			if (this.state === 'neutral') return 'var(--background-2)';
 			if (this.state === 'negative') return 'crimson';
 			return 'lightgreen';
 		}
@@ -34,12 +34,12 @@ export default Vue.defineComponent({
 	height: 10px;
 	border-radius: 5px;
 	overflow: hidden;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 }
 
 .progress {
 	height: 100%;
 	width: 33%;
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 }
 </style>

@@ -7,15 +7,15 @@
 			<div class="setAvatar" v-if="isOwnProfile" title="Upload new avatar" @click="chooseAvatar">
 				<img src="/assets/svg/file_upload_white_24dp.svg">
 			</div>
-			<img :src="avatarSrc" :style="{ opacity: avatarOpacity }">
+			<img :src="avatarSrc" :class="{ basicIcon: !profileInfo.hasAvatar }">
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
 		<template v-if="!editingBio || !isOwnProfile">
 			<p class="bio" :class="{ emptyBio: !profileInfo.bio }">{{ bio }}</p>
-			<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio" title="Edit bio" v-if="isOwnProfile" @click="editingBio = true">
+			<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio basicIcon" title="Edit bio" v-if="isOwnProfile" @click="editingBio = true">
 		</template>
 		<template v-else>
-			<textarea class="bioTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
+			<textarea class="bioTextarea basicTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="saveBio" @click="saveBio">Save bio</button-with-icon>
 		</template>
 		<h3>Uploaded levels ({{ profileInfo.uploadedLevels.length }})</h3>
@@ -52,9 +52,6 @@ export default Vue.defineComponent({
 		avatarSrc(): string {
 			if (!this.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
 			return `/api/account/${this.profileInfo.id}/avatar?v=${this.$store.state.avatarVersion}&size=256`;
-		},
-		avatarOpacity(): number {
-			return this.profileInfo.hasAvatar? 1 : 0.75;
 		},
 		shouldSetAvatar(): boolean {
 			return this.isOwnProfile && !this.profileInfo.hasAvatar;
@@ -202,27 +199,11 @@ h1 {
 }
 
 .bioTextarea {
-	display: block;
 	width: 100%;
 	max-width: 500px;
 	height: 200px;
 	margin: auto;
-	background: rgb(240, 240, 240);
-	font-size: 16px;
-	font-family: inherit;
-	color: inherit;
-	border: 2px solid transparent;
-	border-radius: 5px;
-	padding: 5px;
-    box-sizing: border-box;
-    resize: none;
 	margin-top: 10px;
-	box-sizing: border-box;
-}
-
-.bioTextarea:focus {
-	outline: none;
-	border: 2px solid rgb(220, 220, 220);
 }
 
 .saveBio {

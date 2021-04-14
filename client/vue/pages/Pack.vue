@@ -3,7 +3,7 @@
 	<info-banner v-if="packInfo"></info-banner>
 	<div v-if="packInfo" class="outer" :class="{ disabled: deleting }">
 		<div style="display: flex; flex-wrap: wrap;">
-			<div style="flex: 1 1 auto; min-width: 300px;">
+			<div style="flex: 1 1 auto; min-width: 300px; max-width: 700px;">
 				<h1 v-if="!editing">{{ packInfo.name }}</h1>
 				<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="$store.state.packNameMaxLength">
 				<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
@@ -14,8 +14,8 @@
 			</div>
 			<div class="topRight">
 				<div class="actions" v-if="isOwnPack">
-					<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack">
-					<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }">
+					<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack" class="basicIcon">
+					<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }" class="basicIcon">
 				</div>
 				<download-button :id="packInfo.id" mode="pack" @download="packInfo.downloads++"></download-button>
 				<p class="additionalInfo">Downloads: {{ packInfo.downloads }}</p>

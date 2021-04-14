@@ -13,9 +13,9 @@ export default Vue.defineComponent({
 
 <style scoped>
 @keyframes pulse {
-	0% {background: rgb(240, 240, 240);}
-	50% {background: rgb(250, 250, 250);}
-	100% {background: rgb(240, 240, 240);}
+	0% {background: var(--background-1);}
+	50% {background: var(--panel-skeleton-animation-background);}
+	100% {background: var(--background-1);}
 }
 
 .panelSkeleton {
@@ -27,7 +27,7 @@ export default Vue.defineComponent({
 
 .inner {
 	height: 100%;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	overflow: hidden;
 	border-radius: 5px;
 	animation: pulse 1.5s infinite ease;

@@ -1,8 +1,8 @@
 <template>
 	<div class="search-bar notSelectable">
-		<img src="/assets/svg/search_black_24dp.svg">
+		<img src="/assets/svg/search_black_24dp.svg" class="basicIcon">
 		<input type="text" :placeholder="placeholder" v-model="config.query" @focus="focused = true" @blur="focused = false">
-		<img src="/assets/svg/tune_black_24dp.svg" @click="config.filterShown = !config.filterShown" class="toggle-filter" :title="config.filterShown? 'Hide filter' : 'Show filter'">
+		<img src="/assets/svg/tune_black_24dp.svg" @click="config.filterShown = !config.filterShown" class="toggle-filter basicIcon" :title="config.filterShown? 'Hide filter' : 'Show filter'">
 		<div class="search-bar-border" :class="{ active: focused }"></div>
 	</div>
 	<div v-if="config.filterShown" class="filter">
@@ -11,7 +11,7 @@
 			<dropdown-component v-model="config.value" :options="config.options"></dropdown-component>
 		</div>
 		<div class="reverseButton" title="Reverse order" :class="{ pressed: config.reversed }" @click="config.reversed = !config.reversed">
-			<img src="/assets/svg/import_export_black_24dp.svg" >
+			<img src="/assets/svg/import_export_black_24dp.svg" class="basicIcon">
 		</div>
 	</div>
 </template>
@@ -62,7 +62,7 @@ export default Vue.defineComponent({
 .search-bar {
 	width: 100%;
 	height: 40px;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	border-radius: 5px;
 	overflow: hidden;
 	display: flex;
@@ -103,7 +103,7 @@ export default Vue.defineComponent({
 }
 
 .search-bar-border.active {
-	border: 2px solid rgb(220, 220, 220);
+	border: 2px solid var(--background-2);
 }
 
 .toggle-filter {
@@ -136,7 +136,7 @@ export default Vue.defineComponent({
 
 .reverseButton {
 	padding: 3px;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	border-radius: 5px;
 	margin: 5px;
 	margin-top: 26px;
@@ -145,14 +145,14 @@ export default Vue.defineComponent({
 
 .reverseButton img {
 	vertical-align: top;
-	opacity: 0.25;
+	opacity: 0.25 !important;
 }
 
 .reverseButton.pressed img {
-	opacity: 0.75;
+	opacity: 0.75 !important;
 }
 
 .reverseButton:hover {
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 }
 </style>

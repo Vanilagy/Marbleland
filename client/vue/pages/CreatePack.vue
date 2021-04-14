@@ -2,8 +2,8 @@
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Create new level pack</h1>
 		<div :class="{ disabled: creating }">
-			<input type="text" placeholder="Name" :maxlength="$store.state.packNameMaxLength" v-model.trim="name">
-			<textarea class="description" placeholder="Description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="description"></textarea>
+			<input type="text" placeholder="Name" :maxlength="$store.state.packNameMaxLength" v-model.trim="name" class="basicTextInput">
+			<textarea class="description basicTextarea" placeholder="Description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="description"></textarea>
 			<p class="note"><b>Note:</b> You can add levels to this pack once you've created it.</p>
 			<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createButton" @click="create" :class="{ disabled: !canCreate }">Create</button-with-icon>
 		</div>
@@ -75,47 +75,15 @@ h1 {
 }
 
 input {
-	display: block;
 	width: 500px;
-	height: 40px;
 	margin: auto;
-	background: rgb(240, 240, 240);
-	font-size: 16px;
-	font-family: inherit;
-	color: inherit;
-	border: 2px solid transparent;
-	border-radius: 5px;
-	padding-left: 10px;
-	margin-bottom: 10px;
-	box-sizing: border-box;
-}
-
-input:focus {
-	outline: none;
-	border: 2px solid rgb(220, 220, 220);
 }
 
 .description {
-	display: block;
 	width: 500px;
 	height: 100px;
 	margin: auto;
-	background: rgb(240, 240, 240);
-	font-size: 16px;
-	font-family: inherit;
-	color: inherit;
-	border: 2px solid transparent;
-	border-radius: 5px;
-	padding: 5px;
-	padding-left: 10px;
-    box-sizing: border-box;
-    resize: none;
 	margin-top: 10px;
-}
-
-.description:focus {
-	outline: none;
-	border: 2px solid rgb(220, 220, 220);
 }
 
 .createButton {

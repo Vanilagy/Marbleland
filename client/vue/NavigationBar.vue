@@ -2,7 +2,7 @@
 	<header>
 		<h1 @click="$router.push('/')">CLA</h1>
 		<div v-for="target of targets" :key="target.path" class="targetContainer" :title="target.label" :class="{ selected: currentPath === target.path }" @click="navigate(target.path)">
-			<img :src="target.icon">
+			<img :src="target.icon" class="basicIcon">
 			<div class="underline" :title="currentRoute"></div>
 		</div>
 		<profile-icon class="profileIcon"></profile-icon>
@@ -84,7 +84,6 @@ h1 {
 
 .targetContainer > img {
 	width: 32px;
-	opacity: 0.75;
 }
 
 .underline {
@@ -96,7 +95,7 @@ h1 {
 }
 
 .targetContainer:hover .underline {
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 }
 
 .targetContainer.selected .underline {

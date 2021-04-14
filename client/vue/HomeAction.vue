@@ -1,6 +1,6 @@
 <template>
 	<div class="homeAction" @click="navigate">
-		<img :src="icon">
+		<img :src="icon" class="basicIcon">
 		<h2>{{ name }}</h2>
 		<p>{{ description }}</p>
 	</div>
@@ -29,7 +29,7 @@ export default Vue.defineComponent({
 	width: 200px;
 	height: 200px;
 	min-width: 200px;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	border-radius: 5px;
 	position: relative;
 	cursor: pointer;

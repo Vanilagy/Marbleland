@@ -34,6 +34,7 @@ div {
 	justify-content: center;
 	align-items: center;
 	margin-bottom: 10px;
+	color: rgb(64, 64, 64);
 }
 
 p {

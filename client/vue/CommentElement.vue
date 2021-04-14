@@ -2,7 +2,7 @@
 	<div class="commentElement">
 		<profile-banner :profileInfo="commentInfo.author" :secondaryText="sentDate" class="profileBanner"></profile-banner>
 		<p>{{ commentInfo.content }}</p>
-		<img src="/assets/svg/delete_black_24dp.svg" class="delete" title="Delete this comment" v-if="isOwnComment" :style="{ display: deleteDisplayStyle }" @click="$emit('delete')">
+		<img src="/assets/svg/delete_black_24dp.svg" class="delete basicIcon" title="Delete this comment" v-if="isOwnComment" :style="{ display: deleteDisplayStyle }" @click="$emit('delete')">
 	</div>
 </template>
 
@@ -58,13 +58,13 @@ p {
 	top: 0px;
 	right: 0px;
 	padding: 5px;
-	opacity: 0.25;
+	opacity: 0.25 !important;
 	cursor: pointer;
 	display: none;
 }
 
 .delete:hover {
-	opacity: 0.75;
+	opacity: 0.75 !important;
 }
 
 .commentElement:hover .delete {

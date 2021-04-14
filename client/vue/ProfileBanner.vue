@@ -1,6 +1,6 @@
 <template>
 	<div class="profileBanner notSelectable" @click="clicked">
-		<img :src="avatarSrc" :style="{ opacity: opacity }">
+		<img :src="avatarSrc" :class="{ basicIcon: !profileInfo.hasAvatar }">
 		<div>
 			<p class="username">{{ profileInfo.username }}</p>
 			<p class="secondaryText">{{ secondaryText }}</p>
@@ -20,9 +20,6 @@ export default Vue.defineComponent({
 		avatarSrc(): string {
 			if (!this.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
 			return `/api/account/${this.profileInfo.id}/avatar?size=64`;
-		},
-		opacity(): number {
-			return this.profileInfo.hasAvatar? 1 : 0.75;
 		}
 	},
 	methods: {

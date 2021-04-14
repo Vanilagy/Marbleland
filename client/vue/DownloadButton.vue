@@ -1,7 +1,7 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;" class="notSelectable">
 		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest')" style="border-radius: 0px;">{{ buttonText }}</button-with-icon>
-		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
+		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore basicIcon" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
 		<div v-if="expanded">
 			<p v-for="assumption of assuming" :key="assumption.name" @click="download(assumption.name)" v-html="assumption.label"></p>
 		</div>
@@ -76,7 +76,7 @@ img {
 
 p {
 	width: 100%;
-	background:  rgb(240, 240, 240);
+	background: var(--background-1);
 	display: flex;
 	padding-left: 10px;
 	align-items: center;
@@ -89,10 +89,10 @@ p {
 }
 
 p:hover {
-	border: 2px solid rgb(220, 220, 220);
+	border: 2px solid var(--background-2);
 }
 
 p:active {
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 }
 </style>

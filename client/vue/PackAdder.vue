@@ -74,7 +74,7 @@ export default Vue.defineComponent({
 
 <style scoped>
 .outer {
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	border-radius: 5px;
 	width: 200px;
 	box-shadow: 0px 0px 5px #00000052;
@@ -97,7 +97,7 @@ export default Vue.defineComponent({
 }
 
 .row:hover {
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 }
 
 .row p {

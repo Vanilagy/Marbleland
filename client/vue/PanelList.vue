@@ -13,7 +13,7 @@
 				</template>
 			</template>
 			<p v-else class="noEntriesNotice">{{ noEntriesNotice }}</p>
-			<img src="/assets/svg/expand_more_black_24dp.svg" class="more" @click="showMore" v-if="canShowMore" title="Show more">
+			<img src="/assets/svg/expand_more_black_24dp.svg" class="more basicIcon" @click="showMore" v-if="canShowMore" title="Show more">
 		</template>
 	</div>
 </template>

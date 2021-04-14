@@ -30,7 +30,7 @@ export default Vue.defineComponent({
   display: inline-block;
   position: absolute;
   top: 0;
-  background-color: rgb(220, 220, 220);
+  background-color: var(--background-2);
   border-radius: 100%;
   
   -webkit-animation: sk-bounce 2.0s infinite ease-in-out;

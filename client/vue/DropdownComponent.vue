@@ -3,7 +3,7 @@
 		<div class="wrapper" :style="wrapperStyle">
 			<p @click="toggleExpand">{{ currentLabel }}</p>
 			<img src="/assets/svg/expand_more_black_24dp.svg" :style="chevronStyle">
-			<div v-if="expanded" style="border-top: 1px solid rgb(220, 220, 220)" class="expander">
+			<div v-if="expanded" style="border-top: 1px solid var(--background-2);" class="expander">
 				<p v-for="option of options" :key="option.name" @click="select(option.name)">{{ option.label }}</p>
 			</div>
 		</div>
@@ -39,7 +39,7 @@ export default Vue.defineComponent({
 		wrapperStyle(): Record<string, string> {
 			return {
 				'box-shadow': this.expanded? '0px 0px 5px #00000052' : '',
-				'z-index': this.expanded? 1 : ''
+				'z-index': this.expanded? '1' : ''
 			};
 		}
 	},
@@ -80,7 +80,7 @@ export default Vue.defineComponent({
 	position: absolute;
 	top: 0;
 	left: 0;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	border-radius: 5px;
 	overflow: hidden;
 	width: 100%;
@@ -105,7 +105,7 @@ p {
 }
 
 p:hover {
-	background: rgb(220, 220, 220);
+	background: var(--background-2);
 }
 
 .expander {

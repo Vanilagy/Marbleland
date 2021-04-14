@@ -7,9 +7,9 @@
 				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
 			</div>
 			<div class="actions" :style="actionsStyle">
-				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions?.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)">
-				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions?.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()">
-				<img src="/assets/svg/download_black_24dp.svg" title="Download level" @click.stop="download">
+				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions?.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)" class="basicIcon">
+				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions?.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()" class="basicIcon">
+				<img src="/assets/svg/download_black_24dp.svg" title="Download level" @click.stop="download" class="basicIcon">
 			</div>
 		</div>
 		<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
@@ -74,7 +74,7 @@ export default Vue.defineComponent({
 
 .panel {
 	height: 200px;
-	background: rgb(240, 240, 240);
+	background: var(--background-1);
 	overflow: hidden;
 	border-radius: 5px;
 	position: relative;
@@ -139,7 +139,7 @@ export default Vue.defineComponent({
 	bottom: 0;
 	padding: 3px 9px;
 	width: 100%;
-	background: rgba(240, 240, 240, 0.9);
+	background: var(--level-panel-bottom-background);
 	box-sizing: border-box;
 }
 
@@ -152,7 +152,7 @@ export default Vue.defineComponent({
 	position: absolute;
 	top: 0px;
 	right: 0px;
-	background: rgba(240, 240, 240, 0.9);
+	background: var(--level-panel-bottom-background);
 	border-bottom-left-radius: 5px;
 	display: none;
 }
@@ -161,12 +161,12 @@ export default Vue.defineComponent({
 	cursor: pointer;
 	padding: 5px;
 	vertical-align: top;
-	opacity: 0.5;
+	opacity: 0.5 !important;
 	width: 20px;
 }
 
 .actions img:hover {
-	opacity: 0.75;
+	opacity: 0.75 !important;
 }
 
 .packAdder {
