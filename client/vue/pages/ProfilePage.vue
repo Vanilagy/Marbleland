@@ -1,5 +1,6 @@
 <template>
-	<loader v-if="!profileInfo"></loader>
+	<loader v-if="!profileInfo && !notFound"></loader>
+	<p class="notFound" v-if="notFound">This user does not exist. :(</p>
 	<div v-if="profileInfo">
 		<info-banner></info-banner>
 		<p v-if="shouldSetAvatar" class="noAvatarNotice">❗ You should set your profile avatar. Do so by clicking the avatar icon. ❗</p>
@@ -38,15 +39,21 @@ export default Vue.defineComponent({
 	data() {
 		return {
 			profileInfo: null as ExtendedProfileInfo,
-			editingBio: false
+			editingBio: false,
+			notFound: false
 		};
 	},
 	async mounted() {
 		// Load the profile info
 		let accountId = Number(this.$route.params.id);
 		let response = await fetch(`/api/account/${accountId}/info`);
-		let json = await response.json() as ExtendedProfileInfo;
 
+		if (response.status === 404) {
+			this.notFound = true;
+			return;
+		}
+
+		let json = await response.json() as ExtendedProfileInfo;
 		this.profileInfo = json;
 	},
 	computed: {
@@ -223,5 +230,10 @@ h3 {
 	text-transform: uppercase;
 	font-weight: bold;
 	margin-top: 25px;
+}
+
+.notFound {
+	text-align: center;
+	margin-top: 50px;
 }
 </style>

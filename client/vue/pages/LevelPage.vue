@@ -1,5 +1,6 @@
 <template>
-	<loader v-if="!levelInfo"></loader>
+	<loader v-if="!levelInfo && !notFound"></loader>
+	<p class="notFound" v-if="notFound">This level doesn't exist or has been deleted. :(</p>
 	<template v-if="levelInfo" :class="{ disabled: deleting }">
 		<info-banner></info-banner>
 		<div class="top-part">
@@ -76,15 +77,21 @@ export default Vue.defineComponent({
 			/** Is true when we're currently waiting for the server to delete this level. */
 			deleting: false,
 			commentInput: '',
-			sendingComment: false
+			sendingComment: false,
+			notFound: false
 		};
 	},
 	async mounted() {
 		// Load all the level info
 		let id = Number(this.$route.params.id);
 		let response = await fetch(`/api/level/${id}/extended-info`);
-		let levelInfo = await response.json() as ExtendedLevelInfo;
 
+		if (response.status === 404) {
+			this.notFound = true;
+			return;
+		}
+
+		let levelInfo = await response.json() as ExtendedLevelInfo;
 		this.levelInfo = levelInfo;
 
 		// Incase the level search doesn't include this level yet, make it refresh
@@ -335,5 +342,10 @@ h3 {
 	width: 200px;
 	margin-top: 10px;
 	margin-bottom: 20px;
+}
+
+.notFound {
+	text-align: center;
+	margin-top: 50px;
 }
 </style>

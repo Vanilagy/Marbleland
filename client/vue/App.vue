@@ -2,7 +2,7 @@
 	<div id="center">
 		<navigation-bar></navigation-bar>
 		<hr>
-		<router-view v-slot="{ Component }">
+		<router-view :key="$route.fullPath" v-slot="{ Component }">
 			<!-- Keep these two alive to keep search state -->
 			<keep-alive include="search,packs">
 				<component :is="Component"></component>

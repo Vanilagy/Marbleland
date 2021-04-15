@@ -1,5 +1,6 @@
 <template>
-	<loader v-if="!packInfo"></loader>
+	<loader v-if="!packInfo && !notFound"></loader>
+	<p class="notFound" v-if="notFound">This pack doesn't exist or has been deleted. :(</p>
 	<info-banner v-if="packInfo"></info-banner>
 	<div v-if="packInfo" class="outer" :class="{ disabled: deleting }">
 		<div style="display: flex; flex-wrap: wrap;">
@@ -45,14 +46,20 @@ export default Vue.defineComponent({
 		return {
 			packInfo: null as ExtendedPackInfo,
 			editing: false,
-			deleting: false
+			deleting: false,
+			notFound: false
 		};
 	},
 	async mounted() {
 		// Load all necessary info
 		let response = await fetch(`/api/pack/${this.$route.params.id}/info`);
-		let json = await response.json() as ExtendedPackInfo;
 
+		if (response.status === 404) {
+			this.notFound = true;
+			return;
+		}
+
+		let json = await response.json() as ExtendedPackInfo;
 		this.packInfo = json;
 
 		emitter.emit('packView', this.packInfo.id); // Trigger a possible update in pack search
@@ -250,5 +257,10 @@ h3 {
 	margin-top: 5px;
 	opacity: 0.75;
 	font-size: 14px;
+}
+
+.notFound {
+	text-align: center;
+	margin-top: 50px;
 }
 </style>
