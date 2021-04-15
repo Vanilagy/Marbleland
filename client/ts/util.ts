@@ -47,4 +47,22 @@ export class Util {
 	static deviceSupportsHover() {
 		return matchMedia('(hover: hover)').matches;
 	}
+
+	static urlRegEx = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g;
+
+	/** Turns raw text into HTML with all URLs wrapped into anchor tags. */
+	static linkify(raw: string) {
+		if (!raw) return raw;
+
+		// Since we wanna output HTML, we first need to properly escape all HTML characters included in the raw text to prevent XSS, like so:
+		let elem = document.createElement('div');
+		elem.textContent = raw;
+		let html = elem.innerHTML;
+
+		// Then we can wrap anchor tags around all links:
+		html = html.replace(this.urlRegEx, `<a href="$&" target="_blank">$&</a>`);
+		this.urlRegEx.lastIndex = 0;
+
+		return html;
+	}
 }

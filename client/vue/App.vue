@@ -138,4 +138,17 @@ img {
 	outline: none;
 	border: 2px solid var(--background-2);
 }
+
+a {
+	color: #00a1ff;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:visited {
+	color: #00a1ff;
+}
 </style>

@@ -9,7 +9,7 @@
 				<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="$store.state.packNameMaxLength">
 				<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
 				<h3>Description</h3>
-				<p v-if="!editing" class="regularParagraph">{{ packInfo.description }}</p>
+				<p v-if="!editing" class="regularParagraph" v-html="description"></p>
 				<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description" :maxlength="$store.state.packDescriptionMaxLength"></textarea>
 				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" :class="{ disabled: !canSubmitChanges }" @click="submitChanges">Save changes</button-with-icon>
 			</div>
@@ -108,6 +108,9 @@ export default Vue.defineComponent({
 		},
 		canSubmitChanges(): boolean {
 			return !!(this.packInfo.name && this.packInfo.description);
+		},
+		description(): string {
+			return Util.linkify(this.packInfo.description);
 		}
 	},
 	methods: {

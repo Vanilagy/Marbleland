@@ -12,7 +12,7 @@
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
 		<template v-if="!editingBio || !isOwnProfile">
-			<p class="bio" :class="{ emptyBio: !profileInfo.bio }">{{ bio }}</p>
+			<p class="bio" :class="{ emptyBio: !profileInfo.bio }" v-html="bio"></p>
 			<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio basicIcon" title="Edit bio" v-if="isOwnProfile" @click="editingBio = true">
 		</template>
 		<template v-else>
@@ -34,6 +34,7 @@ import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import PackPanel from '../components/PackPanel.vue';
 import Loader from '../components/Loader.vue';
+import { Util } from '../../ts/util';
 
 export default Vue.defineComponent({
 	data() {
@@ -68,7 +69,7 @@ export default Vue.defineComponent({
 			return this.profileInfo.id === this.$store.state.loggedInAccount?.id
 		},
 		bio(): string {
-			return this.profileInfo.bio || "This user hasn't set a bio.";
+			return Util.linkify(this.profileInfo.bio) || "This user hasn't set a bio.";
 		}
 	},
 	methods: {

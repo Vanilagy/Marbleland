@@ -20,11 +20,11 @@
 				<h1>{{ levelInfo.name }}</h1>
 				<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
 				<h3 v-if="levelInfo.desc">Description</h3>
-				<p class="regularParagraph">{{ levelInfo.desc }}</p>
+				<p class="regularParagraph" v-html="description"></p>
 				<h3>Details</h3>
 				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
 				<h3 v-if="levelInfo.remarks || editing">Remarks</h3>
-				<p class="regularParagraph" v-if="!editing && levelInfo.remarks">{{ levelInfo.remarks }}</p>
+				<p class="regularParagraph" v-if="!editing && levelInfo.remarks" v-html="remarks"></p>
 				<textarea v-if="editing" class="basicTextarea remarksInput" v-model.trim="levelInfo.remarks" :maxlength="$store.state.levelRemarksMaxLength"></textarea>
 				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" @click="submitChanges">Save changes</button-with-icon>
 			</div>
@@ -131,6 +131,12 @@ export default Vue.defineComponent({
 		},
 		canComment(): boolean {
 			return !!this.commentInput;
+		},
+		description(): string {
+			return Util.linkify(this.levelInfo.desc);
+		},
+		remarks(): string {
+			return Util.linkify(this.levelInfo.remarks);
 		}
 	},
 	methods: {
