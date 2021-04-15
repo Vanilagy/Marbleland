@@ -1,7 +1,8 @@
 # API Documentation
 
 ## Data types
-### LevelInfo
+### **LevelInfo**
+Contains metadata about a level.
 ```typescript
 {
 	id: number,
