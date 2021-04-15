@@ -10,6 +10,7 @@ import PacksPage from '../vue/pages/PacksPage.vue';
 import CreatePackPage from '../vue/pages/CreatePackPage.vue';
 import PackPage from '../vue/pages/PackPage.vue';
 import NotFoundPage from '../vue/pages/NotFoundPage.vue';
+import AboutUploadPage from '../vue/pages/AboutUploadPage.vue';
 
 const routes = [{
 	path: '/',
@@ -55,6 +56,10 @@ const routes = [{
 	path: '/:pathMatch(.*)*',
 	name: 'NotFound',
 	component: NotFoundPage
+} ,{
+	path: '/about-upload',
+	name: 'AboutUpload',
+	component: AboutUploadPage
 }];
 
 const router = createRouter({

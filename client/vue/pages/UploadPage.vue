@@ -1,6 +1,7 @@
 <template>
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Upload a level</h1>
+		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
 		<progress-bar class="progressBar" :loaded="uploadLoaded" :total="uploadTotal" :state="uploadState" v-if="uploading" :class="{ disabled: successResponse }"></progress-bar>
 		<div v-if="problems.length > 0" class="problemContainer">
@@ -36,7 +37,7 @@ export default Vue.defineComponent({
 			uploadState: 'neutral',
 			problems: [] as string[],
 			successResponse: null as {
-				uploadId?: string,
+				uploadId: string,
 				warnings: string[]
 			},
 			remarks: '',
@@ -68,8 +69,9 @@ export default Vue.defineComponent({
 				request.onloadend = () => {
 					let json = JSON.parse(request.responseText) as {
 						status: 'error' | 'success',
-						problems?: string[],
-						uploadId?: string
+						problems: string[],
+						uploadId: string,
+						warnings: string[]
 					};
 
 					if (json.status === 'error') {
@@ -185,5 +187,20 @@ h3 {
 	margin: 0;
 	font-size: 13px;
 	color: goldenrod;
+}
+
+.learnMore {
+	margin: auto;
+    width: 100px;
+	font-size: 14px;
+	opacity: 0.5;
+	text-align: center;
+	margin-top: -30px;
+	cursor: pointer;
+}
+
+.learnMore:hover {
+	opacity: 1.0;
+	text-decoration: underline;
 }
 </style>
