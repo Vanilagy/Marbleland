@@ -36,4 +36,4 @@ Returns the .zip archive of the given level.
 
 Name | Type | Meaning
 --- | --- | ---
-assuming | `'none' | 'gold' | 'platinumquest'` | *Optional, defaults to `'platinumquest'`.* If present, specifies the set of derfault assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+assuming | 'none' \| 'gold' \| 'platinumquest' | *Optional, defaults to `'platinumquest'`.* If present, specifies the set of derfault assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
