@@ -156,6 +156,8 @@ export const initLevelApi = () => {
 
 		/** A list of problems with the upload, will be populated later. */
 		let problems: string[] = [];
+		/** A list of warnings regarding the upload. Warnings won't prevent submission. */
+		let warnings: string[] = [];
 		let zip: jszip;
 		let upload: MissionUpload;
 
@@ -170,7 +172,9 @@ export const initLevelApi = () => {
 				// Start processing the uploaded archive
 				upload = new MissionUpload(zip);
 				await upload.process();
+
 				problems.push(...upload.problems);
+				warnings.push(...upload.warnings);
 			} catch (e) {
 				problems.push("An error occurred during processing.");
 			}
@@ -187,7 +191,8 @@ export const initLevelApi = () => {
 
 			res.send({
 				status: 'success',
-				uploadId: upload.id
+				uploadId: upload.id,
+				warnings: warnings
 			});
 		}
 	});

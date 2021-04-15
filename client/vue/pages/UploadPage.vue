@@ -8,6 +8,7 @@
 			<p v-for="problem of problems" :key="problem">- {{ problem }}</p>
 		</div>
 		<div v-else-if="successResponse" class="successContainer" :class="{ disabled: submitting }">
+			<p v-for="warning of successResponse.warnings" :key="warning" class="warning">- {{ warning }}</p>
 			<h3>Your level has been processed successfully! If you want to, add a few additional remarks describing the level and its creation before submitting it.</h3>
 			<textarea class="remarks basicTextarea" placeholder="Additional remarks" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks"></textarea>
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit">Submit level</button-with-icon>
@@ -35,7 +36,8 @@ export default Vue.defineComponent({
 			uploadState: 'neutral',
 			problems: [] as string[],
 			successResponse: null as {
-				uploadId?: string
+				uploadId?: string,
+				warnings: string[]
 			},
 			remarks: '',
 			submitting: false
@@ -177,5 +179,11 @@ h3 {
 	margin-top: 10px;
 	width: 100%;
 	height: 200px;
+}
+
+.warning {
+	margin: 0;
+	font-size: 13px;
+	color: goldenrod;
 }
 </style>

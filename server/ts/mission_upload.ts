@@ -30,6 +30,8 @@ export class MissionUpload {
 	zip: jszip;
 	/** Stores a list of problems with the uploaded mission. A problematic mission can't be uploaded. */
 	problems = new Set<string>();
+	/** Stores a list of warnings regarding mission upload, which are things to pay attention to but not things that will prevent submission. */
+	warnings = new Set<string>();
 	misFile: MisFile;
 	/** The path to the .mis file within the .zip directory. */
 	misFilePath: string;
@@ -62,6 +64,23 @@ export class MissionUpload {
 		await this.checkInteriors();
 		await this.checkSky();
 		await this.checkShapes();
+
+		// Determine all files that are part of the archive but won't be included in the final directory
+		let includedFiles = new Set(this.normalizedDirectory.values());
+		let excludedFiles: string[] = [];
+
+		for (let filePath in this.zip.files) {
+			let file = this.zip.files[filePath];
+			if (file.dir) continue;
+
+			if (!includedFiles.has(file)) {
+				excludedFiles.push(filePath);
+			}
+		}
+
+		if (excludedFiles.length > 0) {
+			this.warnings.add(`The .zip contains additional files that won't be submitted: ${excludedFiles.join(', ')}`);
+		}
 	}
 
 	async checkMis() {
