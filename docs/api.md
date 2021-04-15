@@ -101,18 +101,18 @@ Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of derfault assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
-### **GET** `/api/level/{level-id}/info`
+### `GET` **/api/level/{level-id}/info**
 Returns the metadata for the given level in the form of [LevelInfo](#levelinfo).
 
-### **GET** `/api/level/{level-id}/extended-info`
+### `GET` **/api/level/{level-id}/extended-info**
 Returns the extended information for the given level in the form of [ExtendedLevelInfo](#extendedlevelinfo).
 
 ### **GET** `/api/level/{level-id}/mission-info`
 Returns the raw MissionData ScriptObject of the .mis file as a `Record<string, string | string[]>`.
 
-## **GET** `/api/level/{level-id}/packs`
+### **GET** `/api/level/{level-id}/packs`
 Returns a list of packs the given level appears in as an array of [PackInfo](#packinfo).
-## **POST** `/api/level/upload`
+### **POST** `/api/level/upload`
 **Requires [authentication](#authentication).** Uploads a .zip archive containing a level and primes it for submission.
 
 **Request body:** The raw data of the .zip file with `Content-Type: application/zip`.
@@ -129,7 +129,7 @@ Returns a list of packs the given level appears in as an array of [PackInfo](#pa
 }
 ```
 
-## **POST** `/api/level/submit`
+### **POST** `/api/level/submit`
 **Requires [authentication](#authentication).** Submits a previously uploaded level, that is, adds it to the database and makes it accessible.
 
 **Request body (`Content-Type: application/json`):**
