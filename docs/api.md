@@ -67,12 +67,23 @@ Contains metadata about a pack.
 }
 ```
 
+### CommentInfo
+Contains data about a comment.
+```typescript
+{
+	id: number,
+	author: ProfileInfo,
+	time: number,
+	content: string
+}
+```
+
 ## Level
 
-### **GET** `/api/level/list`
+### `GET` /api/level/list
 Returns a list of all levels as an array of [LevelInfo](#levelinfo).
 
-### **GET** `/api/level/{level-id}/zip`
+### `GET` /api/level/{level-id}/zip
 Get the .zip archive for the given level.
 
 **Query parameters:**
@@ -81,7 +92,7 @@ Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of derfault assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
-### **GET** `/api/level/{level-id}/image`
+### `GET` /api/level/{level-id}/image
 Get the image thumbnail for the given level.
 
 **Query parameters:**
@@ -92,7 +103,7 @@ original | `boolean` | If set, the original, uncompressed image thumbnail will b
 width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
 height | `number` | *See `width`.*
 
-### **GET** `/api/level/{level-id}/dependencies`
+### `GET` /api/level/{level-id}/dependencies
 Returns a list of files (assets) the given level depends on as an array of `string`. Essentially returns the file paths of the .zip.
 
 **Query parameters:**
@@ -101,18 +112,18 @@ Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of derfault assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
-### `GET` **/api/level/{level-id}/info**
+### `GET` /api/level/{level-id}/info
 Returns the metadata for the given level in the form of [LevelInfo](#levelinfo).
 
-### `GET` **/api/level/{level-id}/extended-info**
+### `GET` /api/level/{level-id}/extended-info
 Returns the extended information for the given level in the form of [ExtendedLevelInfo](#extendedlevelinfo).
 
-### **GET** `/api/level/{level-id}/mission-info`
+### `GET` /api/level/{level-id}/mission-info
 Returns the raw MissionData ScriptObject of the .mis file as a `Record<string, string | string[]>`.
 
-### **GET** `/api/level/{level-id}/packs`
+### `GET` /api/level/{level-id}/packs
 Returns a list of packs the given level appears in as an array of [PackInfo](#packinfo).
-### **POST** `/api/level/upload`
+### `POST` /api/level/upload
 **Requires [authentication](#authentication).** Uploads a .zip archive containing a level and primes it for submission.
 
 **Request body:** The raw data of the .zip file with `Content-Type: application/zip`.
@@ -129,13 +140,14 @@ Returns a list of packs the given level appears in as an array of [PackInfo](#pa
 }
 ```
 
-### **POST** `/api/level/submit`
+### `POST` /api/level/submit
 **Requires [authentication](#authentication).** Submits a previously uploaded level, that is, adds it to the database and makes it accessible.
 
 **Request body (`Content-Type: application/json`):**
 ```typescript
 {
-	uploadId: number
+	uploadId: number,
+	remarks: string // Additional remarks to display on the level's page
 }
 ```
 
@@ -145,3 +157,30 @@ Returns a list of packs the given level appears in as an array of [PackInfo](#pa
 	levelId: number // The ID of the submitted level
 }
 ```
+
+### `PATCH` /api/level/{level-id}/edit
+**Requires [authentication](#authentication).** Edit the metadata of a previously submitted level. Right now, only the level's remarks can be edited.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	remarks: string
+}
+```
+
+### `DELETE` /api/level/{level-id}/delete
+**Requires [authentication](#authentication).** Deletes a previously submitted level from the database.
+
+### `POST` /api/level/{level-id}/comment
+**Requires [authentication](#authentication).** Adds a comment to given level. Returns the full list of comments (after submission) for the given level in the form of an array of [CommentInfo](#commentinfo).
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	content: string // The content of the comment
+}
+```
+
+## Comment
+### `DELETE` /api/comment/{comment-id}
+**Requires [authentication](#authentication).** Delets a previously written comment. Returns the full list of comments (after deletion) for the comment's level in the form of an array of [CommentInfo](#commentinfo).
