@@ -1,9 +1,9 @@
 <template>
 	<header>
-		<h1 @click="$router.push('/')">CLA</h1>
+		<img src="/assets/img/favicon.png" class="homeIcon" title="Home" @click="$router.push('/')">
 		<div v-for="target of targets" :key="target.path" class="targetContainer" :title="target.label" :class="{ selected: currentPath === target.path }" @click="navigate(target.path)">
 			<img :src="target.icon" class="basicIcon">
-			<div class="underline" :title="currentRoute"></div>
+			<div class="underline"></div>
 		</div>
 		<profile-icon class="profileIcon"></profile-icon>
 	</header>
@@ -60,10 +60,16 @@ header {
 	position: relative;
 }
 
-h1 {
-	margin: 0;
-	margin-right: 50px;
+.homeIcon {
+	width: 47px;
+	margin-right: 20px;
 	cursor: pointer;
+	transform-origin: 50% 50%;
+	transition: transform 0.15s;
+}
+
+.homeIcon:hover {
+	transform: scale(1.2);
 }
 
 .profileIcon {
