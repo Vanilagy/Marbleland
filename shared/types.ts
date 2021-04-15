@@ -1,3 +1,17 @@
+export enum GameType {
+	SinglePlayer = "single",
+	Multiplayer = "multi"
+}
+
+export enum Modification {
+	Gold = "gold",
+	Platinum = "platinum",
+	Fubar = "fubar",
+	Ultra = "ultra",
+	PlatinumQuest = "platinumquest"
+}
+
+/** Contains metadata about a level. */
 export interface LevelInfo {
 	id: number,
 	baseName: string,
@@ -18,6 +32,7 @@ export interface LevelInfo {
 	hasEasterEgg: boolean
 }
 
+/** Contains metadata about a level, as well as additional data to display on the Level page. */
 export interface ExtendedLevelInfo extends LevelInfo {
 	addedBy: ProfileInfo,
 	remarks: string,
@@ -26,33 +41,24 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	downloads: number
 }
 
-export enum GameType {
-	SinglePlayer = "single",
-	Multiplayer = "multi"
-}
-
-export enum Modification {
-	Gold = "gold",
-	Platinum = "platinum",
-	Fubar = "fubar",
-	Ultra = "ultra",
-	PlatinumQuest = "platinumquest"
-}
-
+/** Contains metadata about a profile. */
 export interface ProfileInfo {
 	id: number,
 	username: string,
 	hasAvatar: boolean
 }
 
+/** Contains metadata about a profile, as well as additional data to display on the Profile page. */
 export interface ExtendedProfileInfo extends ProfileInfo {
 	bio: string,
 	uploadedLevels: LevelInfo[],
 	createdPacks: PackInfo[]
 }
 
+/** Contains data that is remembered by the client upon login. */
 export interface SignInInfo {
 	profile: ProfileInfo,
+	/** A list of all packs belonging to that user. */
 	packs: {
 		id: number,
 		name: string,
@@ -60,6 +66,7 @@ export interface SignInInfo {
 	}[]
 }
 
+/** Contains metadata about a pack. */
 export interface PackInfo {
 	id: number,
 	name: string,
@@ -68,6 +75,7 @@ export interface PackInfo {
 	levelIds: number[]
 }
 
+/** Contains metadata about a pack, as well as additional data to display on the Pack page. */
 export interface ExtendedPackInfo {
 	id: number,
 	name: string,
@@ -78,6 +86,7 @@ export interface ExtendedPackInfo {
 	downloads: number
 }
 
+/** Describes a comment. */
 export interface CommentInfo {
 	id: number,
 	author: ProfileInfo,
@@ -85,6 +94,7 @@ export interface CommentInfo {
 	content: string
 }
 
+/** Describes the data displayed on the Home page. */
 export interface HomeInfo {
 	latestLevels: LevelInfo[]
 }
