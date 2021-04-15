@@ -2,7 +2,7 @@
 
 ## Data types
 ### LevelInfo
-```json
+```typescript
 {
 	id: number,
 	baseName: string,
