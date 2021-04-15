@@ -78,6 +78,42 @@ Contains data about a comment.
 }
 ```
 
+### ProfileInfo
+Contains metadata about a profile.
+```typescript
+{
+	id: number,
+	username: string,
+	hasAvatar: boolean
+}
+```
+
+### ExtendedProfileInfo
+Contains metadata about a profile, as well as additional data to display on the Profile page.
+```typescript
+{
+	id: number,
+	username: string,
+	hasAvatar: boolean,
+	bio: string,
+	uploadedLevels: LevelInfo[],
+	createdPacks: PackInfo[]
+}
+```
+
+### SignInInfo
+Contains data that is remembered by the client upon login.
+```typescript
+{
+	profile: ProfileInfo,
+	packs: { // A list of all packs belonging to that user
+		id: number,
+		name: string,
+		levelIds: number[]
+	}[]
+}
+```
+
 ## Level
 
 ### `GET` /api/level/list
@@ -131,9 +167,11 @@ Returns a list of packs the given level appears in as an array of [PackInfo](#pa
 **Response body:**
 ```typescript
 {
+	// On error
 	status: 'error',
 	problems: string[] // A list of problems with the uploaded archive
 } | {
+	// On successful upload
 	status: 'success',
 	uploadId: number, // The random ID of this upload. Needs to be remembered for submission.
 	warnings: string[] // A list of warnings about the uploaded archive
@@ -184,3 +222,83 @@ Returns a list of packs the given level appears in as an array of [PackInfo](#pa
 ## Comment
 ### `DELETE` /api/comment/{comment-id}
 **Requires [authentication](#authentication).** Delets a previously written comment. Returns the full list of comments (after deletion) for the comment's level in the form of an array of [CommentInfo](#commentinfo).
+
+## Account
+### `POST` /api/account/sign-up
+Registers a new account.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	email: string,
+	username: string,
+	password: string
+}
+```
+
+**Response body:**
+```typescript
+{
+	// On error
+	status: 'error',
+	reason: string
+} | {
+	// On successful account creation
+	status: 'success',
+	token: string,
+	signInInfo: SignInInfo
+}
+```
+
+### `POST` /api/account/sign-in
+Sign in to an existing account.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	emailOrUsername: string,
+	password: string
+}
+```
+
+**Response body:**
+```typescript
+{
+	// On error
+	status: 'error',
+	reason: string
+} | {
+	// On successful sign-in
+	status: 'success',
+	token: string,
+	signInInfo: SignInInfo
+}
+```
+
+### `POST` /api/account/sign-out
+**Requires [authentication](#authentication).** Signs out a previously signed-in account by invalidating its token.
+
+### `POST` /api/account/check-token
+**Requires [authentication](#authentication).** Checks the validity of a token specified in the Authorization header. If it is valid, returns [SignInInfo](#signininfo) for the corresponding account.
+
+### `GET` /api/account/{account-id}/info
+Returns metadata about the given account in form of [ProfileInfo](#profileinfo).
+
+### `GET` /api/account/{account-id}/avatar
+Get the avatar image for the given account. Note that this will return a default image if the account hasn't set an avatar yet, and in that case the `size` query param won't do anything.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+size | `number` | If set, resizes the avatar image to a square with side lengths of `size`.
+
+### `POST` /api/account/{account-id}/set-avatar
+**Requires [authentication](#authentication).** Sets the avatar image for the given account.
+
+**Request body:** The raw data of avatar image file with `Content-Type: image/*`.
+
+### `POST` /api/account/{account-id}/set-bio
+**Requires [authentication](#authentication).** Sets the biography for the given account.
+
+**Request body:** The new biography as a `string` with `Content-Type: text/plain`.

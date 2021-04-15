@@ -59,7 +59,7 @@ export default Vue.defineComponent({
 				let token = localStorage.getItem('token');
 				let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
 				request.open('POST', '/api/level/upload', true);
-				request.setRequestHeader('Content-Type', 'application/octet-stream');
+				request.setRequestHeader('Content-Type', 'application/zip');
 				request.setRequestHeader('Authorization', `Bearer ${token}`);
 
 				request.upload.onprogress = (ev) => {
