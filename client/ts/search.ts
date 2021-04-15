@@ -9,10 +9,12 @@ interface LevelInfoWrapper {
 	sortArtist: string;
 }
 
+/** Helper class that handles level search. The reason this was extracted from SearchPage.vue is because of the large amount of levels, performance is crucial and doing everything through Proxies really hinders that. */
 export abstract class Search {
 	static levels: LevelInfo[];
 	static wrappers: LevelInfoWrapper[];
 
+	/** Asks the server for a list of all levels. */
 	static async loadLevels(reload = false) {
 		if (this.levels && !reload) return;
 
@@ -20,6 +22,7 @@ export abstract class Search {
 		let levelList = await response.json() as LevelInfo[];
 
 		this.levels = levelList;
+		// Do some precomputation for faster sorting/searching later on
 		this.wrappers = levelList.map(level => {
 			let searchString = [level.id, level.name, level.artist, level.baseName].filter(x => x).join(' ');
 			searchString = Util.normalizeString(searchString);
@@ -35,9 +38,10 @@ export abstract class Search {
 			};
 		});
 
-		store.state.searchState.levelsVersion++;
+		store.state.searchState.levelsVersion++; // Increase the version to tell the search page to update
 	}
 
+	/** Returns a list of filtered levels based on the current search bar state. */
 	static filter() {
 		let searchState = store.state.searchState;
 		let normalizedQuery = Util.normalizeString(searchState.searchBar.query);
@@ -45,6 +49,7 @@ export abstract class Search {
 
 		let words = normalizedQuery.split(' ');
 		let filtered = this.wrappers.filter(x => {
+			// Check if it matches the search query
 			let matchCount = 0;
 			for (let i = 0; i < words.length; i++) {
 				let word = words[i];
@@ -55,6 +60,7 @@ export abstract class Search {
 
 			let info = x.info;
 
+			// Apply additional filtering
 			if (filter.modification.value !== 'all' && info.modification !== filter.modification.value) return false;
 			if (filter.gameType.value !== 'all' && info.gameType !== filter.gameType.value) return false;
 			if (filter.hasGems.value !== 'all' && info.gems > 0 !== (filter.hasGems.value === 'yes')) return false;
@@ -69,6 +75,7 @@ export abstract class Search {
 			return 0;
 		};
 
+		// Determine the correct sorting function to use
 		let sortingFunction: (a: LevelInfoWrapper, b: LevelInfoWrapper) => number;
 		switch (filter.sort.value) {
 			case 'name': sortingFunction = (a, b) => cmpStr(a.sortName, b.sortName); break;
@@ -78,12 +85,14 @@ export abstract class Search {
 			case 'gemCount': sortingFunction = (a, b) => a.info.gems - b.info.gems; break;
 		}
 
+		// Bring the levels into the right order
 		filtered.sort(sortingFunction);
 		if (searchState.searchBar.reversed) filtered.reverse();
 
 		return filtered.map(x => x.info);
 	}
 
+	/** Checks if the stored level list includes `id`. If not, causes a server resync. */
 	static checkForRefresh(id: number) {
 		if (!this.levels) return false;
 

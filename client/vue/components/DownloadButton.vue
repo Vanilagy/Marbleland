@@ -41,6 +41,7 @@ export default Vue.defineComponent({
 		}
 	},
 	methods: {
+		/** Start downloading the .zip with the correct assumption parameter */
 		download(assumption: string) {
 			window.location.href = window.location.origin + 
 				((this.mode === 'level')? `/api/level/${this.id}/zip?assuming=${assumption}`

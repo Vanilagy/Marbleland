@@ -12,7 +12,7 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue';
-import { emitter } from '../ts/emitter';
+import { emitter } from '../../ts/emitter';
 
 export default Vue.defineComponent({
 	props: {
@@ -39,7 +39,7 @@ export default Vue.defineComponent({
 		wrapperStyle(): Record<string, string> {
 			return {
 				'box-shadow': this.expanded? '0px 0px 5px #00000052' : '',
-				'z-index': this.expanded? '1' : ''
+				'z-index': this.expanded? '1' : '' // Make sure to show the thing above everything else
 			};
 		}
 	},
@@ -61,7 +61,7 @@ export default Vue.defineComponent({
 		}
 	},
 	mounted() {
-		emitter.on('dropdownOpen', this.close);
+		emitter.on('dropdownOpen', this.close); // Close the dropdown if any other dropdown opens
 	},
 	unmounted() {
 		emitter.off('dropdownOpen', this.close);

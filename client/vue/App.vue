@@ -3,6 +3,7 @@
 		<navigation-bar></navigation-bar>
 		<hr>
 		<router-view v-slot="{ Component }">
+			<!-- Keep these two alive to keep search state -->
 			<keep-alive include="search,packs">
 				<component :is="Component"></component>
 			</keep-alive>
@@ -12,7 +13,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import NavigationBar from './NavigationBar.vue';
+import NavigationBar from './components/NavigationBar.vue';
 export default Vue.defineComponent({
 	components: { NavigationBar }
 });

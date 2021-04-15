@@ -11,8 +11,8 @@
 <script lang="ts">
 import Vue from 'vue';
 import { HomeInfo } from '../../../shared/types';
-import HomeAction from '../HomeAction.vue';
-import PanelList from '../PanelList.vue';
+import HomeAction from '../components/HomeAction.vue';
+import PanelList from '../components/PanelList.vue';
 
 export default Vue.defineComponent({
 	data() {

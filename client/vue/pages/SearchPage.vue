@@ -5,8 +5,8 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import SearchBar, { SearchBarConfig } from '../SearchBar.vue';
-import PanelList from '../PanelList.vue';
+import SearchBar, { SearchBarConfig } from '../components/SearchBar.vue';
+import PanelList from '../components/PanelList.vue';
 import { LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
@@ -27,7 +27,7 @@ export default Vue.defineComponent({
 	},
 	mounted() {
 		if (this.loaded) this.updateFilteredLevels();
-		else Search.loadLevels();
+		else Search.loadLevels(); // Cause a server fetch if levels haven't been loaded yet
 	},
 	computed: {
 		noLevelsNotice(): string {
@@ -44,9 +44,6 @@ export default Vue.defineComponent({
 		}
 	},
 	methods: {
-		normalizeString(str: string) {
-			return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/g, '').toLowerCase();
-		},
 		updateFilteredLevels() {
 			this.filteredLevels = Search.filter();
 		}

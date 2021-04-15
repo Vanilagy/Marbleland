@@ -20,8 +20,8 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue';
-import { LevelInfo, PackInfo } from '../../shared/types';
-import { store } from '../ts/store';
+import { LevelInfo, PackInfo } from '../../../shared/types';
+import { store } from '../../ts/store';
 import LevelPanel, { LevelPanelActions } from './LevelPanel.vue';
 import PanelSkeleton from './PanelSkeleton.vue';
 import PackPanel from './PackPanel.vue';
@@ -32,6 +32,7 @@ export default Vue.defineComponent({
 		entries: Array as PropType<LevelInfo[] | PackInfo[]>,
 		noEntriesNotice: String as PropType<string>,
 		defaultCount: Number as PropType<number>,
+		/** Object of additional actions to pass down to the individual level panels */
 		levelPanelActions: Object as PropType<LevelPanelActions>
 	},
 	data() {
@@ -46,6 +47,7 @@ export default Vue.defineComponent({
 		canShowMore(): boolean {
 			return this.shownEntries.length < this.entries.length;
 		},
+		/** Acts as a proxy that applies a default value. */
 		passedLevelPanelActions(): LevelPanelActions {
 			if (this.levelPanelActions) return this.levelPanelActions;
 			if (this.$store.state.loggedInAccount) return { addToPack: true };
@@ -64,6 +66,7 @@ export default Vue.defineComponent({
 	},
 	watch: {
 		entries() {
+			// Whenever the entry array changes, reset the shown count back to its default
 			this.shownCount = this.defaultCount;
 		}
 	}

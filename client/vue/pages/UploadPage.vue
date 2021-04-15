@@ -18,8 +18,8 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import ButtonWithIcon from '../ButtonWithIcon.vue';
-import ProgressBar from '../ProgressBar.vue';
+import ButtonWithIcon from '../components/ButtonWithIcon.vue';
+import ProgressBar from '../components/ProgressBar.vue';
 
 export default Vue.defineComponent({
 	components: {
@@ -31,6 +31,7 @@ export default Vue.defineComponent({
 			uploading: false,
 			uploadLoaded: 0,
 			uploadTotal: 1,
+			/** The state of the progress bar */
 			uploadState: 'neutral',
 			problems: [] as string[],
 			successResponse: null as {
@@ -41,6 +42,7 @@ export default Vue.defineComponent({
 		};
 	},
 	methods: {
+		/** Show a file dialog that allows the user to select a .zip file, then upload it to the server. */
 		select() {
 			let fileInput = document.createElement('input');
 			fileInput.setAttribute('type', 'file');
@@ -52,7 +54,7 @@ export default Vue.defineComponent({
 				if (!file) return;
 
 				let token = localStorage.getItem('token');
-				let request = new XMLHttpRequest();
+				let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
 				request.open('POST', '/api/level/upload', true);
 				request.setRequestHeader('Content-Type', 'application/octet-stream');
 				request.setRequestHeader('Authorization', `Bearer ${token}`);
@@ -69,10 +71,12 @@ export default Vue.defineComponent({
 					};
 
 					if (json.status === 'error') {
+						// There were problems with the upload, show them to the user
 						this.problems = json.problems;
 						this.uploadState = 'negative';
 						this.uploading = false;
 					} else if (json.status === 'success') {
+						// The upload was successful
 						this.successResponse = json;
 						this.uploadState = 'positive';
 					}
@@ -89,9 +93,11 @@ export default Vue.defineComponent({
 			this.uploadLoaded = 0;
 			this.uploadTotal = 1;
 		},
+		/** Submits the already uploaded level. */
 		async submit() {
 			this.submitting = true;
 
+			// Tell the server to submit the upload
 			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/level/submit`, {
 				method: 'POST',
@@ -106,6 +112,7 @@ export default Vue.defineComponent({
 			});
 
 			if (response.ok) {
+				// The level has been submitted successfully, navigate to its page
 				let json = await response.json() as {
 					levelId: number
 				};

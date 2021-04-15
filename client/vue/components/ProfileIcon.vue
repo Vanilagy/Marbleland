@@ -8,7 +8,7 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import Vue from 'vue';
 export default Vue.defineComponent({
 	data() {
 		return {
@@ -21,13 +21,16 @@ export default Vue.defineComponent({
 			if (!acc || !acc.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
 			return `/api/account/${acc.id}/avatar?v=${this.$store.state.avatarVersion}&size=64`;
 		},
+		/** Generates a list of options (actions, technically, idk what I was thinking with this nomenclature) that are accessible through the dropdown. */
 		options(): { label: string, onClick: () => void }[] {
 			let self = this;
+			// The theming option is shown always
 			let themeOption = {
 				label: 'Toggle theme',
 				onClick: self.toggleColorTheme
 			};
 
+			// Show different options based on the logged-in state
 			if (this.$store.state.loggedInAccount === null) {
 				return [{
 					label: 'Sign in',
@@ -49,8 +52,9 @@ export default Vue.defineComponent({
 				}, {
 					label: 'Sign out',
 					onClick() {
+						// Sign out the account
 						let token = localStorage.getItem('token');
-						fetch('/api/account/sign-out', {
+						fetch('/api/account/sign-out', { // Don't await this boy for more instant feedback
 							method: 'POST',
 							headers: {
 								'Authorization': `Bearer ${token}`
@@ -65,6 +69,7 @@ export default Vue.defineComponent({
 	},
 	methods: {
 		toggleColorTheme() {
+			// Toggle the theme by adding/removing a class on the root (<html>) element
 			if (document.documentElement.classList.contains('dark')) {
 				document.documentElement.classList.remove('dark');
 				localStorage.setItem('colorTheme', 'light');

@@ -12,8 +12,8 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue';
-import { SignInInfo } from '../../shared/types';
-import { emitter } from '../ts/emitter';
+import { SignInInfo } from '../../../shared/types';
+import { emitter } from '../../ts/emitter';
 export default Vue.defineComponent({
 	props: {
 		levelId: Number as PropType<number>
@@ -38,18 +38,21 @@ export default Vue.defineComponent({
 			return (!contains)? `Add level to pack "${pack.name}"` : `Remove level from pack "${pack.name}"`;
 		},
 		async selectPack(packId: number) {
-			let contains = this.contains(packId);
-			let pack = this.packs.find(x => x.id === packId);
+			let contains = this.contains(packId); // See if the selected pack already contains the level
+			let pack = this.packs.find(x => x.id === packId); // Find the selected pack
 
 			if (contains) {
+				// Remove the level
 				let levelIndex = pack.levelIds.indexOf(this.levelId);
 				if (levelIndex !== -1) pack.levelIds.splice(levelIndex, 1);
 			} else {
+				// Add the level
 				pack.levelIds.push(this.levelId);
 			}
 
 			this.shown = false;
 
+			// Sync the changes with the server
 			let token = localStorage.getItem('token');
 			await fetch(`/api/pack/${packId}/set-levels`, {
 				method: 'POST',
@@ -60,6 +63,7 @@ export default Vue.defineComponent({
 				}
 			});
 
+			// Emit the update
 			emitter.emit('packUpdate', {
 				id: packId,
 				levelIds: pack.levelIds

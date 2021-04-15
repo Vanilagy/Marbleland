@@ -1,45 +1,48 @@
 <template>
-	<div class="levelPanelWrapper">
+	<div class="packPanelWrapper">
 		<div class="panel notSelectable" @click="clicked">
 			<img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage">
 			<div class="bottom">
-				<div class="name">{{levelInfo.name}}</div>
-				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
+				<div class="name">{{packInfo.name}}</div>
+				<div class="creator">
+					<img :src="avatarSrc" :style="{ opacity: avatarOpacity }">
+					<p>{{packInfo.createdBy.username}}</p>
+				</div>
+				<div class="levelCount">{{ packInfo.levelIds.length }} levels</div>
 			</div>
 			<div class="actions" :style="actionsStyle">
-				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions?.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)" class="basicIcon">
-				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions?.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()" class="basicIcon">
-				<img src="/assets/svg/download_black_24dp.svg" title="Download level" @click.stop="download" class="basicIcon">
+				<img src="/assets/svg/download_black_24dp.svg" title="Download pack" @click.stop="download" class="basicIcon">
 			</div>
 		</div>
-		<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 	</div>
 </template>
 
 <script lang="ts">
 import Vue, { PropType } from 'vue'
-import { LevelInfo } from '../../shared/types';
-import { Util } from '../ts/util';
-import PackAdder from './PackAdder.vue';
-
-export interface LevelPanelActions {
-	removeFromPack?: (info: LevelInfo) => void,
-	addToPack?: boolean
-}
+import { PackInfo } from '../../../shared/types';
+import { emitter } from '../../ts/emitter';
+import { Util } from '../../ts/util';
 
 export default Vue.defineComponent({
 	props: {
-		levelInfo: Object as PropType<LevelInfo>,
-		actions: Object as PropType<LevelPanelActions>
+		packInfo: Object as PropType<PackInfo>
 	},
 	data() {
 		return {
-			imageShown: true
+			imageShown: true,
+			imageVersion: 0
 		};
 	},
 	computed: {
 		imageSource(): string {
-			return `/api/level/${this.levelInfo.id}/image`;
+			return `/api/pack/${this.packInfo.id}/image?version=${this.imageVersion}`;
+		},
+		avatarSrc(): string {
+			if (!this.packInfo.createdBy.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
+			return `/api/account/${this.packInfo.createdBy.id}/avatar?size=32`;
+		},
+		avatarOpacity(): number {
+			return this.packInfo.createdBy.hasAvatar? 1 : 0.75;
 		},
 		actionsStyle(): Record<string, string> {
 			return {
@@ -49,23 +52,35 @@ export default Vue.defineComponent({
 	},
 	methods: {
 		clicked(): void {
-			this.$router.push({ name: 'Level', params: { id: this.levelInfo.id } });
+			this.$router.push({ name: 'Pack', params: { id: this.packInfo.id } });
 		},
 		imageLoadError() {
 			this.imageShown = false;
 		},
 		download() {
-			window.location.href = window.location.origin + `/api/level/${this.levelInfo.id}/zip`;
+			window.location.href = window.location.origin + `/api/pack/${this.packInfo.id}/zip`;
+		},
+		onPackUpdate(updateInfo: { id: number, levelIds?: number[] }) {
+			if (updateInfo.id !== this.packInfo.id) return; // Check if the update is about us
+
+			if (updateInfo.levelIds) {
+				this.imageVersion++;
+				this.packInfo.levelIds = updateInfo.levelIds;
+			}
 		}
 	},
-	components: {
-		PackAdder
+	mounted() {
+		// Listen for any pack updates to then change accordingly
+		emitter.on('packUpdate', this.onPackUpdate);
+	},
+	unmounted() {
+		emitter.off('packUpdate', this.onPackUpdate);
 	}
 });
 </script>
 
 <style scoped>
-.levelPanelWrapper {
+.packPanelWrapper {
 	position: relative;
 	box-sizing: border-box;
 	padding: 5px;
@@ -83,19 +98,19 @@ export default Vue.defineComponent({
 }
 
 @media (max-width: 1045px) {
-	.levelPanelWrapper {
+	.packPanelWrapper {
 		width: calc(100% / 3);
 	}
 }
 
 @media (max-width: 792px) {
-	.levelPanelWrapper {
+	.packPanelWrapper {
 		width: calc(100% / 2);
 	}
 }
 
 @media (max-width: 540px) {
-	.levelPanelWrapper {
+	.packPanelWrapper {
 		width: calc(100% / 1);
 	}
 }
@@ -125,12 +140,26 @@ export default Vue.defineComponent({
     width: calc(100% - 20px);
 }
 
-.artist {
+.creator {
+	display: flex;
+	align-items: center;
+}
+
+.creator img {
+	width: 14px;
+	height: 14px;
+	margin-right: 5px;
+	border-radius: 1000px;
+}
+
+.creator p {
 	font-size: 12px;
 	overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    width: calc(100% - 20px);
+	width: calc(100% - 20px);
+	flex: 1 1 auto;
+	margin: 0;
 }
 
 .bottom {
@@ -141,11 +170,6 @@ export default Vue.defineComponent({
 	width: 100%;
 	background: var(--level-panel-bottom-background);
 	box-sizing: border-box;
-}
-
-.missingArtist {
-	font-style: italic;
-	opacity: 0.5;
 }
 
 .actions {
@@ -169,10 +193,10 @@ export default Vue.defineComponent({
 	opacity: 0.75 !important;
 }
 
-.packAdder {
+.levelCount {
 	position: absolute;
-	top: 30px;
-	right: 0px;
-	z-index: 1;
+	bottom: 3px;
+	right: 8px;
+	font-size: 12px;
 }
 </style>

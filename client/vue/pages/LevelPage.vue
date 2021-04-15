@@ -46,14 +46,14 @@
 <script lang="ts">
 import Vue from 'vue'
 import { CommentInfo, ExtendedLevelInfo, Modification, PackInfo } from '../../../shared/types';
-import DownloadButton from '../DownloadButton.vue';
-import ProfileBanner from '../ProfileBanner.vue';
-import InfoBanner from '../InfoBanner.vue';
-import PackAdder from '../PackAdder.vue';
-import PanelList from '../PanelList.vue';
-import ButtonWithIcon from '../ButtonWithIcon.vue';
-import CommentElement from '../CommentElement.vue';
-import Loader from '../Loader.vue';
+import DownloadButton from '../components/DownloadButton.vue';
+import ProfileBanner from '../components/ProfileBanner.vue';
+import InfoBanner from '../components/InfoBanner.vue';
+import PackAdder from '../components/PackAdder.vue';
+import PanelList from '../components/PanelList.vue';
+import ButtonWithIcon from '../components/ButtonWithIcon.vue';
+import CommentElement from '../components/CommentElement.vue';
+import Loader from '../components/Loader.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
@@ -73,18 +73,21 @@ export default Vue.defineComponent({
 		return {
 			levelInfo: null as ExtendedLevelInfo,
 			editing: false,
+			/** Is true when we're currently waiting for the server to delete this level. */
 			deleting: false,
 			commentInput: '',
 			sendingComment: false
 		};
 	},
 	async mounted() {
+		// Load all the level info
 		let id = Number(this.$route.params.id);
 		let response = await fetch(`/api/level/${id}/extended-info`);
 		let levelInfo = await response.json() as ExtendedLevelInfo;
 
 		this.levelInfo = levelInfo;
 
+		// Incase the level search doesn't include this level yet, make it refresh
 		Search.checkForRefresh(this.levelInfo.id);
 		emitter.on('packUpdate', this.updatePacks);
 	},
@@ -95,6 +98,7 @@ export default Vue.defineComponent({
 		imageSource(): string {
 			return `/api/level/${this.levelInfo.id}/image`;
 		},
+		/** Construct an object of metadata about this level. */
 		levelDetails(): Record<string, number | string> {
 			let result: Record<string, number | string> = {};
 
@@ -123,6 +127,7 @@ export default Vue.defineComponent({
 		}
 	},
 	methods: {
+		/** Turns the modification value into a pretty string. */
 		prettyModification(mod: Modification) {
 			switch (mod) {
 				case Modification.Gold: return 'Gold';
@@ -138,11 +143,12 @@ export default Vue.defineComponent({
 			
 			this.levelInfo.packs = json;
 		},
-		async submitChanges() {
+		submitChanges() {
 			this.editing = false;
 
+			// Submit the changes to the server
 			let token = localStorage.getItem('token');
-			await fetch(`/api/level/${this.levelInfo.id}/edit`, {
+			fetch(`/api/level/${this.levelInfo.id}/edit`, {
 				method: 'PATCH',
 				body: JSON.stringify({
 					remarks: this.levelInfo.remarks
@@ -158,6 +164,7 @@ export default Vue.defineComponent({
 
 			this.deleting = true;
 
+			// Do the level delete API call
 			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/level/${this.levelInfo.id}/delete`, {
 				method: 'DELETE',
@@ -182,9 +189,11 @@ export default Vue.defineComponent({
 				alert("Something went wrong.");
 			}
 		},
+		/** Add a comment to the level. */
 		async comment() {
 			this.sendingComment = true;
 
+			// Send the comment to the server
 			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/level/${this.levelInfo.id}/comment`, {
 				method: 'POST',
@@ -198,6 +207,7 @@ export default Vue.defineComponent({
 			});
 			let json = await response.json() as CommentInfo[];
 
+			// Reload all of the comments
 			this.levelInfo.comments = json;
 			this.commentInput = '';
 			this.sendingComment = false;
@@ -214,6 +224,7 @@ export default Vue.defineComponent({
 			});
 			let json = await response.json();
 
+			// Reload all of the comments
 			this.levelInfo.comments = json;
 		}
 	}

@@ -6,9 +6,9 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import ButtonWithIcon from '../ButtonWithIcon.vue';
-import SearchBar from '../SearchBar.vue';
-import PanelList from '../PanelList.vue';
+import ButtonWithIcon from '../components/ButtonWithIcon.vue';
+import SearchBar from '../components/SearchBar.vue';
+import PanelList from '../components/PanelList.vue';
 import { PackInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import { emitter } from '../../ts/emitter';
@@ -55,9 +55,11 @@ export default Vue.defineComponent({
 			this.$router.push('/create-pack');
 		},
 		async fetch() {
+			// Gets the list of all packs from the server
 			let response = await fetch('/api/pack/list');
 			let json = await response.json() as PackInfo[];
 
+			// Precomputes data for faster sorting/searching later on
 			this.packs = json.map(pack => {
 				let searchString = [pack.id, pack.name, pack.createdBy.username].filter(x => x).join(' ');
 				searchString = Util.normalizeString(searchString);
@@ -80,6 +82,7 @@ export default Vue.defineComponent({
 
 			let words = this.searchBarConfig.query.split(' ');
 
+			// Filter all packs that don't match the search query
 			let result = this.packs.filter(wrapper => {
 				let matchCount = 0;
 				for (let i = 0; i < words.length; i++) {
@@ -98,6 +101,7 @@ export default Vue.defineComponent({
 				return 0;
 			};
 
+			// Determine the correct sorting function to use
 			let sortingFunction: (a: PackInfoWrapper, b: PackInfoWrapper) => number;
 			switch (this.searchBarConfig.filter.sort.value) {
 				case 'name': sortingFunction = (a, b) => cmpStr(a.sortName, b.sortName); break;
@@ -106,12 +110,14 @@ export default Vue.defineComponent({
 				case 'levelCount': sortingFunction = (a, b) => a.info.levelIds.length - b.info.levelIds.length; break;
 			}
 
+			// Bring the packs into the right order
 			result.sort(sortingFunction);
 			if (this.searchBarConfig.reversed) result.reverse();
 
 			this.filteredPacks = result.map(x => x.info);
 		},
 		checkReload(newPackId: number) {
+			// Reload if the pack ID is not included in the current pack list
 			if (!this.packs.some(x => x.info.id === newPackId)) this.fetch();
 		}
 	},

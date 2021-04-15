@@ -17,6 +17,7 @@ export default Vue.defineComponent({
 	},
 	methods: {
 		navigate() {
+			// Go to a relative path or an absolute one, depending on the URL
 			if (this.path.startsWith('/')) this.$router.push(this.path);
 			else location.href = this.path;
 		}

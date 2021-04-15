@@ -15,8 +15,8 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue'
-import { ProfileInfo, SignInInfo } from '../../shared/types';
+import Vue, { PropType } from 'vue';
+import { ProfileInfo, SignInInfo } from '../../../shared/types';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
@@ -43,6 +43,7 @@ export default Vue.defineComponent({
 			if (this.type === 'signUp') return !!(this.email && this.username && this.password && this.passwordAgain);
 			else return !!(this.email && this.password);
 		},
+		/** Returns a list of problems with the current input. */
 		problems(): string[] {
 			let problems: string[] = [];
 
@@ -72,6 +73,8 @@ export default Vue.defineComponent({
 			this.responseError = '';
 			this.waitingForResponse = true;
 
+			// Sign in and sign up are quite similar, so we use roughly the same code for both:
+
 			let url = (this.type === 'signUp')?
 				'/api/account/sign-up' :
 				'/api/account/sign-in';
@@ -85,6 +88,7 @@ export default Vue.defineComponent({
 					emailOrUsername: this.email,
 					password: this.password
 				});
+			// Send the request and wait for the response
 			let response = await fetch(url, {
 				method: 'POST',
 				body: JSON.stringify(body),
@@ -101,9 +105,11 @@ export default Vue.defineComponent({
 			};
 
 			if (json.status === 'error') {
+				// There was an error, show the issue
 				this.responseError = json.reason;
 				this.waitingForResponse = false;
 			} else {
+				// User successfully signed in! Set values and route accordingly.
 				localStorage.setItem('token', json.token);
 				this.$store.state.loggedInAccount = json.signInInfo.profile;
 				this.$store.state.ownPacks = json.signInInfo.packs;

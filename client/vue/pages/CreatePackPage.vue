@@ -13,7 +13,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import ButtonWithIcon from '../ButtonWithIcon.vue';
+import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 
 export default Vue.defineComponent({
 	components: {
@@ -37,6 +37,7 @@ export default Vue.defineComponent({
 
 			this.creating = true;
 
+			// Send a pack create API call
 			let token = localStorage.getItem('token');
 			let response = await fetch('/api/pack/create', {
 				method: 'POST',
@@ -51,6 +52,7 @@ export default Vue.defineComponent({
 			});
 
 			if (response.ok) {
+				// Navigate to the freshly created pack with a little banner notice
 				let json = await response.json() as { packId: number };
 				this.$store.state.nextInfoBannerMessage = "Pack created successfully!";
 				this.$router.push({ name: 'Pack', params: { id: json.packId } });

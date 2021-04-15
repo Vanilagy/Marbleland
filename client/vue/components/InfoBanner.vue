@@ -15,6 +15,7 @@ export default Vue.defineComponent({
 		}
 	},
 	mounted() {
+		// If the store contains information about the next message to display, display it and then reset the store. Otherwise don't show.
 		if (this.$store.state.nextInfoBannerMessage) {
 			this.content = this.$store.state.nextInfoBannerMessage;
 			this.$store.state.nextInfoBannerMessage = null;

@@ -18,7 +18,7 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue';
-import { store } from '../ts/store';
+import { store } from '../../ts/store';
 import DropdownComponent from './DropdownComponent.vue';
 
 export interface SearchBarConfig {

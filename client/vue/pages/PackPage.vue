@@ -31,13 +31,13 @@
 import Vue from 'vue';
 import { ExtendedPackInfo, LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
-import ProfileBanner from '../ProfileBanner.vue';
-import DownloadButton from '../DownloadButton.vue';
-import PanelList from '../PanelList.vue';
-import ButtonWithIcon from '../ButtonWithIcon.vue';
-import InfoBanner from '../InfoBanner.vue';
-import Loader from '../Loader.vue';
-import { LevelPanelActions } from '../LevelPanel.vue';
+import ProfileBanner from '../components/ProfileBanner.vue';
+import DownloadButton from '../components/DownloadButton.vue';
+import PanelList from '../components/PanelList.vue';
+import ButtonWithIcon from '../components/ButtonWithIcon.vue';
+import InfoBanner from '../components/InfoBanner.vue';
+import Loader from '../components/Loader.vue';
+import { LevelPanelActions } from '../components/LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
 
 export default Vue.defineComponent({
@@ -49,12 +49,13 @@ export default Vue.defineComponent({
 		};
 	},
 	async mounted() {
+		// Load all necessary info
 		let response = await fetch(`/api/pack/${this.$route.params.id}/info`);
 		let json = await response.json() as ExtendedPackInfo;
 
 		this.packInfo = json;
 
-		emitter.emit('packView', this.packInfo.id);
+		emitter.emit('packView', this.packInfo.id); // Trigger a possible update in pack search
 		emitter.on('packUpdate', this.onPackUpdate);
 	},
 	unmounted() {
@@ -69,16 +70,18 @@ export default Vue.defineComponent({
 		},
 		levelPanelActions(): LevelPanelActions {
 			let self = this;
-
 			if (!this.isOwnPack) return null;
 
 			return {
 				addToPack: true,
+				// Add an additional icon that allows direct removal of the level from this pack
 				async removeFromPack(info: LevelInfo) {
+					// Update the locally stored packs
 					self.packInfo.levels = self.packInfo.levels.filter(x => x.id !== info.id);
 					let ownPack = self.$store.state.ownPacks.find(x => x.id === self.packInfo.id);
 					ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
 
+					// Send the update request to the server
 					let token = localStorage.getItem('token');
 					await fetch(`/api/pack/${self.packInfo.id}/set-levels`, {
 						method: 'POST',
@@ -105,14 +108,17 @@ export default Vue.defineComponent({
 			if (this.packInfo.id !== updateInfo.id) return;
 
 			if (updateInfo.levelIds) {
+				// Refresh the level list
 				this.packInfo.levels = this.packInfo.levels.filter(x => updateInfo.levelIds.includes(x.id));
 			}
 		},
 		async submitChanges() {
 			this.editing = false;
+			// Edit the local pack values
 			let ownPack = this.$store.state.ownPacks.find(x => x.id === this.packInfo.id);
 			ownPack.name = this.packInfo.name;
 
+			// Submit the changes to the server
 			let token = localStorage.getItem('token');
 			await fetch(`/api/pack/${this.packInfo.id}/edit`, {
 				method: 'PATCH',
@@ -133,6 +139,7 @@ export default Vue.defineComponent({
 
 			this.deleting = true;
 
+			// Tell the server to delete this pack
 			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/pack/${this.packInfo.id}/delete`, {
 				method: 'DELETE',
@@ -142,6 +149,7 @@ export default Vue.defineComponent({
 			});
 
 			if (response.ok) {
+				// Edit local pack values
 				this.$store.state.ownPacks = this.$store.state.ownPacks.filter(x => x.id !== this.packInfo.id);
 				emitter.emit('packView', -1); // Same hack as above
 				this.$store.state.nextInfoBannerMessage = `Pack "${this.packInfo.name}" has been deleted successfully.`;

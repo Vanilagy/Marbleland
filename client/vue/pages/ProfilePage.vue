@@ -28,11 +28,11 @@
 <script lang="ts">
 import Vue from 'vue';
 import { ExtendedProfileInfo } from '../../../shared/types';
-import InfoBanner from '../InfoBanner.vue';
-import PanelList from '../PanelList.vue';
-import ButtonWithIcon from '../ButtonWithIcon.vue';
-import PackPanel from '../PackPanel.vue';
-import Loader from '../Loader.vue';
+import InfoBanner from '../components/InfoBanner.vue';
+import PanelList from '../components/PanelList.vue';
+import ButtonWithIcon from '../components/ButtonWithIcon.vue';
+import PackPanel from '../components/PackPanel.vue';
+import Loader from '../components/Loader.vue';
 
 export default Vue.defineComponent({
 	data() {
@@ -42,6 +42,7 @@ export default Vue.defineComponent({
 		};
 	},
 	async mounted() {
+		// Load the profile info
 		let accountId = Number(this.$route.params.id);
 		let response = await fetch(`/api/account/${accountId}/info`);
 		let json = await response.json() as ExtendedProfileInfo;
@@ -50,7 +51,7 @@ export default Vue.defineComponent({
 	},
 	computed: {
 		avatarSrc(): string {
-			if (!this.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
+			if (!this.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg"; // Default to the icon if no avatar has been set
 			return `/api/account/${this.profileInfo.id}/avatar?v=${this.$store.state.avatarVersion}&size=256`;
 		},
 		shouldSetAvatar(): boolean {
@@ -64,16 +65,18 @@ export default Vue.defineComponent({
 		}
 	},
 	methods: {
+		/** Pops up a file selection dialog to allow the user to upload a new avatar image. */
 		chooseAvatar() {
 			let fileInput = document.createElement('input');
 			fileInput.setAttribute('type', 'file');
-			fileInput.setAttribute('accept', 'image/*');
+			fileInput.setAttribute('accept', 'image/*'); // Allow only images
 			fileInput.click();
 
 			fileInput.addEventListener('change', async () => {
 				let file = fileInput.files[0];
 				if (!file) return;
 
+				// Upload the new image to the server
 				let token = localStorage.getItem('token');
 				let response = await fetch(`/api/account/${this.profileInfo.id}/set-avatar`, {
 					method: 'POST',
@@ -85,9 +88,9 @@ export default Vue.defineComponent({
 				});
 
 				if (response.ok) {
-					this.$store.state.avatarVersion++;
 					this.profileInfo.hasAvatar = true;
 					this.$store.state.loggedInAccount.hasAvatar = true;
+					this.$store.state.avatarVersion++; // to cause image update
 				} else {
 					alert("Something went wrong.");
 				}
@@ -96,6 +99,7 @@ export default Vue.defineComponent({
 		saveBio() {
 			this.editingBio = false;
 
+			// Send the new bio to the server
 			let token = localStorage.getItem('token');
 			fetch(`/api/account/${this.profileInfo.id}/set-bio`, {
 				method: 'POST',

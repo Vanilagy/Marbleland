@@ -13,20 +13,14 @@ export class Util {
 		return string;
 	}
 
-	static arraysEqualShallow<T>(a: T[], b: T[]) {
-		if (a.length !== b.length) return false;
-		for (let i = 0; i < a.length; i++) {
-			if (a[i] !== b[i]) return false;
-		}
-		return true;
-	}
-
+	/** Removes all diacritics and special characters from a string and lowercases it. */
 	static normalizeString(str: string) {
 		return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]/g, '').toLowerCase();
 	}
 
 	static monthStrings = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+	/** Formats a date into "Month Day, Year" with Month being a 3 letter abbreviation of the full month name. */
 	static formatDate(date: Date) {
 		let month = this.monthStrings[date.getMonth()];
 		let day = date.getDate();
@@ -35,6 +29,7 @@ export class Util {
 		return `${month} ${day}, ${year}`;
 	}
 
+	/** Split a word in camelCame into it's individual parts, while capitalizing each part's first letter. */
 	static splitWords(s: string) {
 		let re, match, output = [];
 		re = /([A-Za-z]?)([a-z]+)/g;
@@ -48,6 +43,7 @@ export class Util {
 		return output;
 	}
 
+	/** Returns true if the currently used device supports mouse "hover" events. */
 	static deviceSupportsHover() {
 		return matchMedia('(hover: hover)').matches;
 	}

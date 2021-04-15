@@ -11,7 +11,7 @@
 	</head>
 	<body>
 		<script>
-			// Run this script immediately as the body starts parsing so that we set the theme immediately
+			// Run this script immediately as the body starts parsing so that we set the theme ASAP
 			if (localStorage.getItem('colorTheme')) {
 				if (localStorage.getItem('colorTheme') === 'dark') document.documentElement.classList.add('dark');
 			} else if (matchMedia('(prefers-color-scheme: dark)').matches) {

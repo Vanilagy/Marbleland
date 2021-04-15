@@ -8,8 +8,8 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue';
-import { CommentInfo } from '../../shared/types';
-import { Util } from '../ts/util';
+import { CommentInfo } from '../../../shared/types';
+import { Util } from '../../ts/util';
 import ProfileBanner from './ProfileBanner.vue';
 
 export default Vue.defineComponent({
@@ -17,6 +17,7 @@ export default Vue.defineComponent({
 		commentInfo: Object as PropType<CommentInfo>
 	},
 	computed: {
+		/** Formats the date the comment was sent. */
 		sentDate(): string {
 			let date = new Date(this.commentInfo.time);
 			let hours = ('00' + date.getHours()).slice(-2);

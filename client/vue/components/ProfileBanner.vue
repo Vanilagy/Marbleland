@@ -10,7 +10,7 @@
 
 <script lang="ts">
 import Vue, { PropType } from 'vue';
-import { ProfileInfo } from '../../shared/types';
+import { ProfileInfo } from '../../../shared/types';
 export default Vue.defineComponent({
 	props: {
 		profileInfo: Object as PropType<ProfileInfo>,

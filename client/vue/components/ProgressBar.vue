@@ -15,8 +15,9 @@ export default Vue.defineComponent({
 		state: String as PropType<'neutral' | 'negative' | 'position'>
 	},
 	computed: {
+		/** Computes the width of the progress bar */
 		widthStyle(): string {
-			if (this.total === 0) return '100%';
+			if (this.total === 0) return '100%'; // I mean... if there are 0 things to load, then we're already done, that's why 100%.
 			let completion = this.loaded / this.total;
 			return (completion * 100) + '%';
 		},

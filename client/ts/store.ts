@@ -63,9 +63,13 @@ export const store = createStore({
 			},
 			levelsVersion: 0
 		},
+		/** Stores the profile info of the own, currently logged-in account. */
 		loggedInAccount: null as ProfileInfo,
+		/** Stoers a list of all own packs. */
 		ownPacks: null as SignInInfo["packs"],
+		/** Used to update images accordingly. */
 		avatarVersion: 0,
+		/** Used to trigger banner messages. */
 		nextInfoBannerMessage: null as string,
 		levelRemarksMaxLength: 10000,
 		packNameMaxLength: 64,
