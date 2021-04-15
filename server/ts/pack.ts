@@ -6,16 +6,17 @@ import { Mission, MissionDoc } from "./mission";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
+/** Representation of a pack in the database. */
 export interface PackDoc {
 	_id: number,
 	name: string,
 	description: string,
 	createdAt: number,
 	createdBy: number,
+	/** List of level IDs contained in this pack. */
 	levels: number[],
 	downloads: number
 }
-
 
 export const getPackInfo = async (doc: PackDoc): Promise<PackInfo> => {
 	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
@@ -33,6 +34,7 @@ export const getExtendedPackInfo = async (doc: PackDoc): Promise<ExtendedPackInf
 	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
 	let levelInfos: LevelInfo[] = [];
 
+	// Generate the level info for every level in this pack
 	for (let levelId of doc.levels) {
 		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		if (!missionDoc) continue;
@@ -55,6 +57,7 @@ export const getPackThumbnailPath = (doc: PackDoc) => {
 	return path.join(__dirname, `storage/pack_thumbnails/${doc._id}.jpg`);
 };
 
+/** Generates a thumbnail image for this pack based on the levels it contains. */
 export const createPackThumbnail = async (doc: PackDoc) => {
 	let thumbnailPath = getPackThumbnailPath(doc);
 	try {
@@ -64,6 +67,7 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 	let width = 512;
 	let height = 512;
 
+	// Start by creating an empty image
 	let image = sharp({
 		create: {
 			width: width,
@@ -73,6 +77,7 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 		}
 	});
 
+	// We're going for a "slice" design, so the pack thumbnail consists of slices of the level thumbnails. Determine how many slices we need.
 	let shownLevels = doc.levels.slice(0, 20);
 	let sliceWidth = width / shownLevels.length;
 	let promises: Promise<sharp.OverlayOptions>[] = [];
@@ -87,6 +92,7 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 	
 			let rawBuffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
 	
+			// Cut out the center part of the thumbnail in a slim strip
 			let buffer = await sharp(rawBuffer).resize({width: width, height: height, fit: 'cover'}).extract({
 				left: Math.floor((width - sliceWidth) / 2),
 				top: 0,
@@ -102,6 +108,7 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 		}));
 	}
 	
+	// Compose all images together, then export and store the thumbnail
 	let toComposite = await Promise.all(promises);
 	let resultBuffer = await image.composite(toComposite).jpeg({ quality: 100 }).toBuffer();
 

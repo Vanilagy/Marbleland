@@ -4,9 +4,10 @@ import { startHTTPServer } from "./server";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as minimist from 'minimist';
-import './api';
+import { initApi } from "./api/api";
 
 const init = async () => {
+	// Ensure all necessary directories exist
 	fs.ensureDirSync(path.join(__dirname, 'storage'));
 	fs.ensureDirSync(path.join(__dirname, 'storage/avatars'));
 	fs.ensureDirSync(path.join(__dirname, 'storage/pack_thumbnails'));
@@ -15,9 +16,12 @@ const init = async () => {
 	let argv = minimist(process.argv.slice(2));
 
 	if (argv._[0] === 'add-directory') {
+		// Import a directory of levels to the level database.
 		await scanForMissions(argv._[1], argv["id-map"]);
 		process.exit();
 	} else {
+		// Usual path, boot up the API and HTTP server.
+		initApi();
 		startHTTPServer(8080);
 	}
 };

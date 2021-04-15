@@ -1,7 +1,6 @@
 import * as path from 'path';
 import * as express from 'express';
 import * as history from 'connect-history-api-fallback';
-import * as bodyParser from 'body-parser';
 
 export const app = express();
 
@@ -10,7 +9,7 @@ export const startHTTPServer = (port: number) => {
 
 	app.use(staticFileMiddleware);
 	app.use(history());
-	app.use(staticFileMiddleware); // We do it twice intentionally
+	app.use(staticFileMiddleware); // We do it twice intentionally, source: Some issue on GitHub
 
 	app.listen(port, () => {
 		console.log(`Started HTTP server on port ${port}.`);

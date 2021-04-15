@@ -73,7 +73,7 @@ export default Vue.defineComponent({
 			this.waitingForResponse = true;
 
 			let url = (this.type === 'signUp')?
-				'/api/account/register' :
+				'/api/account/sign-up' :
 				'/api/account/sign-in';
 			let body = (this.type === 'signUp')?
 				({

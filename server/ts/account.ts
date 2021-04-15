@@ -7,6 +7,7 @@ import { ExtendedProfileInfo, LevelInfo, PackInfo, ProfileInfo, SignInInfo } fro
 import { Mission, MissionDoc } from './mission';
 import { getPackInfo, PackDoc } from './pack';
 
+/** The representation of an account in the database. */
 export interface AccountDoc {
 	_id: number,
 	email: string,
@@ -15,6 +16,7 @@ export interface AccountDoc {
 	created: number,
 	tokens: {
 		value: string,
+		/** The UNIX timestamp in milliseconds when the token was last utilized for authorization. */
 		lastUsed: number
 	}[],
 	bio: string
@@ -24,7 +26,7 @@ export const generateNewAccessToken = () => {
 	return crypto.randomBytes(32).toString('base64');
 };
 
-export const TOKEN_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+export const TOKEN_TTL = 1000 * 60 * 60 * 24 * 30; // Tokens expire after 30 days of no use
 
 setInterval(async () => {
 	// Once a day, clean up the expired tokens
@@ -55,6 +57,7 @@ export const getTokenFromAuthHeader = (req: express.Request) => {
 	return parts[1] ?? null;
 };
 
+/** Finds the account belonging to a token specified in the Authorization header. If an account is found, also updates the `lastUsed` field. */
 export const authorize = async (req: express.Request) => {
 	let tokenString = getTokenFromAuthHeader(req);
 	let doc = await db.accounts.findOne({ 'tokens.value': tokenString }) as AccountDoc;
@@ -70,6 +73,7 @@ export const authorize = async (req: express.Request) => {
 	return doc;
 };
 
+/** Generates the profile info for a given account. */
 export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 	let hasAvatar = await fs.pathExists(path.join(__dirname, `storage/avatars/${doc._id}.jpg`));
 
@@ -80,9 +84,11 @@ export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 	};
 };
 
+/** Generates the extended profile info for a given acount. */
 export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedProfileInfo> => {
 	let profileInfo = await getProfileInfo(doc);
 
+	// Add all of their levels
 	let missionDocs = await db.missions.find({ addedBy: doc._id }) as MissionDoc[];
 	let uploadedLevels: LevelInfo[] = [];
 
@@ -91,6 +97,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 		uploadedLevels.push(mission.createLevelInfo());
 	}
 
+	// Add all of their packs
 	let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
 	let createdPacks: PackInfo[] = [];
 
@@ -105,6 +112,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 	});
 };
 
+/** Generates the sign-in info for a given account. */
 export const getSignInInfo = async (doc: AccountDoc): Promise<SignInInfo> => {
 	let profileInfo = await getProfileInfo(doc);
 	let packs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];

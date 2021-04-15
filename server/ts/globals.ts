@@ -28,6 +28,7 @@ export const initGlobals = () => {
 	db.comments = Datastore.create({ filename: path.join(__dirname, 'storage/comments.db'), autoload: true });
 	db.comments.persistence.setAutocompactionInterval(1000 * 60 * 60);
 
+	// These two are used to quickly check if an asset is included in MBG/PQ or not
 	structureMBG = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(path.join(__dirname, 'data/structure_mbg.json')).toString()));
 	structurePQ = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(path.join(__dirname, 'data/structure_pq.json')).toString()));
 };

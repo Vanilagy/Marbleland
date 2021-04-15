@@ -98,6 +98,7 @@ export class Util {
 	}
 
 	static readdirCache = new Map<string, Promise<string[]>>();
+	/** Get a list of all entries in a directory. Uses a cache to avoid doing it twice. */
 	static readdirCached(directoryPath: string) {
 		if (this.readdirCache.has(directoryPath)) return this.readdirCache.get(directoryPath);
 		let promise = new Promise<string[]>(async resolve => {
@@ -114,12 +115,14 @@ export class Util {
 		return promise;
 	}
 
+	/** Returns the file names of all files in a given directory that start with the given file name. */
 	static async getFullFileNames(fileName: string, directoryPath: string) {
 		let files = await this.readdirCached(directoryPath);
 		let lowerCase = fileName.toLowerCase();
 		return files.filter(x => x.toLowerCase().startsWith(lowerCase));
 	}
 
+	/** Removes the extension from a path. */
 	static removeExtension(path: string) {
 		let dotIndex = path.lastIndexOf('.');
 		if (dotIndex === -1) return path;
@@ -130,6 +133,7 @@ export class Util {
 		return JSON.parse(JSON.stringify(obj));
 	}
 
+	/** Returns true iff a given directory structure contains a certain relative path. */
 	static directoryStructureHasPath(directoryStructure: DirectoryStructure, path: string): boolean {
 		if (!path) return false;
 		let parts = path.split('/');
@@ -137,8 +141,8 @@ export class Util {
 
 		if (lowerCase in directoryStructure) {
 			let entry = directoryStructure[lowerCase];
-			if (entry) return this.directoryStructureHasPath(entry, parts.slice(1).join('/'));
-			return parts.length === 1;
+			if (entry) return this.directoryStructureHasPath(entry, parts.slice(1).join('/')); // We found a directory, so go one level deeper
+			return parts.length === 1; // Returns true if we've reached the end of the path
 		}
 
 		return false;
@@ -148,6 +152,7 @@ export class Util {
 		return s1.toLowerCase() === s2.toLowerCase();
 	}
 
+	/** Lower-cases all keys of an object, deeply. */
 	static lowerCaseKeysDeep(obj: Record<string, any>) {
 		for (let key in obj) {
 			let value = obj[key];
@@ -159,11 +164,51 @@ export class Util {
 		return obj;
 	}
 
+	/** Gets the file name of a path, so just the last part without the directory path infront of it. */
 	static getFileName(path: string) {
 		return path.slice(path.lastIndexOf('/') + 1)
 	}
+
+	/** Tries to find a file in a given list of base directories. The things that need to be "found" here can be the file's extension (might not be known, only
+	 * the part before) or the subdirectory (within the base directory) that the file lies in.
+	 * @param fileName The file name (without path and possibly without extension of the file we want to fine.
+	 * @param relativePath The path relative to the base directories in which we want to start the search.
+	 * @param baseDirectories A list of base directories used for actually finding the file. Will always return the match from the first base directory in which
+	 * a match was found.
+	 * @param walkUp Whether or not to start checking the parent directories if the file couldn't be found in `relativePath`.
+	 */
+	static async findFile(fileName: string, relativePath: string, baseDirectories: string[], walkUp = true): Promise<string> {
+		let concatted: string[] = [];
+		for (let baseDirectory of baseDirectories) {
+			let dir = await Util.readdirCached(path.join(baseDirectory, relativePath));
+			concatted.push(...dir);
+		}
+		let lowerCase = fileName.toLowerCase();
+
+		for (let file of concatted) {
+			if (Util.removeExtension(file).toLowerCase() === lowerCase) return path.posix.join(relativePath, file);
+		}
+
+		let slashIndex = relativePath.lastIndexOf('/');
+		if (slashIndex === -1 || !walkUp) return null;
+		return this.findFile(fileName, relativePath.slice(0, slashIndex), baseDirectories);
+	}
+
+	/** Finds the **full** path of a file given a list of base directories to search and the path to the file, relative to all base directories. Returns the
+	 * full path to the file in the first base directory in which it was found.
+	*/
+	static async findPath(relativeFilePath: string, baseDirectories: string[]) {
+		for (let baseDirectory of baseDirectories) {
+			let fullPath = path.join(baseDirectory, relativeFilePath);
+			let exists = await fs.pathExists(fullPath);
+			if (exists) return fullPath;
+		}
+		
+		return null;
+	}
 }
 
+/** A simple persistent key/value store */
 export class KeyValueStore<T> {
 	private path: string;
 	private data: Partial<T>;
@@ -195,11 +240,6 @@ export class KeyValueStore<T> {
 		this.save();
 	}
 
-	setMultiple(values: Partial<T>) {
-		Object.assign(this.data, values);
-		this.save();
-	}
-
 	async save() {
 		this.needsSave = true;
 
@@ -209,7 +249,7 @@ export class KeyValueStore<T> {
 			await fs.writeFile(this.path, JSON.stringify(this.data));
 			this.saving = false;
 
-			if (this.needsSave) this.save();
+			if (this.needsSave) this.save(); // Save again if writes happened during the saving process
 		}
 	}
 }

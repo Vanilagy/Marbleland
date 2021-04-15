@@ -1,10 +1,10 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './mis_parser';
+import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './io/mis_parser';
 import hxDif from '../lib/hxDif';
 import { Util } from './util';
-import { DtsParser } from './dts_parser';
+import { DtsParser } from './io/dts_parser';
 import JSZip from 'jszip';
 import { Config } from './config';
 import { db, keyValue, structureMBG, structurePQ } from './globals';
@@ -16,9 +16,12 @@ import { getCommentInfosForLevel } from './comment';
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
 
+/** Representation of a mission in the database. */
 export interface MissionDoc {
 	_id: number,
+	/** The absolute path to the root directory of this mission and all its dependencies. */
 	baseDirectory: string,
+	/** The relative path to the mission file from the base directory. */
 	relativePath: string,
 	dependencies: string[],
 	info: MissionElementScriptObject,
@@ -33,6 +36,7 @@ export interface MissionDoc {
 	downloads: number
 }
 
+/** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
 export class Mission {
 	baseDirectory: string;
 	relativePath: string;
@@ -44,6 +48,7 @@ export class Mission {
 	gems: number = 0;
 	hasEasterEgg: boolean = false;
 	misHash: string;
+	/** Remember the paths that have already been visited to avoid exploring already known parts of the dependency tree again. */
 	visitedPaths = new Set<string>();
 	id: number;
 	addedAt: number;
@@ -56,6 +61,7 @@ export class Mission {
 		this.relativePath = relativePath;
 
 		if (id !== undefined) {
+			// An ID override was specified, so use that one
 			this.id = id;
 		} else {
 			this.id = keyValue.get('levelId');
@@ -63,6 +69,7 @@ export class Mission {
 		}
 	}
 
+	/** Creates a Mission instance from a database document. */
 	static fromDoc(doc: MissionDoc) {
 		let mission = new Mission(doc.baseDirectory, doc.relativePath, doc._id);
 		mission.dependencies = new Set(doc.dependencies);
@@ -80,6 +87,7 @@ export class Mission {
 		return mission;
 	}
 
+	/** Fill the mission with data. */
 	async hydrate() {
 		await this.parseMission();
 		await this.findDependencies();
@@ -92,10 +100,12 @@ export class Mission {
 		let misFile = new MisParser(missionText).parse();
 		this.mis = misFile;
 
+		// Hash the mission text for easy duplicate detection later on
 		let misHash = crypto.createHash('sha256').update(missionText).digest('base64');
 		this.misHash = misHash;
 	}
 
+	/** Finds all the dependencies of this mission. */
 	async findDependencies() {
 		let missionFileName = this.relativePath.slice(this.relativePath.lastIndexOf('/') + 1);
 		let missionDirectory = this.relativePath.substring(0, this.relativePath.lastIndexOf('/'));
@@ -108,6 +118,7 @@ export class Mission {
 		let thumbnailPaths = fileNames.filter(x => IMAGE_EXTENSIONS.includes(path.extname(x).toLowerCase()));
 		for (let thumbnailPath of thumbnailPaths) this.dependencies.add(path.posix.join(missionDirectory, thumbnailPath));
 
+		// Start walking over all elements over the mission file
 		this.visitedPaths.clear();
 		await this.addSimGroupDependencies(this.mis.root);
 	}
@@ -117,6 +128,7 @@ export class Mission {
 		this.modification = this.guessModification();
 	}
 
+	/** Try to guess the game type of this mission. */
 	guessGameType() {
 		if (this.relativePath.startsWith('multiplayer/')) return GameType.Multiplayer;
 
@@ -137,6 +149,7 @@ export class Mission {
 		return GameType.SinglePlayer;
 	}
 
+	/** Try to guess the modification (game) this mission was made for / is compatible with. */
 	guessModification() {
 		const index = {
 			[Modification.Gold]: 0,
@@ -188,34 +201,180 @@ export class Mission {
 		return result;
 	}
 
+	/** Scans a sim group for metadata collection. */
+	scanSimGroup(simGroup: MissionElementSimGroup) {
+		for (let element of simGroup.elements) {
+			if (element._type === MissionElementType.SimGroup) {
+				this.scanSimGroup(element);
+			} else if (element._type === MissionElementType.Item) {
+				if (element.datablock?.includes('GemItem')) this.gems++;
+				if (['EasterEgg', 'NestEgg'].includes(element.datablock)) this.hasEasterEgg = true;
+			} else if (!this.info && element._type === MissionElementType.ScriptObject && element._name === "MissionInfo") {
+				this.info = element;
+				this.info = Util.jsonClone(this.info);
+
+				// Remove non-standard fields
+				delete this.info._id;
+				delete this.info._type;
+				delete this.info._name;
+			}
+		}
+	}
+
+	findFile(fileName: string, relativePath: string, walkUp?: boolean): Promise<string> {
+		return Util.findFile(fileName, relativePath, [this.baseDirectory, Config.dataPath], walkUp);
+	}
+
+	findPath(filePath: string) {
+		return Util.findPath(filePath, [this.baseDirectory, Config.dataPath]);
+	}
+
+	async addSimGroupDependencies(simGroup: MissionElementSimGroup) {
+		for (let element of simGroup.elements) {
+			if (element._type === MissionElementType.SimGroup) {
+				await this.addSimGroupDependencies(element); // Recurse
+			} else if (element._type === MissionElementType.InteriorInstance) {
+				await this.addInteriorDependencies(element.interiorfile);
+			} else if (element._type === MissionElementType.PathedInterior) {
+				await this.addInteriorDependencies(element.interiorresource);
+			} else if (element._type === MissionElementType.Sky) {
+				await this.addSkyDependencies(element);
+			} else if (element._type === MissionElementType.TSStatic) {
+				await this.addTSStaticDependencies(element);
+			}
+		}
+	}
+
+	/** Adds all dependencies of a given interior. */
+	async addInteriorDependencies(rawInteriorPath: string) {
+		let interiorPath = rawInteriorPath.slice(rawInteriorPath.indexOf('data/') + 'data/'.length);
+		let interiorDirectory = interiorPath.substring(0, interiorPath.lastIndexOf('/'));
+
+		if (this.visitedPaths.has(interiorPath)) return;
+		else this.visitedPaths.add(interiorPath);
+
+		let fullPath = await this.findPath(interiorPath);
+		if (!fullPath) return;
+
+		this.dependencies.add(interiorPath); // Add the interior itself as a dependency
+
+		// Read in the .dif
+		let arrayBuffer = (await fs.readFile(fullPath)).buffer;
+		let dif = hxDif.Dif.LoadFromArrayBuffer(arrayBuffer);
+
+		// Add all its materials as dependencies
+		for (let interior of dif.interiors.concat(dif.subObjects)) {
+			let materialPaths = await this.getMaterialPaths(interior.materialList, interiorDirectory);
+			for (let path of materialPaths) this.dependencies.add(path);
+		}
+	}
+
+	/** Returns a list of relative file paths to the textures reference in a .dif MaterialList. */
+	async getMaterialPaths(materialList: hxDif.Dif["interiors"][number]["materialList"], interiorDirectory: string) {
+		let paths: string[] = [];
+
+		for (let material of materialList) {
+			if (IGNORE_MATERIALS.includes(material)) continue;
+
+			let fileName = material.slice(material.lastIndexOf('/') + 1);
+			let filePath = await this.findFile(fileName, interiorDirectory);
+			if (filePath) paths.push(filePath);
+		}
+
+		return paths;
+	}
+
+	/** Adds all sky dependencies. */
+	async addSkyDependencies(element: MissionElementSky) {
+		let skyPath = element.materiallist.slice(element.materiallist.indexOf('data/') + 'data/'.length);
+		let skyDirectory = skyPath.substring(0, skyPath.lastIndexOf('/'));
+
+		if (this.visitedPaths.has(skyPath)) return;
+		else this.visitedPaths.add(skyPath);
+		
+		let fullPath = await this.findPath(skyPath);
+		if (!fullPath) return;
+
+		this.dependencies.add(skyPath); // Add the .dml file itself
+
+		// Read in the .dml
+		let dmlText = (await fs.readFile(fullPath)).toString();
+		let lines = dmlText.split('\n').map(x => x.trim()).filter(x => x);
+
+		// Add all sky textures as dependencies
+		for (let line of lines) {
+			let filePath = await this.findFile(line, skyDirectory);
+			if (filePath) this.dependencies.add(filePath);
+		}
+	}
+
+	/** Adds all dependencies of a given TSStatic element. */
+	async addTSStaticDependencies(element: MissionElementTSStatic) {
+		let dtsPath = element.shapename.slice(element.shapename.indexOf('data/') + 'data/'.length);
+		let dtsDirectory = dtsPath.substring(0, dtsPath.lastIndexOf('/'));
+
+		if (this.visitedPaths.has(dtsPath)) return;
+		else this.visitedPaths.add(dtsPath);
+
+		let fullPath = await this.findPath(dtsPath);
+		if (!fullPath) return;
+
+		this.dependencies.add(dtsPath); // Add the .dts itself
+
+		// Read in the .dts
+		let buffer = (await fs.readFile(fullPath)).buffer;
+		let dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
+
+		// Add all used materials as dependencies
+		for (let matName of dtsFile.matNames) {
+			let relativePath = await this.findFile(matName, dtsDirectory, false);
+			if (relativePath) {
+				// We found an .ifl material, so add all of its materials.
+				if (relativePath.toLowerCase().endsWith('.ifl')) {
+					let fullPath = await this.findPath(relativePath);
+					let iflText = (await fs.readFile(fullPath)).toString();
+					let lines = iflText.split('\n');
+					for (let line of lines) {
+						let textureName = line.split(' ')[0]?.trim();
+						if (textureName) {
+							let filePath = await this.findFile(textureName, dtsDirectory, false);
+							if (filePath) this.dependencies.add(filePath);
+						}
+					}
+				} 
+
+				this.dependencies.add(relativePath);
+			}
+		}
+	}
+
+	/** Creates a .zip archive containing the assets for this mission. */
 	async createZip(assuming: 'none' | 'gold' | 'platinumquest') {
 		let zip = new JSZip();
 		await this.addToZip(zip, assuming);
 		return zip;
 	}
 
+	/** Adds all of this mission's assets to a zip archive.
+	 * @param assuming Specifies the game we assume the downloader already has. Assets contained in that game by default will not be included in the zip.
+	 */
 	async addToZip(zip: JSZip, assuming: 'none' | 'gold' | 'platinumquest') {
 		for (let dependency of this.dependencies) {
+			// Skip default assets
 			let normalized = this.normalizeDependency(dependency);
 			if (assuming === 'gold' && Util.directoryStructureHasPath(structureMBG, normalized)) continue;
 			if (assuming === 'platinumquest' && Util.directoryStructureHasPath(structurePQ, normalized)) continue;
 
-			let fullPath: string, exists: boolean;
-
-			fullPath = path.join(this.baseDirectory, dependency);
-			exists = await fs.pathExists(fullPath);
-			if (!exists) {
-				fullPath = path.join(Config.dataPath, dependency);
-				exists = await fs.pathExists(fullPath);
-			}
-
-			if (exists) {
+			let fullPath = await this.findPath(dependency);
+			if (fullPath) {
+				// Open up a read stream and add it to the zip
 				let stream = fs.createReadStream(fullPath);
 				zip.file(normalized, stream);
 			}
 		}
 	}
 
+	/** Normalizes all dependencies related directly to the .mis file to be in the missions/ directory, and leaves everything else untouched. */
 	normalizeDependency(dependency: string) {
 		let withoutExtension = Util.removeExtension(this.relativePath);
 		if (dependency.startsWith(withoutExtension)) return path.posix.join('missions', dependency.slice(dependency.lastIndexOf('/') + 1));
@@ -236,6 +395,7 @@ export class Mission {
 		return result;
 	}
 
+	/** Creates a mission doc for storage in the database. */
 	createDoc(): MissionDoc {
 		return {
 			_id: this.id,
@@ -265,11 +425,11 @@ export class Mission {
 			addedAt: this.addedAt,
 			gameMode: this.info.gamemode,
 
-			qualifyingTime: this.info.time? Number(this.info.time) : undefined,
-			goldTime: this.info.goldtime? Number(this.info.goldtime) : undefined,
-			platinumTime: this.info.platinumtime? Number(this.info.platinumtime) : undefined,
-			ultimateTime: this.info.ultimatetime? Number(this.info.ultimatetime) : undefined,
-			awesomeTime: this.info.awesometime? Number(this.info.awesometime) : undefined,
+			qualifyingTime: this.info.time? MisParser.parseNumber(this.info.time) : undefined,
+			goldTime: this.info.goldtime? MisParser.parseNumber(this.info.goldtime) : undefined,
+			platinumTime: this.info.platinumtime? MisParser.parseNumber(this.info.platinumtime) : undefined,
+			ultimateTime: this.info.ultimatetime? MisParser.parseNumber(this.info.ultimatetime) : undefined,
+			awesomeTime: this.info.awesometime? MisParser.parseNumber(this.info.awesometime) : undefined,
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg
 		};
@@ -279,6 +439,7 @@ export class Mission {
 		let levelInfo = this.createLevelInfo();
 		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
 
+		// Find all packs containing this mission
 		let packDocs = await db.packs.find({ levels: this.id }) as PackDoc[];
 		let packInfos: PackInfo[] = [];
 		for (let packDoc of packDocs) {
@@ -294,172 +455,23 @@ export class Mission {
 		});
 	}
 
+	/** Get the path to the image thumbnail of this mission. */
 	getImagePath() {
 		let startsWith = Util.removeExtension(this.relativePath);
+		// Create a list of potential candidates for the thumbnail file name
 		let potentialNames = IMAGE_EXTENSIONS.map(x => (startsWith + x).toLowerCase());
 		return [...this.dependencies].find(x => potentialNames.includes(x.toLowerCase())) ?? null;
 	}
 
+	/** Returns the mission file's name (without the path). */
 	getBaseName() {
 		return Util.getFileName(this.relativePath);
 	}
-
-	scanSimGroup(simGroup: MissionElementSimGroup) {
-		for (let element of simGroup.elements) {
-			if (element._type === MissionElementType.SimGroup) {
-				this.scanSimGroup(element);
-			} else if (element._type === MissionElementType.Item) {
-				if (element.datablock?.includes('GemItem')) this.gems++;
-				if (['EasterEgg', 'NestEgg'].includes(element.datablock)) this.hasEasterEgg = true;
-			} else if (!this.info && element._type === MissionElementType.ScriptObject && element._name === "MissionInfo") {
-				this.info = element;
-				this.info = Util.jsonClone(this.info);
-
-				// Remove non-standard fields
-				delete this.info._id;
-				delete this.info._type;
-				delete this.info._name;
-			}
-		}
-	}
-
-	async addSimGroupDependencies(simGroup: MissionElementSimGroup) {
-		for (let element of simGroup.elements) {
-			if (element._type === MissionElementType.SimGroup) {
-				await this.addSimGroupDependencies(element);
-			} else if (element._type === MissionElementType.InteriorInstance) {
-				await this.addInteriorDependencies(element.interiorfile);
-			} else if (element._type === MissionElementType.PathedInterior) {
-				await this.addInteriorDependencies(element.interiorresource);
-			} else if (element._type === MissionElementType.Sky) {
-				await this.addSkyDependencies(element);
-			} else if (element._type === MissionElementType.TSStatic) {
-				await this.addTSStaticDependencies(element);
-			}
-		}
-	}
-
-	async addInteriorDependencies(rawInteriorPath: string) {
-		let interiorPath = rawInteriorPath.slice(rawInteriorPath.indexOf('data/') + 'data/'.length);
-		let interiorDirectory = interiorPath.substring(0, interiorPath.lastIndexOf('/'));
-
-		if (this.visitedPaths.has(interiorPath)) return;
-		else this.visitedPaths.add(interiorPath);
-
-		let fullPath = await this.findPath(interiorPath);
-		if (!fullPath) return;
-
-		this.dependencies.add(interiorPath);
-
-		let arrayBuffer = (await fs.readFile(fullPath)).buffer;
-		let dif = hxDif.Dif.LoadFromArrayBuffer(arrayBuffer);
-
-		for (let interior of dif.interiors.concat(dif.subObjects)) {
-			let materialPaths = await this.getMaterialPaths(interior.materialList, interiorDirectory);
-			for (let path of materialPaths) this.dependencies.add(path);
-		}
-	}
-
-	async getMaterialPaths(materialList: hxDif.Dif["interiors"][number]["materialList"], interiorDirectory: string) {
-		let paths: string[] = [];
-
-		for (let material of materialList) {
-			if (IGNORE_MATERIALS.includes(material)) continue;
-
-			let fileName = material.slice(material.lastIndexOf('/') + 1);
-			let filePath = await this.findFile(fileName, interiorDirectory);
-			if (filePath) paths.push(filePath);
-		}
-
-		return paths;
-	}
-	
-	async findFile(fileName: string, relativePath: string, walkUp = true): Promise<string> {
-		let dir1 = await Util.readdirCached(path.join(this.baseDirectory, relativePath));
-		let dir2 = await Util.readdirCached(path.join(Config.dataPath, relativePath));
-		let lowerCase = fileName.toLowerCase();
-
-		for (let file of dir1.concat(dir2)) {
-			if (Util.removeExtension(file).toLowerCase() === lowerCase) return path.posix.join(relativePath, file);
-		}
-
-		let slashIndex = relativePath.lastIndexOf('/');
-		if (slashIndex === -1 || !walkUp) return null;
-		return this.findFile(fileName, relativePath.slice(0, slashIndex));
-	}
-
-	async findPath(filePath: string) {
-		let fullPath: string, exists: boolean;
-
-		fullPath = path.join(this.baseDirectory, filePath);
-		exists = await fs.pathExists(fullPath);
-		if (exists) return fullPath;
-
-		fullPath = path.join(Config.dataPath, filePath);
-		exists = await fs.pathExists(fullPath);
-		if (exists) return fullPath;
-		
-		return null;
-	}
-
-	async addSkyDependencies(element: MissionElementSky) {
-		let skyPath = element.materiallist.slice(element.materiallist.indexOf('data/') + 'data/'.length);
-		let skyDirectory = skyPath.substring(0, skyPath.lastIndexOf('/'));
-
-		if (this.visitedPaths.has(skyPath)) return;
-		else this.visitedPaths.add(skyPath);
-		
-		let fullPath = await this.findPath(skyPath);
-		if (!fullPath) return;
-
-		this.dependencies.add(skyPath);
-
-		let dmlText = (await fs.readFile(fullPath)).toString();
-		let lines = dmlText.split('\n').map(x => x.trim()).filter(x => x);
-
-		for (let line of lines) {
-			let filePath = await this.findFile(line, skyDirectory);
-			if (filePath) this.dependencies.add(filePath);
-		}
-	}
-
-	async addTSStaticDependencies(element: MissionElementTSStatic) {
-		let dtsPath = element.shapename.slice(element.shapename.indexOf('data/') + 'data/'.length);
-		let dtsDirectory = dtsPath.substring(0, dtsPath.lastIndexOf('/'));
-
-		if (this.visitedPaths.has(dtsPath)) return;
-		else this.visitedPaths.add(dtsPath);
-
-		let fullPath = await this.findPath(dtsPath);
-		if (!fullPath) return;
-
-		this.dependencies.add(dtsPath);
-
-		let buffer = (await fs.readFile(fullPath)).buffer;
-		let dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
-
-		for (let matName of dtsFile.matNames) {
-			let relativePath = await this.findFile(matName, dtsDirectory, false);
-			if (relativePath) {
-				if (relativePath.toLowerCase().endsWith('.ifl')) {
-					let fullPath = await this.findPath(relativePath);
-					let iflText = (await fs.readFile(fullPath)).toString();
-					let lines = iflText.split('\n');
-					for (let line of lines) {
-						let textureName = line.split(' ')[0]?.trim();
-						if (textureName) {
-							let filePath = await this.findFile(textureName, dtsDirectory, false);
-							if (filePath) this.dependencies.add(filePath);
-						}
-					}
-				} 
-
-				this.dependencies.add(relativePath);
-			}
-		}
-	}
 }
 
+/** Scans a given directory for missions and imports them all.
+ * @param idMapPath Path to a JSON file which maps mission base names to IDs. Can be used for controlled setting of IDs.
+ */
 export const scanForMissions = async (baseDirectory: string, idMapPath?: string) => {
 	let idMap: { id: number, baseName: string }[] = null;
 	if (idMapPath) {
@@ -467,6 +479,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 		console.log("ID map loaded.");
 	}
 
+	/** Recursively scans a directory. */
 	const scan = async (relativePath: string) => {
 		let entries = await fs.readdir(path.join(baseDirectory, relativePath));
 
@@ -476,13 +489,14 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 			let fromStart = path.posix.join(relativePath, entry);
 	
 			if (stat.isDirectory()) {
-				await scan(fromStart);
+				await scan(fromStart); // Recurse
 			} else {
 				if (entry.toLowerCase().endsWith('.mis')) {
 					console.log("Importing: ", fromStart);
 
 					let id: number;
 					if (idMap) {
+						// Find the ID in the map
 						let baseName = Util.getFileName(fromStart);
 						id = idMap.find(x => x.baseName === baseName)?.id;
 						if (id === undefined) throw new Error(`ID map is missing entry for baseName ${baseName}.`);
@@ -498,6 +512,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 						break;
 					}
 					
+					// Add the mission to the database
 					let doc = mission.createDoc();
 					await db.missions.update({ _id: doc._id }, doc, { upsert: true });
 	
