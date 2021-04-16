@@ -1,119 +1,22 @@
 # API Documentation
 
-## Authentication
-Some API calls require the user to be authenticated to perform them. Authentication works by setting the `Authorization` header with a value of `"Bearer <your-token>"`, so for example `"Bearer JBajPPAt+w/2tshyPSWNskWs054Zl2tFuPIzmcq7+WI="`. A token can be acquired through sign-in and sign-up.
+All of Marbleland's functionality can be accessed programatically through an API which is documented here. A few notes on the format: If in JSON form, response and request body types are specified using the **TypeScript type syntax**. All query parameters are always optional.
 
-## Data types
-### LevelInfo
-Contains metadata about a level.
-```typescript
-{
-	id: number,
-	baseName: string,
-	gameType: 'single' | 'multi',
-	modification: 'gold' | 'platinum' | 'fubar' | 'ultra' | 'platinumquest',
-	name: string,
-	artist: string,
-	desc: string,
-	addedAt: number,
-	gameMode: string,
-	qualifyingTime: number,
-	goldTime: number,
-	platinumTime: number,
-	ultimateTime: number,
-	awesomeTime: number,
-	gems: number,
-	hasEasterEgg: boolean
-}
-```
+- [Authentication](#authentication)
+- [API endpoints](#api-endpoints)
+	- [Level](#level)
+	- [Comment](#comment)
+	- [Account](#account)
+	- [Pack](#pack)
+	- [Home](#home)
+- [Data types](#data-types)
 
-### ExtendedLevelInfo
-Contains metadata about a level, as well as additional data to display on the Level page.
-```typescript
-{
-	id: number,
-	baseName: string,
-	gameType: 'single' | 'multi',
-	modification: 'gold' | 'platinum' | 'fubar' | 'ultra' | 'platinumquest',
-	name: string,
-	artist: string,
-	desc: string,
-	addedAt: number,
-	gameMode: string,
-	qualifyingTime: number,
-	goldTime: number,
-	platinumTime: number,
-	ultimateTime: number,
-	awesomeTime: number,
-	gems: number,
-	hasEasterEgg: boolean,
-	addedBy: ProfileInfo,
-	remarks: string,
-	packs: PackInfo[],
-	comments: CommentInfo[],
-	downloads: number
-}
-```
+# Authentication
+Some API calls require the user to be authenticated to perform them.
 
-### PackInfo
-Contains metadata about a pack.
-```typescript
-{
-	id: number,
-	name: string,
-	createdBy: ProfileInfo,
-	createdAt: number,
-	levelIds: number[]
-}
-```
+Authentication works by setting the `Authorization` header with a value of `"Bearer <your-token>"`, so for example `"Bearer JBajPPAt+w/2tshyPSWNskWs054Zl2tFuPIzmcq7+WI="`. A token can be acquired through sign-in and sign-up.
 
-### CommentInfo
-Contains data about a comment.
-```typescript
-{
-	id: number,
-	author: ProfileInfo,
-	time: number,
-	content: string
-}
-```
-
-### ProfileInfo
-Contains metadata about a profile.
-```typescript
-{
-	id: number,
-	username: string,
-	hasAvatar: boolean
-}
-```
-
-### ExtendedProfileInfo
-Contains metadata about a profile, as well as additional data to display on the Profile page.
-```typescript
-{
-	id: number,
-	username: string,
-	hasAvatar: boolean,
-	bio: string,
-	uploadedLevels: LevelInfo[],
-	createdPacks: PackInfo[]
-}
-```
-
-### SignInInfo
-Contains data that is remembered by the client upon login.
-```typescript
-{
-	profile: ProfileInfo,
-	packs: { // A list of all packs belonging to that user
-		id: number,
-		name: string,
-		levelIds: number[]
-	}[]
-}
-```
-
+# API endpoints
 ## Level
 
 ### `GET` /api/level/list
@@ -126,7 +29,7 @@ Get the .zip archive for the given level.
 
 Name | Type | Meaning
 --- | --- | ---
-assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of derfault assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
 ### `GET` /api/level/{level-id}/image
 Get the image thumbnail for the given level.
@@ -146,7 +49,7 @@ Returns a list of files (assets) the given level depends on as an array of `stri
 
 Name | Type | Meaning
 --- | --- | ---
-assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of derfault assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
 ### `GET` /api/level/{level-id}/info
 Returns the metadata for the given level in the form of [LevelInfo](#levelinfo).
@@ -302,3 +205,208 @@ size | `number` | If set, resizes the avatar image to a square with side lengths
 **Requires [authentication](#authentication).** Sets the biography for the given account.
 
 **Request body:** The new biography as a `string` with `Content-Type: text/plain`.
+
+## Pack
+### `GET` /api/pack/list
+Returns a list of all packs as an array of [PackInfo](#packinfo).
+
+### `POST` /api/pack/create
+**Requires [authentication](#authentication).** Creates a new, empty level pack.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	name: string,
+	description: string
+}
+```
+
+**Response body:**
+```typescript
+{
+	packId: number // The ID of the just created pack
+}
+```
+
+### `GET` /api/pack/{pack-id}/info
+Returns extended metadata about a pack in the form of [ExtendedPackInfo](#extendedpackinfo)
+
+### `GET` /api/pack/{pack-id}/zip
+Get the .zip archive for the given pack, containing all levels the pack contains.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+
+### `POST` /api/pack/{pack-id}/set-levels
+**Requires [authentication](#authentication).** Sets the list of levels included in the given pack.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+number[] // An array of level IDs to include in the pack
+```
+
+### `GET` /api/pack/{pack-id}/image
+Get the image thumbnail of the given pack.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+original | `boolean` | If set, the original, uncompressed image thumbnail will be returned. Takes precedence over `width` and `height`.
+width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
+height | `number` | *See `width`.*
+
+### `PATCH` /api/pack/{pack-id}/edit
+**Requires [authentication](#authentication).** Edits the metadata of the given pack.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	name: string,
+	description: string
+}
+```
+
+### `DELETE` /api/pack/{pack-id}/delete
+**Requires [authentication](#authentication).** Edits the given pack from the database.
+
+## Home
+### `GET` /api/home/info
+Returns the necessary data for the Home page in the form of [HomeInfo](#homeinfo).
+
+# Data types
+The following describes a set of object data types used in the API.
+### LevelInfo
+Contains metadata about a level.
+```typescript
+{
+	id: number,
+	baseName: string,
+	gameType: 'single' | 'multi',
+	modification: 'gold' | 'platinum' | 'fubar' | 'ultra' | 'platinumquest',
+	name: string,
+	artist: string,
+	desc: string,
+	addedAt: number,
+	gameMode: string,
+	qualifyingTime: number,
+	goldTime: number,
+	platinumTime: number,
+	ultimateTime: number,
+	awesomeTime: number,
+	gems: number,
+	hasEasterEgg: boolean
+}
+```
+
+### ExtendedLevelInfo
+Contains metadata about a level, as well as additional data to display on the Level page.
+```typescript
+{
+	id: number,
+	baseName: string,
+	gameType: 'single' | 'multi',
+	modification: 'gold' | 'platinum' | 'fubar' | 'ultra' | 'platinumquest',
+	name: string,
+	artist: string,
+	desc: string,
+	addedAt: number,
+	gameMode: string,
+	qualifyingTime: number,
+	goldTime: number,
+	platinumTime: number,
+	ultimateTime: number,
+	awesomeTime: number,
+	gems: number,
+	hasEasterEgg: boolean,
+	addedBy: ProfileInfo,
+	remarks: string,
+	packs: PackInfo[],
+	comments: CommentInfo[],
+	downloads: number
+}
+```
+
+### PackInfo
+Contains metadata about a pack.
+```typescript
+{
+	id: number,
+	name: string,
+	createdBy: ProfileInfo,
+	createdAt: number,
+	levelIds: number[]
+}
+```
+
+### ExtendedPackInfo
+Contains metadata about a pack.
+```typescript
+{
+	id: number,
+	name: string,
+	description: string,
+	createdBy: ProfileInfo,
+	createdAt: number,
+	levels: LevelInfo[],
+	downloads: number
+}
+```
+
+### CommentInfo
+Contains data about a comment.
+```typescript
+{
+	id: number,
+	author: ProfileInfo,
+	time: number,
+	content: string
+}
+```
+
+### ProfileInfo
+Contains metadata about a profile.
+```typescript
+{
+	id: number,
+	username: string,
+	hasAvatar: boolean
+}
+```
+
+### ExtendedProfileInfo
+Contains metadata about a profile, as well as additional data to display on the Profile page.
+```typescript
+{
+	id: number,
+	username: string,
+	hasAvatar: boolean,
+	bio: string,
+	uploadedLevels: LevelInfo[],
+	createdPacks: PackInfo[]
+}
+```
+
+### SignInInfo
+Contains data that is remembered by the client upon login.
+```typescript
+{
+	profile: ProfileInfo,
+	packs: { // A list of all packs belonging to that user
+		id: number,
+		name: string,
+		levelIds: number[]
+	}[]
+}
+```
+
+### HomeInfo
+Describes the data displayed on the Home page.
+```typescript
+{
+	latestLevels: LevelInfo[]
+}
+```

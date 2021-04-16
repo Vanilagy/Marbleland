@@ -59,7 +59,7 @@ export class Util {
 		elem.textContent = raw;
 		let html = elem.innerHTML;
 
-		// Then we can wrap anchor tags around all links:
+		// Then we can wrap anchor tags around all URLs:
 		html = html.replace(this.urlRegEx, `<a href="$&" target="_blank">$&</a>`);
 		this.urlRegEx.lastIndex = 0;
 
