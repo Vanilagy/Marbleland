@@ -1,7 +1,7 @@
 <template>
 	<div class="commentElement">
 		<profile-banner :profileInfo="commentInfo.author" :secondaryText="sentDate" class="profileBanner"></profile-banner>
-		<p>{{ commentInfo.content }}</p>
+		<p v-html="content"></p>
 		<img src="/assets/svg/delete_black_24dp.svg" class="delete basicIcon" title="Delete this comment" v-if="isOwnComment" :style="{ display: deleteDisplayStyle }" @click="$emit('delete')">
 	</div>
 </template>
@@ -30,6 +30,9 @@ export default Vue.defineComponent({
 		},
 		deleteDisplayStyle(): string {
 			return Util.deviceSupportsHover()? '' : 'block';
+		},
+		content(): string {
+			return Util.linkify(this.commentInfo.content);
 		}
 	},
 	components: {

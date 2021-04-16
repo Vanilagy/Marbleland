@@ -124,7 +124,7 @@ Returns a list of packs the given level appears in as an array of [PackInfo](#pa
 
 ## Comment
 ### `DELETE` /api/comment/{comment-id}
-**Requires [authentication](#authentication).** Delets a previously written comment. Returns the full list of comments (after deletion) for the comment's level in the form of an array of [CommentInfo](#commentinfo).
+**Requires [authentication](#authentication).** Deletes a previously written comment. Returns the full list of comments (after deletion) for the comment's level in the form of an array of [CommentInfo](#commentinfo).
 
 ## Account
 ### `POST` /api/account/sign-up
