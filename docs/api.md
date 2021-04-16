@@ -210,6 +210,29 @@ size | `number` | If set, resizes the avatar image to a square with side lengths
 ### `GET` /api/pack/list
 Returns a list of all packs as an array of [PackInfo](#packinfo).
 
+### `GET` /api/pack/{pack-id}/info
+Returns extended metadata about a pack in the form of [ExtendedPackInfo](#extendedpackinfo)
+
+### `GET` /api/pack/{pack-id}/zip
+Get the .zip archive for the given pack, containing all levels the pack contains.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+
+### `GET` /api/pack/{pack-id}/image
+Get the image thumbnail of the given pack.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+original | `boolean` | If set, the original, uncompressed image thumbnail will be returned. Takes precedence over `width` and `height`.
+width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
+height | `number` | *See `width`.*
+
 ### `POST` /api/pack/create
 **Requires [authentication](#authentication).** Creates a new, empty level pack.
 
@@ -228,18 +251,6 @@ Returns a list of all packs as an array of [PackInfo](#packinfo).
 }
 ```
 
-### `GET` /api/pack/{pack-id}/info
-Returns extended metadata about a pack in the form of [ExtendedPackInfo](#extendedpackinfo)
-
-### `GET` /api/pack/{pack-id}/zip
-Get the .zip archive for the given pack, containing all levels the pack contains.
-
-**Query parameters:**
-
-Name | Type | Meaning
---- | --- | ---
-assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
-
 ### `POST` /api/pack/{pack-id}/set-levels
 **Requires [authentication](#authentication).** Sets the list of levels included in the given pack.
 
@@ -247,17 +258,6 @@ assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'
 ```typescript
 number[] // An array of level IDs to include in the pack
 ```
-
-### `GET` /api/pack/{pack-id}/image
-Get the image thumbnail of the given pack.
-
-**Query parameters:**
-
-Name | Type | Meaning
---- | --- | ---
-original | `boolean` | If set, the original, uncompressed image thumbnail will be returned. Takes precedence over `width` and `height`.
-width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
-height | `number` | *See `width`.*
 
 ### `PATCH` /api/pack/{pack-id}/edit
 **Requires [authentication](#authentication).** Edits the metadata of the given pack.
