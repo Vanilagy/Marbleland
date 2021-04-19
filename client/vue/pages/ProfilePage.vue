@@ -1,4 +1,4 @@
-<template>
+<template :key="$route.path">
 	<Head v-if="profileInfo">
 		<title>{{ profileInfo.username }} - Marbleland</title>
 		<meta name="description" :content="profileInfo.bio">

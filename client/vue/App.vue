@@ -10,12 +10,12 @@
 	<div id="center">
 		<navigation-bar></navigation-bar>
 		<hr>
-		<router-view :key="$route.fullPath" v-slot="{ Component }">
-			<!-- Keep these two alive to keep search state -->
-			<!-- include="search,packs" -->
-			<!--<keep-alive>-->
+		<router-view v-slot="{ Component }">
+			<!-- Keep these two alive to keep search state. Needs a bit of hackery due to an SSR bug. -->
+			<keep-alive v-if="isBrowser" include="search,packs">
 				<component :is="Component"></component>
-			<!--</keep-alive>-->
+			</keep-alive>
+			<component v-else :is="Component"></component>
 		</router-view>
 	</div>
 </template>
@@ -34,6 +34,9 @@ export default defineComponent({
 	computed: {
 		origin(): string {
 			return ORIGIN;
+		},
+		isBrowser(): boolean {
+			return typeof window !== 'undefined';
 		}
 	}
 });

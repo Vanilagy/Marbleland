@@ -1,4 +1,4 @@
-<template>
+<template :key="$route.path">
 	<Head v-if="packInfo">
 		<title v-if="packInfo">{{ title }}</title>
 		<meta name="description" :content="packInfo.description">

@@ -1,4 +1,4 @@
-<template>
+<template :key="$route.path">
 	<Head v-if="levelInfo">
 		<title v-if="levelInfo">{{ title }}</title>
 		<meta name="description" :content="levelInfo.desc">
