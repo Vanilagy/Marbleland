@@ -21,8 +21,6 @@ export const startHTTPServer = (port: number) => {
 	});
 
 	app.use(staticFileMiddleware);
-	//app.use(history());
-	//app.use(staticFileMiddleware); // We do it twice intentionally, source: Some issue on GitHub
 
 	app.listen(port, () => {
 		console.log(`Started HTTP server on port ${port}.`);

@@ -1,4 +1,11 @@
 <template>
+	<Head v-if="packInfo">
+		<title v-if="packInfo">{{ title }}</title>
+		<meta name="description" :content="packInfo.description">
+		<meta name="og:title" :content="title">
+		<meta name="og:description" :content="packInfo.description">
+		<meta name="og:image" :content="origin + `/api/pack/${packInfo.id}/image`">
+	</Head>
 	<loader v-if="!packInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This pack doesn't exist or has been deleted. :(</p>
 	<info-banner v-if="packInfo"></info-banner>
@@ -40,6 +47,8 @@ import InfoBanner from '../components/InfoBanner.vue';
 import Loader from '../components/Loader.vue';
 import { LevelPanelActions } from '../components/LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
+import { Head } from '@vueuse/head';
+import { ORIGIN } from '../../../shared/constants';
 
 export default defineComponent({
 	data() {
@@ -111,6 +120,12 @@ export default defineComponent({
 		},
 		description(): string {
 			return Util.linkify(this.packInfo.description);
+		},
+		title(): string {
+			return `[Pack] ${this.packInfo.name} by ${this.packInfo.createdBy.username} - Marbleland`;
+		},
+		origin(): string {
+			return ORIGIN;
 		}
 	},
 	methods: {
@@ -176,7 +191,8 @@ export default defineComponent({
 		PanelList,
 		ButtonWithIcon,
 		InfoBanner,
-		Loader
+		Loader,
+		Head
 	},
 	watch: {
 		isOwnPack() {

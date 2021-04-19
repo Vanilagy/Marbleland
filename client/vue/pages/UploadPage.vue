@@ -1,4 +1,8 @@
 <template>
+	<Head>
+		<title>Upload level - Marbleland</title>
+		<meta name="og:title" content="Upload level - Marbleland">
+	</Head>
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Upload a level</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
@@ -22,11 +26,13 @@
 import { defineComponent } from 'vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
+import { Head } from '@vueuse/head';
 
 export default defineComponent({
 	components: {
 		ButtonWithIcon,
-		ProgressBar
+		ProgressBar,
+		Head
 	},
 	data() {
 		return {

@@ -1,14 +1,11 @@
 <template>
-	<Head>
-		<title>Marbleland</title>
-	</Head>
 	<h1>Welcome to Marbleland</h1>
 	<h2>A custom level sharing platform for Marble Blast</h2>
 	<div class="actions">
 		<home-action v-for="action of actions" :key="action.name" :icon="action.icon" :name="action.name" :description="action.description" :path="action.path"></home-action>		
 	</div>
 	<h3>Latest levels</h3>
-	<panel-list :defaultCount="8" :entries="homeInfo?.latestLevels" noEntriesNotice="There are no latest levels." mode="level"></panel-list>
+	<panel-list :defaultCount="8" :entries="homeInfo && homeInfo.latestLevels" noEntriesNotice="There are no latest levels." mode="level"></panel-list>
 </template>
 
 <script lang="ts">

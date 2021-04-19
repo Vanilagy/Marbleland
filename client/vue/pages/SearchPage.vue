@@ -1,6 +1,7 @@
 <template>
 	<Head>
 		<title>Search - Marbleland</title>
+		<meta name="og:title" content="Search - Marbleland">
 	</Head>
 	<search-bar :config="$store.state.searchState.searchBar" placeholder="Search for levels"></search-bar>
 	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></panel-list>

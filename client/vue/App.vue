@@ -1,4 +1,12 @@
 <template>
+	<Head>
+		<title>Marbleland</title>
+		<meta name="description" content="Marbleland is a custom level sharing platform for Marble Blast, on which you can find, download, upload and share levels and level packs.">
+		<meta name="og:title" content="Marbleland">
+		<meta name="og:type" content="website">
+		<meta name="og:url" :content="origin + $route.path">
+		<meta name="og:description" content="Marbleland is a custom level sharing platform for Marble Blast, on which you can find, download, upload and share levels and level packs.">
+	</Head>
 	<div id="center">
 		<navigation-bar></navigation-bar>
 		<hr>
@@ -15,9 +23,19 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import NavigationBar from './components/NavigationBar.vue';
+import { Head } from '@vueuse/head';
+import { ORIGIN } from '../../shared/constants';
 
 export default defineComponent({
-	components: { NavigationBar }
+	components: {
+		NavigationBar,
+		Head
+	},
+	computed: {
+		origin(): string {
+			return ORIGIN;
+		}
+	}
 });
 </script>
 

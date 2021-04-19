@@ -7,8 +7,8 @@
 				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
 			</div>
 			<div class="actions" :style="actionsStyle">
-				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions?.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)" class="basicIcon">
-				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions?.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()" class="basicIcon">
+				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions && actions.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)" class="basicIcon">
+				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions && actions.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()" class="basicIcon">
 				<img src="/assets/svg/download_black_24dp.svg" title="Download level" @click.stop="download" class="basicIcon">
 			</div>
 		</div>

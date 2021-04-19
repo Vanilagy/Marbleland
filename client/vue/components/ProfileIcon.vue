@@ -1,6 +1,6 @@
 <template>
 	<div class="notSelectable">
-		<img :src="iconSrc" @click="expanded = !expanded" :class="{ containsAvatar: $store.state.loggedInAccount?.hasAvatar, basicIcon: !$store.state.loggedInAccount?.hasAvatar }">
+		<img :src="iconSrc" @click="expanded = !expanded" :class="{ containsAvatar: $store.state.loggedInAccount && $store.state.loggedInAccount.hasAvatar, basicIcon: !($store.state.loggedInAccount && $store.state.loggedInAccount.hasAvatar) }">
 		<div v-if="expanded" class="options">
 			<p v-for="option of options" :key="option.label" @click="expanded = false, option.onClick()">{{ option.label }}</p>
 		</div>

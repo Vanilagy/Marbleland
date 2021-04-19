@@ -1,4 +1,8 @@
 <template>
+	<Head>
+		<title>About level uploading - Marbleland</title>
+		<meta name="og:title" content="About level uploading - Marbleland">
+	</Head>
 	<h1>About level uploading</h1>
 	<h3>Overview</h3>
 	<p>
@@ -27,8 +31,12 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { Head } from '@vueuse/head';
+
 export default defineComponent({
-	
+	components: {
+		Head
+	}	
 });
 </script>
 

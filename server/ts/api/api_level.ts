@@ -29,12 +29,6 @@ const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	return levelId;
 };
 
-export const getLevelInfo = async (levelId: number) => {
-	let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-	let mission = Mission.fromDoc(doc);
-	return mission.createExtendedLevelInfo();
-};
-
 export const initLevelApi = () => {
 	// Get a list of all levels
 	app.get('/api/level/list', async (req, res) => {

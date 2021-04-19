@@ -1,7 +1,10 @@
 <template>
-	<Head>
-		<title v-if="levelInfo">{{ levelInfo.name }}{{ levelInfo.artist? ' by ' + levelInfo.artist : '' }} - Marbleland</title>
-		<title v-else>Marbleland</title>
+	<Head v-if="levelInfo">
+		<title v-if="levelInfo">{{ title }}</title>
+		<meta name="description" :content="levelInfo.desc">
+		<meta name="og:title" :content="title">
+		<meta name="og:description" :content="levelInfo.desc">
+		<meta name="og:image" :content="origin + `/api/level/${levelInfo.id}/image`">
 	</Head>
 	<loader v-if="!levelInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This level doesn't exist or has been deleted. :(</p>
@@ -65,6 +68,7 @@ import { emitter } from '../../ts/emitter';
 import { Head } from '@vueuse/head';
 import { db } from '../../../server/ts/globals';
 import { MissionDoc, Mission } from '../../../server/ts/mission';
+import { ORIGIN } from '../../../shared/constants';
 
 export default defineComponent({
 	components: {
@@ -155,6 +159,12 @@ export default defineComponent({
 		},
 		remarks(): string {
 			return Util.linkify(this.levelInfo.remarks);
+		},
+		title(): string {
+			return this.levelInfo.name + (this.levelInfo.artist? ' by ' + this.levelInfo.artist : '') + ' - Marbleland';
+		},
+		origin(): string {
+			return ORIGIN;
 		}
 	},
 	methods: {

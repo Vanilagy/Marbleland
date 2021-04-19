@@ -1,7 +1,10 @@
 <template>
-	<Head>
-		<title v-if="profileInfo">{{ profileInfo.username }} - Marbleland</title>
-		<title v-else>Marbleland</title>
+	<Head v-if="profileInfo">
+		<title>{{ profileInfo.username }} - Marbleland</title>
+		<meta name="description" :content="profileInfo.bio">
+		<meta name="og:title" :content="profileInfo.username + ' - Marbleland'">
+		<meta name="og:description" :content="profileInfo.bio">
+		<meta name="og:image" :content="origin + `/api/account/${profileInfo.id}/avatar`">
 	</Head>
 	<loader v-if="!profileInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This user does not exist. :(</p>
@@ -42,6 +45,7 @@ import { Util } from '../../ts/util';
 import { Head } from '@vueuse/head';
 import { db } from '../../../server/ts/globals';
 import { AccountDoc, getExtendedProfileInfo } from '../../../server/ts/account';
+import { ORIGIN } from '../../../shared/constants';
 
 export default defineComponent({
 	data() {
@@ -86,6 +90,9 @@ export default defineComponent({
 		},
 		bio(): string {
 			return Util.linkify(this.profileInfo.bio) || "This user hasn't set a bio.";
+		},
+		origin(): string {
+			return ORIGIN;
 		}
 	},
 	methods: {

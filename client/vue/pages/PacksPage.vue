@@ -1,4 +1,8 @@
 <template>
+	<Head>
+		<title>Packs - Marbleland</title>
+		<meta name="og:title" content="Packs - Marbleland">
+	</Head>
 	<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createPackButton" @click="createPack" v-if="$store.state.loggedInAccount">Create new pack</button-with-icon>
 	<search-bar :config="searchBarConfig" placeholder="Search for packs"></search-bar>
 	<panel-list :entries="filteredPacks" :defaultCount="24" mode="pack" :noEntriesNotice="noEntriesNotice"></panel-list>
@@ -12,6 +16,7 @@ import PanelList from '../components/PanelList.vue';
 import { PackInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import { emitter } from '../../ts/emitter';
+import { Head } from '@vueuse/head';
 
 interface PackInfoWrapper {
 	info: PackInfo,
@@ -25,7 +30,8 @@ export default defineComponent({
 	components: {
 		ButtonWithIcon,
 		SearchBar,
-		PanelList
+		PanelList,
+		Head
 	},
 	data() {
 		return {

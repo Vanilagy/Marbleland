@@ -1,4 +1,8 @@
 <template>
+	<Head>
+		<title>Create pack - Marbleland</title>
+		<meta name="og:title" content="Create pack - Marbleland">
+	</Head>
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Create new level pack</h1>
 		<div :class="{ disabled: creating }">
@@ -14,10 +18,12 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
+import { Head } from '@vueuse/head';
 
 export default defineComponent({
 	components: {
-		ButtonWithIcon
+		ButtonWithIcon,
+		Head
 	},
 	data() {
 		return {
