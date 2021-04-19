@@ -64,6 +64,7 @@ hr {
 }
 
 :root.dark {
+	color-scheme: dark;
 	--background-color: rgb(35, 35, 35);
 	--text-color: rgb(255, 255, 255);
 	--background-1: rgb(49, 49, 49);

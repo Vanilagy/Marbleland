@@ -10,7 +10,7 @@ import { Util } from './util';
 export const app = express();
 
 export const startHTTPServer = (port: number) => {
-	const staticFileMiddleware = express.static(path.join(__dirname, '../client'));
+	const staticFileMiddleware = express.static(path.join(__dirname, '../dist'));
 
 	app.get('*', async (req, res, next) => {
 		if (!req.url.includes('.') && req.headers.accept.includes('text/html')) {
@@ -30,7 +30,7 @@ export const startHTTPServer = (port: number) => {
 };
 
 export const generateHTML = async (url: string) => {
-	let template = (await fs.readFile(path.join(__dirname, '../client/index.html'))).toString();
+	let template = (await fs.readFile(path.join(__dirname, '../dist/index.html'))).toString();
 	let { app, router, head, store } = createApp();
 
 	router.push(url);

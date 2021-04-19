@@ -8,3 +8,4 @@ cla_list.json
 client/css/style.css
 client/js/bundle.js
 client/js/client_bundle.js
+dist

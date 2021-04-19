@@ -3,6 +3,9 @@ const nodeExternals = require('webpack-node-externals');
 const { VueLoaderPlugin } = require('vue-loader');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const WebpackBar = require('webpackbar');
 
 module.exports = [{
 	mode: 'none',
@@ -40,14 +43,20 @@ module.exports = [{
 	},
 	stats: 'minimal',
 	plugins: [
-		new VueLoaderPlugin()
+		new VueLoaderPlugin(),
+		new WebpackBar({
+			name: 'Server',
+			color: 'gold'
+		})
 	]
 }, {
 	mode: 'none',
 	entry: path.join(__dirname, 'client/ts/index.ts'),
 	output: {
-		filename: 'js/client_bundle.js',
-		path: path.join(__dirname, 'client')
+		filename: 'js/[name]_[contenthash]_client_bundle.js',
+		chunkFilename: 'js/vendor_[contenthash]_bruh.js',
+		path: path.join(__dirname, 'dist'),
+		clean: true
 	},
 	module: {
 		rules: [
@@ -70,12 +79,12 @@ module.exports = [{
 		]
 	},
 	resolve: {
-		extensions: ['.ts', '.js']
+		extensions: ['.ts', '.js'],
+		alias: {
+			vue: 'vue/dist/vue.esm-browser.js' || 'vue/dist/vue.esm-browser.prod.js'
+		}
 	},
 	externals: [
-		{
-			vue: 'Vue',
-		},
 		({ context, request }, callback) => {
 			if (/server\/ts/.test(request)) {
 				return callback(null, 'null');
@@ -84,7 +93,16 @@ module.exports = [{
 		}
 	],
 	optimization: {
-		minimize: false
+		minimize: false,
+		splitChunks: {
+			cacheGroups: {
+				vendor: {
+					test: /[\\/]node_modules[\\/]/,
+					name: 'vendor',
+					chunks: 'all',
+				},
+			},
+		},
 	},
 	stats: 'minimal',
 	plugins: [
@@ -94,6 +112,19 @@ module.exports = [{
 		}),
 		new webpack.DefinePlugin({
 			'process.env': {}
+		}),
+		new HtmlWebpackPlugin({
+			template: './client/index.html',
+			inject: 'body',
+			publicPath: '/'
+		}),
+		new CopyWebpackPlugin({
+			patterns: [
+				{ from: 'client/assets', to: 'assets' }
+			]
+		}),
+		new WebpackBar({
+			name: 'Client'
 		})
 	]
 }];
