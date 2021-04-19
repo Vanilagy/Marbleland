@@ -56,17 +56,21 @@ export default defineComponent({
 		};
 	},
 	async mounted() {
-		// Load the profile info
-		let accountId = Number(this.$route.params.id);
-		let response = await fetch(`/api/account/${accountId}/info`);
+		if (this.$store.state.profilePreload) {
+			this.profileInfo = this.$store.state.profilePreload;
+		} else {
+			// Load the profile info
+			let accountId = Number(this.$route.params.id);
+			let response = await fetch(`/api/account/${accountId}/info`);
 
-		if (response.status === 404) {
-			this.notFound = true;
-			return;
+			if (response.status === 404) {
+				this.notFound = true;
+				return;
+			}
+
+			let json = await response.json() as ExtendedProfileInfo;
+			this.profileInfo = json;
 		}
-
-		let json = await response.json() as ExtendedProfileInfo;
-		this.profileInfo = json;
 	},
 	async serverPrefetch() {
 		let doc = await db.accounts.findOne({ _id: Number(this.$route.params.id) }) as AccountDoc;
@@ -76,6 +80,7 @@ export default defineComponent({
 		}
 
 		this.profileInfo = await getExtendedProfileInfo(doc);
+		this.$store.state.profilePreload = this.profileInfo;
 	},
 	computed: {
 		avatarSrc(): string {

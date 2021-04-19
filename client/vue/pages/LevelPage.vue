@@ -94,17 +94,21 @@ export default defineComponent({
 		};
 	},
 	async mounted() {
-		// Load all the level info
-		let id = Number(this.$route.params.id);
-		let response = await fetch(`/api/level/${id}/extended-info`);
+		if (this.$store.state.levelPreload) {
+			this.levelInfo = this.$store.state.levelPreload;
+		} else {
+			// Load all the level info
+			let id = Number(this.$route.params.id);
+			let response = await fetch(`/api/level/${id}/extended-info`);
 
-		if (response.status === 404) {
-			this.notFound = true;
-			return;
+			if (response.status === 404) {
+				this.notFound = true;
+				return;
+			}
+
+			let levelInfo = await response.json() as ExtendedLevelInfo;
+			this.levelInfo = levelInfo;
 		}
-
-		let levelInfo = await response.json() as ExtendedLevelInfo;
-		this.levelInfo = levelInfo;
 
 		// Incase the level search doesn't include this level yet, make it refresh
 		Search.checkForRefresh(this.levelInfo.id);
@@ -119,6 +123,8 @@ export default defineComponent({
 		
 		let mission = Mission.fromDoc(doc);
 		this.levelInfo = await mission.createExtendedLevelInfo();
+
+		this.$store.state.levelPreload = this.levelInfo;
 	},
 	unmounted() {
 		emitter.off('packUpdate', this.updatePacks);

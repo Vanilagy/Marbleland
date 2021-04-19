@@ -206,6 +206,16 @@ export class Util {
 		
 		return null;
 	}
+
+	/** Performs multiple string replacement operations at the same time to avoid the replaced text screwing up other stuff. */
+	static replaceMultiple(str: string, map: Record<string, string>) {
+		// We order the matches "back to front" in the string. This way, we can start replacing them in this order which doesn't screw up the earlier indices.
+		let ordered = Object.keys(map).map(x => ({ match: x, index: str.indexOf(x) })).sort((a, b) => b.index - a.index);
+		for (let entry of ordered) {
+			str = str.replace(entry.match, map[entry.match]);
+		}
+		return str;
+	}
 }
 
 /** A simple persistent key/value store */

@@ -4,6 +4,7 @@ import { store } from './store';
 
 let { app, router } = createApp();
 app.use(router).use(store);
+if ((window as any)["INITIAL_STATE"]) store.replaceState((window as any)["INITIAL_STATE"]);
 
 /** Checks the login token and gets sign-in data if available. */
 const checkLoginToken = async () => {

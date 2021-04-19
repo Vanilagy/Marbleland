@@ -49,6 +49,8 @@ import { LevelPanelActions } from '../components/LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
 import { Head } from '@vueuse/head';
 import { ORIGIN } from '../../../shared/constants';
+import { db } from '../../../server/ts/globals';
+import { getExtendedPackInfo, PackDoc } from '../../../server/ts/pack';
 
 export default defineComponent({
 	data() {
@@ -60,19 +62,33 @@ export default defineComponent({
 		};
 	},
 	async mounted() {
-		// Load all necessary info
-		let response = await fetch(`/api/pack/${this.$route.params.id}/info`);
+		if (this.$store.state.packPreload) {
+			this.packInfo = this.$store.state.packPreload;
+		} else {
+			// Load all necessary info
+			let response = await fetch(`/api/pack/${this.$route.params.id}/info`);
 
-		if (response.status === 404) {
+			if (response.status === 404) {
+				this.notFound = true;
+				return;
+			}
+
+			let json = await response.json() as ExtendedPackInfo;
+			this.packInfo = json;
+		}
+
+		emitter.emit('packView', this.packInfo.id); // Trigger a possible update in pack search
+		emitter.on('packUpdate', this.onPackUpdate);
+	},
+	async serverPrefetch() {
+		let doc = await db.packs.findOne({ _id: Number(this.$route.params.id) }) as PackDoc;
+		if (!doc) {
 			this.notFound = true;
 			return;
 		}
 
-		let json = await response.json() as ExtendedPackInfo;
-		this.packInfo = json;
-
-		emitter.emit('packView', this.packInfo.id); // Trigger a possible update in pack search
-		emitter.on('packUpdate', this.onPackUpdate);
+		this.packInfo = await getExtendedPackInfo(doc);
+		this.$store.state.packPreload = this.packInfo;
 	},
 	unmounted() {
 		emitter.off('packUpdate', this.onPackUpdate);
