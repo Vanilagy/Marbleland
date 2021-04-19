@@ -19,15 +19,29 @@ module.exports = [{
 	module: {
 		rules: [
 			{
-				test: /\.ts?$/,
-				use: 'ts-loader'
+				test: /\.vue$/,
+				loader: 'vue-loader'
+			},
+			{
+				test: /\.css/,
+				use: [
+					'css-loader'
+				]
+			},
+			{
+				test: /\.ts$/,
+				loader: 'ts-loader',
+				options: { appendTsSuffixTo: [/\.vue$/] }
 			}
 		]
 	},
 	optimization: {
 		minimize: false
 	},
-	stats: 'minimal'
+	stats: 'minimal',
+	plugins: [
+		new VueLoaderPlugin()
+	]
 }, {
 	mode: 'none',
 	entry: path.join(__dirname, 'client/ts/index.ts'),
@@ -58,9 +72,17 @@ module.exports = [{
 	resolve: {
 		extensions: ['.ts', '.js']
 	},
-	externals: {
-		vue: 'Vue'
-	},
+	externals: [
+		{
+			vue: 'Vue',
+		},
+		({ context, request }, callback) => {
+			if (/server\/ts/.test(request)) {
+				return callback(null, 'null');
+			}
+			callback();
+		}
+	],
 	optimization: {
 		minimize: false
 	},

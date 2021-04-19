@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createMemoryHistory, createRouter, createWebHistory } from "vue-router";
 import HomePage from '../vue/pages/HomePage.vue';
 import SearchPage from '../vue/pages/SearchPage.vue';
 import LevelPage from '../vue/pages/LevelPage.vue';
@@ -62,9 +62,12 @@ const routes = [{
 	component: AboutUploadPage
 }];
 
-const router = createRouter({
-	history: createWebHistory('/'),
-	routes: routes as any // Apparently this is the "solution" to the type issue here
-});
+const isServer = typeof window === 'undefined';
 
-export default router;
+export const createNewRouter = () => {
+	const router = createRouter({
+		history: isServer? createMemoryHistory() : createWebHistory('/'),
+		routes: routes as any // Apparently this is the "solution" to the type issue here
+	});
+	return router;
+};

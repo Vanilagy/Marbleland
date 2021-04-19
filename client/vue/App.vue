@@ -4,17 +4,19 @@
 		<hr>
 		<router-view :key="$route.fullPath" v-slot="{ Component }">
 			<!-- Keep these two alive to keep search state -->
-			<keep-alive include="search,packs">
+			<!-- include="search,packs" -->
+			<!--<keep-alive>-->
 				<component :is="Component"></component>
-			</keep-alive>
+			<!--</keep-alive>-->
 		</router-view>
 	</div>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue';
 import NavigationBar from './components/NavigationBar.vue';
-export default Vue.defineComponent({
+
+export default defineComponent({
 	components: { NavigationBar }
 });
 </script>

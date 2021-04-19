@@ -11,10 +11,10 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import { emitter } from '../../ts/emitter';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		options: Array as PropType<{
 			name: string,

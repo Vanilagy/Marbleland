@@ -3,10 +3,10 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import SignInOrUpComponent from '../components/SignInOrUpComponent.vue';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	components: {
 		SignInOrUpComponent
 	}

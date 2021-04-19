@@ -9,10 +9,10 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		mode: String as PropType<'level' | 'pack'>,
 		id: Number as PropType<number>

@@ -1,4 +1,8 @@
 <template>
+	<Head>
+		<title v-if="levelInfo">{{ levelInfo.name }}{{ levelInfo.artist? ' by ' + levelInfo.artist : '' }} - Marbleland</title>
+		<title v-else>Marbleland</title>
+	</Head>
 	<loader v-if="!levelInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This level doesn't exist or has been deleted. :(</p>
 	<template v-if="levelInfo" :class="{ disabled: deleting }">
@@ -45,7 +49,7 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue';
 import { CommentInfo, ExtendedLevelInfo, Modification, PackInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
 import ProfileBanner from '../components/ProfileBanner.vue';
@@ -58,8 +62,11 @@ import Loader from '../components/Loader.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
+import { Head } from '@vueuse/head';
+import { db } from '../../../server/ts/globals';
+import { MissionDoc, Mission } from '../../../server/ts/mission';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	components: {
 		DownloadButton,
 		ProfileBanner,
@@ -68,7 +75,8 @@ export default Vue.defineComponent({
 		PanelList,
 		ButtonWithIcon,
 		CommentElement,
-		Loader
+		Loader,
+		Head
 	},
 	data() {
 		return {
@@ -97,6 +105,16 @@ export default Vue.defineComponent({
 		// Incase the level search doesn't include this level yet, make it refresh
 		Search.checkForRefresh(this.levelInfo.id);
 		emitter.on('packUpdate', this.updatePacks);
+	},
+	async serverPrefetch() {
+		let doc = await db.missions.findOne({ _id: Number(this.$route.params.id) }) as MissionDoc;
+		if (!doc) {
+			this.notFound = true;
+			return;
+		}
+		
+		let mission = Mission.fromDoc(doc);
+		this.levelInfo = await mission.createExtendedLevelInfo();
 	},
 	unmounted() {
 		emitter.off('packUpdate', this.updatePacks);

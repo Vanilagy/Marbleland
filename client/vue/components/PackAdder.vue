@@ -11,10 +11,10 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import { SignInInfo } from '../../../shared/types';
 import { emitter } from '../../ts/emitter';
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		levelId: Number as PropType<number>
 	},

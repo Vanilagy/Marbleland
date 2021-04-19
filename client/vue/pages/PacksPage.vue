@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import SearchBar from '../components/SearchBar.vue';
 import PanelList from '../components/PanelList.vue';
@@ -20,7 +20,7 @@ interface PackInfoWrapper {
 	sortCreator: string
 }
 
-export default Vue.defineComponent({
+export default defineComponent({
 	name: 'packs',
 	components: {
 		ButtonWithIcon,

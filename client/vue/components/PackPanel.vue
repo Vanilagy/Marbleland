@@ -18,12 +18,12 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue'
+import { defineComponent, PropType } from 'vue';
 import { PackInfo } from '../../../shared/types';
 import { emitter } from '../../ts/emitter';
 import { Util } from '../../ts/util';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		packInfo: Object as PropType<PackInfo>
 	},

@@ -1,4 +1,7 @@
 <template>
+	<Head>
+		<title>Marbleland</title>
+	</Head>
 	<h1>Welcome to Marbleland</h1>
 	<h2>A custom level sharing platform for Marble Blast</h2>
 	<div class="actions">
@@ -9,12 +12,13 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import { HomeInfo } from '../../../shared/types';
 import HomeAction from '../components/HomeAction.vue';
 import PanelList from '../components/PanelList.vue';
+import { Head } from '@vueuse/head';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	data() {
 		return {
 			actions: [{
@@ -43,7 +47,8 @@ export default Vue.defineComponent({
 	},
 	components: {
 		HomeAction,
-		PanelList
+		PanelList,
+		Head
 	},
 	async mounted() {
 		let response = await fetch('/api/home/info');

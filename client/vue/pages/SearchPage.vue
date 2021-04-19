@@ -1,19 +1,20 @@
 <template>
+	<Head>
+		<title>Search - Marbleland</title>
+	</Head>
 	<search-bar :config="$store.state.searchState.searchBar" placeholder="Search for levels"></search-bar>
 	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></panel-list>
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import SearchBar, { SearchBarConfig } from '../components/SearchBar.vue';
 import PanelList from '../components/PanelList.vue';
 import { LevelInfo } from '../../../shared/types';
-import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
+import { Head } from '@vueuse/head';
 
-const levelSearchStrings = new Map<LevelInfo, string>();
-
-export default Vue.defineComponent({
+export default defineComponent({
 	name: 'search',
 	data() {
 		return {
@@ -23,7 +24,8 @@ export default Vue.defineComponent({
 	},
 	components: {
 		SearchBar,
-		PanelList
+		PanelList,
+		Head
 	},
 	mounted() {
 		if (this.loaded) this.updateFilteredLevels();

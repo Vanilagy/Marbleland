@@ -7,8 +7,8 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
-export default Vue.defineComponent({
+import { defineComponent, PropType } from 'vue';
+export default defineComponent({
 	props: {
 		loaded: Number as PropType<number>,
 		total: Number as PropType<number>,

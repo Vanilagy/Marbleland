@@ -6,8 +6,8 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue'
-export default Vue.defineComponent({
+import { defineComponent, PropType } from 'vue';
+export default defineComponent({
 	props: {
 		icon: String as PropType<string>
 	},

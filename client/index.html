@@ -7,7 +7,8 @@
 		<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,400;0,800;1,400&display=swap" rel="stylesheet">
 		<link rel="stylesheet" href="/css/style.css">
 		<link rel="shortcut icon" href="/assets/img/favicon.png">
-		<title>Marbleland</title>
+
+		<!-- ssr head -->
 	</head>
 	<body>
 		<script>
@@ -19,7 +20,9 @@
 			}
 		</script>
 
-		<div id="app"></div>
+		<div id="app">
+			<!-- ssr body -->
+		</div>
 
 		<script src="/lib/vue.global.prod.js"></script>
 		<script src="/lib/vuex.global.prod.js"></script>

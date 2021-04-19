@@ -19,11 +19,11 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	components: {
 		ButtonWithIcon,
 		ProgressBar

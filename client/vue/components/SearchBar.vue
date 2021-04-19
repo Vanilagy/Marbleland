@@ -17,8 +17,7 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
-import { store } from '../../ts/store';
+import { defineComponent, PropType } from 'vue';
 import DropdownComponent from './DropdownComponent.vue';
 
 export interface SearchBarConfig {
@@ -35,7 +34,7 @@ export interface SearchBarConfig {
 	reversed: boolean
 }
 
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		config: Object as PropType<SearchBarConfig>,
 		placeholder: String as PropType<string>

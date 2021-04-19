@@ -1,4 +1,8 @@
 <template>
+	<Head>
+		<title v-if="profileInfo">{{ profileInfo.username }} - Marbleland</title>
+		<title v-else>Marbleland</title>
+	</Head>
 	<loader v-if="!profileInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This user does not exist. :(</p>
 	<div v-if="profileInfo">
@@ -27,7 +31,7 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import { ExtendedProfileInfo } from '../../../shared/types';
 import InfoBanner from '../components/InfoBanner.vue';
 import PanelList from '../components/PanelList.vue';
@@ -35,8 +39,11 @@ import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import PackPanel from '../components/PackPanel.vue';
 import Loader from '../components/Loader.vue';
 import { Util } from '../../ts/util';
+import { Head } from '@vueuse/head';
+import { db } from '../../../server/ts/globals';
+import { AccountDoc, getExtendedProfileInfo } from '../../../server/ts/account';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	data() {
 		return {
 			profileInfo: null as ExtendedProfileInfo,
@@ -56,6 +63,15 @@ export default Vue.defineComponent({
 
 		let json = await response.json() as ExtendedProfileInfo;
 		this.profileInfo = json;
+	},
+	async serverPrefetch() {
+		let doc = await db.accounts.findOne({ _id: Number(this.$route.params.id) }) as AccountDoc;
+		if (!doc) {
+			this.notFound = true;
+			return;
+		}
+
+		this.profileInfo = await getExtendedProfileInfo(doc);
 	},
 	computed: {
 		avatarSrc(): string {
@@ -124,7 +140,8 @@ export default Vue.defineComponent({
 		PanelList,
 		ButtonWithIcon,
 		PackPanel,
-		Loader
+		Loader,
+		Head
 	}
 });
 </script>

@@ -45,6 +45,7 @@ export class Util {
 
 	/** Returns true if the currently used device supports mouse "hover" events. */
 	static deviceSupportsHover() {
+		if (typeof matchMedia === "undefined") return false; // SSR, server definitely doesn't support hover events lol
 		return matchMedia('(hover: hover)').matches;
 	}
 
@@ -53,6 +54,7 @@ export class Util {
 	/** Turns raw text into HTML with all URLs wrapped into anchor tags. */
 	static linkify(raw: string) {
 		if (!raw) return raw;
+		if (typeof document === "undefined") return raw; // SSR stuff
 
 		// Since we wanna output HTML, we first need to properly escape all HTML characters included in the raw text to prevent XSS, like so:
 		let elem = document.createElement('div');

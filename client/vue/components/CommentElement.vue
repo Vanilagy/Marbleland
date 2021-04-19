@@ -7,12 +7,12 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import { CommentInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import ProfileBanner from './ProfileBanner.vue';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		commentInfo: Object as PropType<CommentInfo>
 	},

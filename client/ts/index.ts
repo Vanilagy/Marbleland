@@ -1,10 +1,9 @@
-import * as Vue from 'vue';
+import { createApp } from '../../shared/app';
 import { SignInInfo } from '../../shared/types';
-import App from '../vue/App.vue';
-import router from './router';
 import { store } from './store';
 
-let app = Vue.createApp(App as any).use(router).use(store);
+let { app, router } = createApp();
+app.use(router).use(store);
 
 /** Checks the login token and gets sign-in data if available. */
 const checkLoginToken = async () => {

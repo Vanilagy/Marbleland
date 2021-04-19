@@ -17,7 +17,7 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue'
+import { defineComponent, PropType } from 'vue';
 import { LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import PackAdder from './PackAdder.vue';
@@ -28,7 +28,7 @@ export interface LevelPanelActions {
 	addToPack?: boolean
 }
 
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		levelInfo: Object as PropType<LevelInfo>,
 		actions: Object as PropType<LevelPanelActions>

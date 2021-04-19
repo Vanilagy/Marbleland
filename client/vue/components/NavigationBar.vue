@@ -10,10 +10,10 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent } from 'vue';
 import ProfileIcon from './ProfileIcon.vue';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	data() {
 		return {
 			targets: [{
@@ -37,6 +37,7 @@ export default Vue.defineComponent({
 	},
 	computed: {
 		currentPath(): string {
+			return '/';
 			return this.$route.path;
 		}
 	},

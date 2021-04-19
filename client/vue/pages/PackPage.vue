@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import { ExtendedPackInfo, LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import ProfileBanner from '../components/ProfileBanner.vue';
@@ -41,7 +41,7 @@ import Loader from '../components/Loader.vue';
 import { LevelPanelActions } from '../components/LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	data() {
 		return {
 			packInfo: null as ExtendedPackInfo,

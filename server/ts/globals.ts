@@ -1,6 +1,6 @@
 import { KeyValueStore, Util } from "./util";
 import * as path from 'path';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import Datastore from 'nedb-promises';
 
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
@@ -18,6 +18,12 @@ export let structurePQ: DirectoryStructure;
 
 export const initGlobals = () => {
 	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 0, accountId: 0, packId: 0, commentId: 0 });
+
+	// Sometimes, NeDB kinda discards data for some weird reasons when first writing to a database file, so I'm doing this to (maybe) help prevent that:
+	fs.ensureFileSync(path.join(__dirname, 'storage/missions.db'));
+	fs.ensureFileSync(path.join(__dirname, 'storage/accounts.db'));
+	fs.ensureFileSync(path.join(__dirname, 'storage/packs.db'));
+	fs.ensureFileSync(path.join(__dirname, 'storage/comments.db'));
 
 	db.missions = Datastore.create({ filename: path.join(__dirname, 'storage/missions.db'), autoload: true });
 	db.missions.persistence.setAutocompactionInterval(1000 * 60 * 60); // Once an hour

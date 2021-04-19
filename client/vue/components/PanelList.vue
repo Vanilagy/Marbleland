@@ -19,14 +19,13 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import { LevelInfo, PackInfo } from '../../../shared/types';
-import { store } from '../../ts/store';
 import LevelPanel, { LevelPanelActions } from './LevelPanel.vue';
 import PanelSkeleton from './PanelSkeleton.vue';
 import PackPanel from './PackPanel.vue';
 
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		mode: String as PropType<'level' | 'pack'>,
 		entries: Array as PropType<LevelInfo[] | PackInfo[]>,

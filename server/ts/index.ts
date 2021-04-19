@@ -1,10 +1,10 @@
 import { scanForMissions } from "./mission";
 import { initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
+import { initApi } from "./api/api";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as minimist from 'minimist';
-import { initApi } from "./api/api";
 
 const init = async () => {
 	// Ensure all necessary directories exist
@@ -12,7 +12,7 @@ const init = async () => {
 	fs.ensureDirSync(path.join(__dirname, 'storage/avatars'));
 	fs.ensureDirSync(path.join(__dirname, 'storage/pack_thumbnails'));
 	initGlobals();
-
+	
 	let argv = minimist(process.argv.slice(2));
 
 	if (argv._[0] === 'add-directory') {

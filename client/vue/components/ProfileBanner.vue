@@ -9,9 +9,9 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import { ProfileInfo } from '../../../shared/types';
-export default Vue.defineComponent({
+export default defineComponent({
 	props: {
 		profileInfo: Object as PropType<ProfileInfo>,
 		secondaryText: String as PropType<string>
