@@ -10,8 +10,6 @@ import { Util } from './util';
 export const app = express();
 
 export const startHTTPServer = (port: number) => {
-	const staticFileMiddleware = express.static(path.join(__dirname, '../dist'));
-
 	app.get('*', async (req, res, next) => {
 		if (!req.url.includes('.') && req.headers.accept.includes('text/html')) {
 			let html = await generateHTML(req.url);
@@ -22,7 +20,7 @@ export const startHTTPServer = (port: number) => {
 		}
 	});
 
-	app.use(staticFileMiddleware);
+	app.use(express.static(path.join(__dirname, '../dist')));
 
 	app.listen(port, () => {
 		console.log(`Started HTTP server on port ${port}.`);

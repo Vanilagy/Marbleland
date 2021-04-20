@@ -56,7 +56,7 @@ const routes = [{
 	path: '/:pathMatch(.*)*',
 	name: 'NotFound',
 	component: NotFoundPage
-} ,{
+}, {
 	path: '/about-upload',
 	name: 'AboutUpload',
 	component: AboutUploadPage

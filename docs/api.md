@@ -14,7 +14,7 @@ All of Marbleland's functionality can be accessed programatically through an API
 # Authentication
 Some API calls require the user to be authenticated to perform them.
 
-Authentication works by setting the `Authorization` header with a value of `"Bearer <your-token>"`, so for example `"Bearer JBajPPAt+w/2tshyPSWNskWs054Zl2tFuPIzmcq7+WI="`. A token can be acquired through sign-in and sign-up.
+Authentication works by setting the `Authorization` header with a value of `Bearer <your-token>`, so for example `Bearer JBajPPAt+w/2tshyPSWNskWs054Zl2tFuPIzmcq7+WI=`. A token can be acquired through sign-in and sign-up.
 
 # API endpoints
 ## Level
@@ -23,7 +23,7 @@ Authentication works by setting the `Authorization` header with a value of `"Bea
 Returns a list of all levels as an array of [LevelInfo](#levelinfo).
 
 ### `GET` /api/level/{level-id}/zip
-Get the .zip archive for the given level.
+Get the .zip archive for a given level.
 
 **Query parameters:**
 
@@ -32,7 +32,7 @@ Name | Type | Meaning
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
 ### `GET` /api/level/{level-id}/image
-Get the image thumbnail for the given level.
+Get the image thumbnail for a given level.
 
 **Query parameters:**
 
@@ -43,7 +43,7 @@ width | `number` | When used together with `height`, specifies the dimensions to
 height | `number` | *See `width`.*
 
 ### `GET` /api/level/{level-id}/dependencies
-Returns a list of files (assets) the given level depends on as an array of `string`. Essentially returns the file paths of the .zip.
+Returns a list of files (assets) a given level depends on as an array of `string`. Essentially returns the file paths of the .zip.
 
 **Query parameters:**
 
@@ -52,16 +52,16 @@ Name | Type | Meaning
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
 ### `GET` /api/level/{level-id}/info
-Returns the metadata for the given level in the form of [LevelInfo](#levelinfo).
+Returns the metadata for a given level in the form of [LevelInfo](#levelinfo).
 
 ### `GET` /api/level/{level-id}/extended-info
-Returns the extended information for the given level in the form of [ExtendedLevelInfo](#extendedlevelinfo).
+Returns the extended information for a given level in the form of [ExtendedLevelInfo](#extendedlevelinfo).
 
 ### `GET` /api/level/{level-id}/mission-info
 Returns the raw MissionData ScriptObject of the .mis file as a `Record<string, string | string[]>`.
 
 ### `GET` /api/level/{level-id}/packs
-Returns a list of packs the given level appears in as an array of [PackInfo](#packinfo).
+Returns a list of packs a given level appears in as an array of [PackInfo](#packinfo).
 ### `POST` /api/level/upload
 **Requires [authentication](#authentication).** Uploads a .zip archive containing a level and primes it for submission.
 
@@ -113,7 +113,7 @@ Returns a list of packs the given level appears in as an array of [PackInfo](#pa
 **Requires [authentication](#authentication).** Deletes a previously submitted level from the database.
 
 ### `POST` /api/level/{level-id}/comment
-**Requires [authentication](#authentication).** Adds a comment to given level. Returns the full list of comments (after submission) for the given level in the form of an array of [CommentInfo](#commentinfo).
+**Requires [authentication](#authentication).** Adds a comment to given level. Returns the full list of comments (after submission) for a given level in the form of an array of [CommentInfo](#commentinfo).
 
 **Request body (`Content-Type: application/json`):**
 ```typescript
@@ -185,10 +185,10 @@ Sign in to an existing account.
 **Requires [authentication](#authentication).** Checks the validity of a token specified in the Authorization header. If it is valid, returns [SignInInfo](#signininfo) for the corresponding account.
 
 ### `GET` /api/account/{account-id}/info
-Returns metadata about the given account in form of [ProfileInfo](#profileinfo).
+Returns extended metadata about a given account in form of [ExtendedProfileInfo](#extendedprofileinfo).
 
 ### `GET` /api/account/{account-id}/avatar
-Get the avatar image for the given account. Note that this will return a default image if the account hasn't set an avatar yet, and in that case the `size` query param won't do anything.
+Get the avatar image for a given account. Note that this will return a default image if the account hasn't set an avatar yet, and in that case the `size` query param won't do anything.
 
 **Query parameters:**
 
@@ -197,12 +197,12 @@ Name | Type | Meaning
 size | `number` | If set, resizes the avatar image to a square with side lengths of `size`.
 
 ### `POST` /api/account/{account-id}/set-avatar
-**Requires [authentication](#authentication).** Sets the avatar image for the given account.
+**Requires [authentication](#authentication).** Sets the avatar image for a given account.
 
 **Request body:** The raw data of avatar image file with `Content-Type: image/*`.
 
 ### `POST` /api/account/{account-id}/set-bio
-**Requires [authentication](#authentication).** Sets the biography for the given account.
+**Requires [authentication](#authentication).** Sets the biography for a given account.
 
 **Request body:** The new biography as a `string` with `Content-Type: text/plain`.
 
@@ -214,7 +214,7 @@ Returns a list of all packs as an array of [PackInfo](#packinfo).
 Returns extended metadata about a pack in the form of [ExtendedPackInfo](#extendedpackinfo)
 
 ### `GET` /api/pack/{pack-id}/zip
-Get the .zip archive for the given pack, containing all levels the pack contains.
+Get the .zip archive for a given pack, containing all levels the pack contains.
 
 **Query parameters:**
 
@@ -223,7 +223,7 @@ Name | Type | Meaning
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
 
 ### `GET` /api/pack/{pack-id}/image
-Get the image thumbnail of the given pack.
+Get the image thumbnail of a given pack.
 
 **Query parameters:**
 
@@ -252,7 +252,7 @@ height | `number` | *See `width`.*
 ```
 
 ### `POST` /api/pack/{pack-id}/set-levels
-**Requires [authentication](#authentication).** Sets the list of levels included in the given pack.
+**Requires [authentication](#authentication).** Sets the list of levels included in a given pack.
 
 **Request body (`Content-Type: application/json`):**
 ```typescript
@@ -260,7 +260,7 @@ number[] // An array of level IDs to include in the pack
 ```
 
 ### `PATCH` /api/pack/{pack-id}/edit
-**Requires [authentication](#authentication).** Edits the metadata of the given pack.
+**Requires [authentication](#authentication).** Edits the metadata of a given pack.
 
 **Request body (`Content-Type: application/json`):**
 ```typescript
@@ -271,7 +271,7 @@ number[] // An array of level IDs to include in the pack
 ```
 
 ### `DELETE` /api/pack/{pack-id}/delete
-**Requires [authentication](#authentication).** Edits the given pack from the database.
+**Requires [authentication](#authentication).** Edits a given pack from the database.
 
 ## Home
 ### `GET` /api/home/info
