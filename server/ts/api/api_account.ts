@@ -228,4 +228,32 @@ export const initAccountApi = () => {
 
 		res.end();
 	});
+
+	// Change the password for an account
+	app.post('/api/account/change-password', async (req, res) => {
+		let doc = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		// Compare with previous password
+		let pwMatches = await bcrypt.compare((req.body.currentPassword as string) ?? '', doc.passwordHash);
+		if (!pwMatches) {
+			res.status(400).end();
+			return;
+		}
+
+		if (typeof req.body.newPassword !== 'string' || req.body.newPassword.length < 8) {
+			res.status(400).end();
+			return;
+		}
+
+		// Update the password hash
+		let hash = await bcrypt.hash(req.body.newPassword, 8);
+		doc.passwordHash = hash;
+		await db.accounts.update({ _id: doc._id }, doc);
+
+		res.end();
+	});
 };

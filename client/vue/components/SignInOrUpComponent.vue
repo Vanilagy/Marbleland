@@ -3,7 +3,7 @@
 		<h1>{{ (type === 'signUp')? 'Create an account' : 'Sign in to an account' }}</h1>
 		<input type="email" :placeholder="emailPlaceholder" v-model.trim="email" @keydown.enter="submit" autofocus name="email" :autocomplete="(type === 'signIn')? 'username' : 'off'" class="basicTextInput">
 		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24" name="username" autocomplete="off" class="basicTextInput">
-		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit" :name="(type === 'signIn')? 'current-password' : 'new-password'" :autocomplete="(type === 'signIn')? 'current-password' : 'off'" class="basicTextInput">
+		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit" :name="(type === 'signIn')? 'current-password' : 'new-password'" :autocomplete="(type === 'signIn')? 'current-password' : 'new-password'" class="basicTextInput">
 		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit" class="basicTextInput">
 		<p v-for="problem of problems" :key="problem" class="problem">- {{ problem }}</p>
 		<p class="problem">{{ responseError }}</p>
@@ -54,7 +54,7 @@ export default defineComponent({
 
 			if (!emailRegEx.test(this.email)) problems.push("The email you entered isn't valid.");
 			if (this.username.length < 2) problems.push("Your username is too short.");
-			if (this.password.length < 8) problems.push("Your password needs to be 8 characters long or more.")
+			if (this.password.length < 8) problems.push("Your password needs to be 8 or more characters long.")
 			if (this.password !== this.passwordAgain) problems.push("Passwords don't match.");
 
 			return problems;

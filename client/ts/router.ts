@@ -11,6 +11,7 @@ import CreatePackPage from '../vue/pages/CreatePackPage.vue';
 import PackPage from '../vue/pages/PackPage.vue';
 import NotFoundPage from '../vue/pages/NotFoundPage.vue';
 import AboutUploadPage from '../vue/pages/AboutUploadPage.vue';
+import ChangePasswordPage from '../vue/pages/ChangePasswordPage.vue';
 
 const routes = [{
 	path: '/',
@@ -60,6 +61,10 @@ const routes = [{
 	path: '/about-upload',
 	name: 'AboutUpload',
 	component: AboutUploadPage
+}, {
+	path: '/change-password',
+	name: 'ChangePassword',
+	component: ChangePasswordPage
 }];
 
 const isServer = typeof window === 'undefined';

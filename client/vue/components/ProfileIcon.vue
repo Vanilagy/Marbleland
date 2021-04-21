@@ -50,6 +50,11 @@ export default defineComponent({
 						self.$router.push({ name: 'Profile', params: { id: self.$store.state.loggedInAccount.id } });
 					}
 				}, {
+					label: 'Change password',
+					onClick() {
+						self.$router.push('/change-password');
+					}
+				}, {
 					label: 'Sign out',
 					onClick() {
 						// Sign out the account
