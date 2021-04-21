@@ -11,6 +11,7 @@ import { MissionUpload, ongoingUploads } from "../mission_upload";
 import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
 import { app } from "../server";
 import { compressAndSendImage } from "./api";
+import { Util } from '../util';
 
 /** Verifies that the accessed level actually exists. */
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
@@ -60,8 +61,10 @@ export const initLevelApi = () => {
 		doc.downloads = (doc.downloads ?? 0) + 1;
 		await db.missions.update({ _id: levelId }, doc);
 
+		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
+
 		res.set('Content-Type', 'application/zip');
-		res.set('Content-Disposition', `attachment; filename="level-${doc._id}.zip"`);
+		res.set('Content-Disposition', `attachment; filename="${fileName}-${doc._id}.zip"`);
 		stream.pipe(res);
 	});
 

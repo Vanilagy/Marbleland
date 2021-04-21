@@ -216,6 +216,24 @@ export class Util {
 		}
 		return str;
 	}
+
+	/** Removes all characters from a string that aren't letters or digits. */
+	static removeSpecialChars(str: string) {
+		let regex = /[^\w\d]/gi;
+		let match: RegExpExecArray = null;
+
+		while ((match = regex.exec(str)) !== null) {
+			str = str.slice(0, match.index) + str.slice(match.index + match[0].length);
+			regex.lastIndex -= match[0].length;
+		}
+
+		return str;
+	}
+
+	static uppercaseFirstLetter(str: string) {
+		if (!str) return str;
+		return str[0].toUpperCase() + str.slice(1);
+	}
 }
 
 /** A simple persistent key/value store */

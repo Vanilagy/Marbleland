@@ -7,6 +7,7 @@ import { MissionDoc, Mission } from "../mission";
 import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPackThumbnailPath } from "../pack";
 import { app } from "../server";
 import { compressAndSendImage } from "./api";
+import { Util } from "../util";
 
 export const initPackApi = () => {
 	// Get a list of all packs
@@ -95,9 +96,10 @@ export const initPackApi = () => {
 		await db.packs.update({ _id: doc._id }, doc);
 
 		let stream = zip.generateNodeStream();
+		let fileName = Util.removeSpecialChars(doc.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
 
 		res.set('Content-Type', 'application/zip');
-		res.set('Content-Disposition', `attachment; filename="pack-${doc._id}.zip"`);
+		res.set('Content-Disposition', `attachment; filename="${fileName}-pack-${doc._id}.zip"`);
 		stream.pipe(res);
 	});
 
