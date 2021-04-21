@@ -292,11 +292,19 @@ Contains metadata about a level.
 	desc: string,
 	addedAt: number,
 	gameMode: string,
+
 	qualifyingTime: number,
 	goldTime: number,
 	platinumTime: number,
 	ultimateTime: number,
 	awesomeTime: number,
+
+	qualifyingScore: number,
+	goldScore: number,
+	platinumScore: number,
+	ultimateScore: number,
+	awesomeScore: number,
+
 	gems: number,
 	hasEasterEgg: boolean
 }
@@ -305,23 +313,7 @@ Contains metadata about a level.
 ### ExtendedLevelInfo
 Contains metadata about a level, as well as additional data to display on the Level page.
 ```typescript
-{
-	id: number,
-	baseName: string,
-	gameType: 'single' | 'multi',
-	modification: 'gold' | 'platinum' | 'fubar' | 'ultra' | 'platinumquest',
-	name: string,
-	artist: string,
-	desc: string,
-	addedAt: number,
-	gameMode: string,
-	qualifyingTime: number,
-	goldTime: number,
-	platinumTime: number,
-	ultimateTime: number,
-	awesomeTime: number,
-	gems: number,
-	hasEasterEgg: boolean,
+LevelInfo & {
 	addedBy: ProfileInfo,
 	remarks: string,
 	packs: PackInfo[],
@@ -380,10 +372,7 @@ Contains metadata about a profile.
 ### ExtendedProfileInfo
 Contains metadata about a profile, as well as additional data to display on the Profile page.
 ```typescript
-{
-	id: number,
-	username: string,
-	hasAvatar: boolean,
+ProfileInfo & {
 	bio: string,
 	uploadedLevels: LevelInfo[],
 	createdPacks: PackInfo[]

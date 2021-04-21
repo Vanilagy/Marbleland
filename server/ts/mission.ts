@@ -439,6 +439,13 @@ export class Mission {
 			platinumTime: this.info.platinumtime? MisParser.parseNumber(this.info.platinumtime) : undefined,
 			ultimateTime: this.info.ultimatetime? MisParser.parseNumber(this.info.ultimatetime) : undefined,
 			awesomeTime: this.info.awesometime? MisParser.parseNumber(this.info.awesometime) : undefined,
+
+			qualifyingScore: this.info.score? MisParser.parseNumber(this.info.score) : undefined,
+			goldScore: this.info.goldscore? MisParser.parseNumber(this.info.goldscore) : undefined,
+			platinumScore: this.info.platinumscore? MisParser.parseNumber(this.info.platinumscore) : undefined,
+			ultimateScore: this.info.ultimatescore? MisParser.parseNumber(this.info.ultimatescore) : undefined,
+			awesomeScore: this.info.awesomescore? MisParser.parseNumber(this.info.awesomescore) : undefined,
+
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg
 		};

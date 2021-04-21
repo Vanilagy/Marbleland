@@ -70,6 +70,8 @@ import { db } from '../../../server/ts/globals';
 import { MissionDoc, Mission } from '../../../server/ts/mission';
 import { ORIGIN } from '../../../shared/constants';
 
+const COUNT_DOWN_MODES = ['collection', 'elimination', 'gemMadness', 'ghosts', 'hunt', 'king', 'mega', 'party', 'props', 'seek', 'snowball', 'snowballsOnly', 'spooky', 'steal', 'tag', 'training'];
+
 export default defineComponent({
 	components: {
 		DownloadButton,
@@ -143,11 +145,19 @@ export default defineComponent({
 			result["Gem count"] = this.levelInfo.gems;
 			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg? 'Yes' : 'No';
 
-			if (this.levelInfo.qualifyingTime) result["Qualifying time"] = Util.secondsToTimeString(Number(this.levelInfo.qualifyingTime) / 1000);
+			let timeName = COUNT_DOWN_MODES.includes(this.levelInfo.gameMode)? 'Time' : 'Qualifying time';
+
+			if (this.levelInfo.qualifyingTime) result[timeName] = Util.secondsToTimeString(Number(this.levelInfo.qualifyingTime) / 1000);
 			if (this.levelInfo.goldTime) result[this.levelInfo.modification === Modification.Platinum? "Platinum time" : "Gold time"] = Util.secondsToTimeString(Number(this.levelInfo.goldTime) / 1000);
 			if (this.levelInfo.platinumTime) result["Platinum time"] = Util.secondsToTimeString(Number(this.levelInfo.platinumTime) / 1000);
 			if (this.levelInfo.ultimateTime) result["Ultimate time"] = Util.secondsToTimeString(Number(this.levelInfo.ultimateTime) / 1000);
 			if (this.levelInfo.awesomeTime) result["Awesome time"] = "🤔";
+
+			if (this.levelInfo.qualifyingScore) result["Par score"] = this.levelInfo.qualifyingScore;
+			if (this.levelInfo.goldScore) result["Gold score"] = this.levelInfo.goldScore;
+			if (this.levelInfo.platinumScore) result["Platinum score"] = this.levelInfo.platinumScore;
+			if (this.levelInfo.ultimateScore) result["Ultimate score"] = this.levelInfo.ultimateScore;
+			if (this.levelInfo.awesomeScore) result["Awesome score"] = "🤔";
 
 			return result;
 		},

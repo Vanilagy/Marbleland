@@ -28,6 +28,13 @@ export interface LevelInfo {
 	platinumTime: number,
 	ultimateTime: number,
 	awesomeTime: number,
+
+	qualifyingScore: number,
+	goldScore: number,
+	platinumScore: number,
+	ultimateScore: number,
+	awesomeScore: number,
+
 	gems: number,
 	hasEasterEgg: boolean
 }
