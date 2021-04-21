@@ -58,6 +58,7 @@ export default defineComponent({
 	async mounted() {
 		if (this.$store.state.profilePreload) {
 			this.profileInfo = this.$store.state.profilePreload;
+			this.$store.state.profilePreload = null;
 		} else {
 			// Load the profile info
 			let accountId = Number(this.$route.params.id);

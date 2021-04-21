@@ -99,6 +99,7 @@ export default defineComponent({
 	async mounted() {
 		if (this.$store.state.levelPreload) {
 			this.levelInfo = this.$store.state.levelPreload;
+			this.$store.state.levelPreload = null;
 		} else {
 			// Load all the level info
 			let id = Number(this.$route.params.id);

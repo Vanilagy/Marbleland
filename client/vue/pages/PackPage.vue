@@ -64,6 +64,7 @@ export default defineComponent({
 	async mounted() {
 		if (this.$store.state.packPreload) {
 			this.packInfo = this.$store.state.packPreload;
+			this.$store.state.packPreload = null;
 		} else {
 			// Load all necessary info
 			let response = await fetch(`/api/pack/${this.$route.params.id}/info`);
