@@ -248,13 +248,22 @@ export class Mission {
 	/** Adds all dependencies of a given interior. */
 	async addInteriorDependencies(rawInteriorPath: string) {
 		let interiorPath = rawInteriorPath.slice(rawInteriorPath.indexOf('data/') + 'data/'.length);
-		let interiorDirectory = interiorPath.substring(0, interiorPath.lastIndexOf('/'));
+		let interiorDirectory: string;
+		let fullPath: string;
 
-		if (this.visitedPaths.has(interiorPath)) return;
-		else this.visitedPaths.add(interiorPath);
+		while (true) {
+			interiorDirectory = interiorPath.substring(0, interiorPath.lastIndexOf('/'));
 
-		let fullPath = await this.findPath(interiorPath);
-		if (!fullPath) return;
+			if (this.visitedPaths.has(interiorPath)) return;
+			else this.visitedPaths.add(interiorPath);
+
+			fullPath = await this.findPath(interiorPath);
+			if (fullPath) break;
+
+			// Special case: If the directory is interiors, check again in interiors_mbg. This is because the default MBG assets (in PQ) are located in interiors_mbg, but the paths within the .mis files still point to interiors (it does some directory shadowing).
+			if (interiorPath.startsWith('interiors/')) interiorPath = interiorPath.replace('interiors/', 'interiors_mbg/');
+			else return; // Otherwise, we haven't found a file, so abort.
+		}
 
 		this.dependencies.add(interiorPath); // Add the interior itself as a dependency
 

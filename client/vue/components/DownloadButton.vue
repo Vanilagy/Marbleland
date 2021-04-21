@@ -66,13 +66,13 @@ img {
 	position: absolute;
 	right: 0px;
 	top: 0px;
-	opacity: 0.25;
+	opacity: 0.25 !important;
 	cursor: pointer;
 	padding: 8px;
 }
 
 .expandMore:hover {
-	opacity: 0.75;
+	opacity: 0.75 !important;
 }
 
 p {

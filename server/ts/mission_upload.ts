@@ -186,7 +186,7 @@ export class MissionUpload {
 	 * be found in the regular PQ data directory and if so, we don't need to worry about it. If, however, it can't even be found there, then
 	 * this mission is dependening on an asset that cannot be found and therefore, the mission can't be submitted.
 	 */
-	async registerDependency(dependency: string, matchType: 'exact' | 'extension-agnostic', requiredBy: string, lookupMode: 'findFile' | 'findPath') {
+	async registerDependency(dependency: string, matchType: 'exact' | 'extension-agnostic', requiredBy: string, lookupMode: 'findFile' | 'findPath', interiorsMbgFallback = false, originalDependency?: string): Promise<{ found: jszip.JSZipObject, relativeDirectory: string }> {
 		// First, disect the dependency part into its different piecess
 		let fileName = Util.getFileName(dependency);
 		let dataIndex = dependency.indexOf('data/');
@@ -226,9 +226,14 @@ export class MissionUpload {
 			if (lookupMode === 'findFile') fullPath = await this.findFile(fileName, relativeDirectory);
 			else fullPath = await this.findPath(relativePath);
 
-			if (!fullPath) {
-				// We couldn't resolve the dependency to any file
-				this.problems.add(`Missing dependency: ${dependency} is required by ${requiredBy} but couldn't be found.`);
+			if (!fullPath) { // We couldn't resolve the dependency to any file
+				if (interiorsMbgFallback && relativeDirectory.startsWith('interiors/')) {
+					// Special case: If the directory is interiors, check again in interiors_mbg. This is because the default MBG assets (in PQ) are located in interiors_mbg, but the paths within the .mis files still point to interiors (it does some directory shadowing).
+					return this.registerDependency(dependency.replace('interiors/', 'interiors_mbg/'), matchType, requiredBy, lookupMode, false, dependency);
+				} else {
+					// We definitely couldn't locate a file, add a problem
+					this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
+				}
 			}
 
 			// Since the dependency is not in this archive, we don't return anything
@@ -242,7 +247,7 @@ export class MissionUpload {
 	/** Walks over all interiors and checks their dependencies. */
 	async checkInteriors() {
 		for (let dependency of this.interiorDependencies) {
-			let result = await this.registerDependency(dependency, 'exact', this.misFilePath, 'findPath');
+			let result = await this.registerDependency(dependency, 'exact', this.misFilePath, 'findPath', true);
 			if (!result) continue;
 
 			let { found, relativeDirectory } = result;
