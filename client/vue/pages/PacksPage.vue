@@ -4,7 +4,7 @@
 		<meta name="og:title" content="Packs - Marbleland">
 	</Head>
 	<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createPackButton" @click="createPack" v-if="$store.state.loggedInAccount">Create new pack</button-with-icon>
-	<search-bar :config="searchBarConfig" placeholder="Search for packs"></search-bar>
+	<search-bar :config="searchBarConfig" :placeholder="searchBarPlaceholder()"></search-bar>
 	<panel-list :entries="filteredPacks" :defaultCount="24" mode="pack" :noEntriesNotice="noEntriesNotice"></panel-list>
 </template>
 
@@ -125,6 +125,10 @@ export default defineComponent({
 		checkReload(newPackId: number) {
 			// Reload if the pack ID is not included in the current pack list
 			if (!this.packs.some(x => x.info.id === newPackId)) this.fetch();
+		},
+		searchBarPlaceholder() {
+			if (!this.packs) return "Search packs";
+			else return `Search ${this.packs.length} ${(this.packs.length === 1)? 'pack' : 'packs'}`;
 		}
 	},
 	computed: {

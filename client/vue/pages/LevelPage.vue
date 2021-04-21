@@ -12,7 +12,7 @@
 		<info-banner></info-banner>
 		<div class="top-part">
 			<aside>
-				<img :src="imageSource" class="thumbnail">
+				<img v-if="!imageHidden" :src="imageSource" class="thumbnail" @error="imageHidden = true">
 				<download-button style="margin-top: 10px" :id="levelInfo.id" mode="level" @download="levelInfo.downloads++"></download-button>
 				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Added on {{ formattedDate }}</p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
@@ -92,7 +92,8 @@ export default defineComponent({
 			deleting: false,
 			commentInput: '',
 			sendingComment: false,
-			notFound: false
+			notFound: false,
+			imageHidden: false
 		};
 	},
 	async mounted() {

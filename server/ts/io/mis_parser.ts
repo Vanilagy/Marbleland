@@ -310,10 +310,10 @@ export class MisParser {
 			if (!blockMatch && !lineMatch) break;
 			else if (!lineMatch || (blockMatch && lineMatch && blockMatch.index < lineMatch.index)) {
 				this.text = this.text.slice(0, blockMatch.index) + this.text.slice(blockMatch.index + blockMatch[0].length);
-				currentIndex += blockMatch.index;
+				currentIndex = blockMatch.index;
 			} else {
 				this.text = this.text.slice(0, lineMatch.index) + this.text.slice(lineMatch.index + lineMatch[0].length);
-				currentIndex += lineMatch.index;
+				currentIndex = lineMatch.index;
 			}
 		}
 
@@ -578,7 +578,7 @@ export class MisParser {
 
 	/** Parses a numeric value. */
 	static parseNumber(string: string) {
-		if (!string) return 0;
+		if (!string || typeof string !== 'string') return 0;
 		// Strange thing here, apparently you can supply lists of numbers. In this case tho, we just take the first value.
 		let val = Number(string.split(',')[0]);
 		if (isNaN(val)) return 0;

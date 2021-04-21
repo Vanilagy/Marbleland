@@ -3,7 +3,7 @@
 		<title>Search - Marbleland</title>
 		<meta name="og:title" content="Search - Marbleland">
 	</Head>
-	<search-bar :config="$store.state.searchState.searchBar" placeholder="Search for levels"></search-bar>
+	<search-bar :config="$store.state.searchState.searchBar" :placeholder="searchBarPlaceholder()"></search-bar>
 	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></panel-list>
 </template>
 
@@ -49,6 +49,10 @@ export default defineComponent({
 	methods: {
 		updateFilteredLevels() {
 			this.filteredLevels = Search.filter();
+		},
+		searchBarPlaceholder() {
+			if (!this.loaded) return "Search levels";
+			else return `Search ${Search.levels.length} ${(Search.levels.length === 1)? 'level' : 'levels'}`;
 		}
 	},
 	watch: {

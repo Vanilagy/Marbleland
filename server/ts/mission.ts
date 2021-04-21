@@ -498,6 +498,8 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 	/** Recursively scans a directory. */
 	const scan = async (relativePath: string) => {
 		let entries = await fs.readdir(path.join(baseDirectory, relativePath));
+		let success = 0;
+		let failure = 0;
 
 		for (let entry of entries) {
 			let joined = path.join(baseDirectory, relativePath, entry);
@@ -505,7 +507,9 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 			let fromStart = path.posix.join(relativePath, entry);
 	
 			if (stat.isDirectory()) {
-				await scan(fromStart); // Recurse
+				let subcount = await scan(fromStart); // Recurse
+				success += subcount.success;
+				failure += subcount.failure;
 			} else {
 				if (entry.toLowerCase().endsWith('.mis')) {
 					console.log("Importing: ", fromStart);
@@ -525,6 +529,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 						await mission.hydrate();
 					} catch (e) {
 						console.error(`Error in loading mission ${entry}:`, e);
+						failure++;
 						break;
 					}
 					
@@ -532,10 +537,15 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 					let doc = mission.createDoc();
 					await db.missions.update({ _id: doc._id }, doc, { upsert: true });
 	
-					console.log("Level imported successfully with id " + id);
+					console.log("Level imported successfully with id " + mission.id);
+					success++;
 				}
 			}
 		}
+
+		return { success, failure };
 	};
-	await scan('');
+
+	let totalCount = await scan('');
+	console.log(`Imported ${totalCount.success + totalCount.failure} level(s). Successes: ${totalCount.success}. Failures: ${totalCount.failure}`);
 };
