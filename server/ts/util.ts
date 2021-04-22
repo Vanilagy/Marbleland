@@ -176,8 +176,9 @@ export class Util {
 	 * @param baseDirectories A list of base directories used for actually finding the file. Will always return the match from the first base directory in which
 	 * a match was found.
 	 * @param walkUp Whether or not to start checking the parent directories if the file couldn't be found in `relativePath`.
+	 * @param permittedExtensions The extensions that are accepted.
 	 */
-	static async findFile(fileName: string, relativePath: string, baseDirectories: string[], walkUp = true): Promise<string> {
+	static async findFile(fileName: string, relativePath: string, baseDirectories: string[], walkUp = true, permittedExtensions?: string[]): Promise<string> {
 		let concatted: string[] = [];
 		for (let baseDirectory of baseDirectories) {
 			let dir = await Util.readdirCached(path.join(baseDirectory, relativePath));
@@ -186,12 +187,13 @@ export class Util {
 		let lowerCase = fileName.toLowerCase();
 
 		for (let file of concatted) {
-			if (Util.removeExtension(file).toLowerCase() === lowerCase) return path.posix.join(relativePath, file);
+			if (Util.removeExtension(file).toLowerCase() === lowerCase && (!permittedExtensions || permittedExtensions.includes(path.extname(file))))
+				return path.posix.join(relativePath, file);
 		}
 
 		let slashIndex = relativePath.lastIndexOf('/');
 		if (slashIndex === -1 || !walkUp) return null;
-		return this.findFile(fileName, relativePath.slice(0, slashIndex), baseDirectories);
+		return this.findFile(fileName, relativePath.slice(0, slashIndex), baseDirectories, true, permittedExtensions);
 	}
 
 	/** Finds the **full** path of a file given a list of base directories to search and the path to the file, relative to all base directories. Returns the

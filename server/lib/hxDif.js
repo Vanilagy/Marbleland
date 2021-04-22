@@ -158,8 +158,9 @@ class ConvexHull {
 		this.polyListPlaneStart = 0;
 		this.polyListPointStart = 0;
 		this.polyListStringStart = 0;
+		this.staticMesh = false;
 	}
-	write(io) {
+	write(io,version) {
 		io.writeInt32(this.hullStart);
 		io.writeUInt16(this.hullCount);
 		io.writeFloat(this.minX);
@@ -174,8 +175,11 @@ class ConvexHull {
 		io.writeInt32(this.polyListPlaneStart);
 		io.writeInt32(this.polyListPointStart);
 		io.writeInt32(this.polyListStringStart);
+		if(version.interiorVersion >= 12) {
+			io.writeByte(this.staticMesh ? 1 : 0);
+		}
 	}
-	static read(io) {
+	static read(io,version) {
 		let ret = new ConvexHull();
 		ret.hullStart = io.readInt32();
 		ret.hullCount = io.readUInt16();
@@ -191,6 +195,9 @@ class ConvexHull {
 		ret.polyListPlaneStart = io.readInt32();
 		ret.polyListPointStart = io.readInt32();
 		ret.polyListStringStart = io.readInt32();
+		if(version.interiorVersion >= 12) {
+			ret.staticMesh = io.readByte() > 0;
+		}
 		return ret;
 	}
 }
@@ -242,7 +249,7 @@ class Dif {
 		});
 		if(this.vehicleCollision != null) {
 			io.writeInt32(1);
-			this.vehicleCollision.write(io);
+			this.vehicleCollision.write(io,version);
 		} else {
 			io.writeInt32(0);
 		}
@@ -292,7 +299,7 @@ class Dif {
 		ret.aiSpecialNodes = ReaderExtensions.readArray(io,AISpecialNode.read);
 		let readVehicleCollision = io.readInt32();
 		if(readVehicleCollision == 1) {
-			ret.vehicleCollision = VehicleCollision.read(io);
+			ret.vehicleCollision = VehicleCollision.read(io,version);
 		}
 		let readGameEntities = io.readInt32();
 		if(readGameEntities == 2) {
@@ -612,7 +619,7 @@ class Interior {
 			io.writeInt32(this.numSubObjects);
 		}
 		WriterExtensions.writeArray(io,this.convexHulls,function(io,p) {
-			p.write(io);
+			p.write(io,version);
 		});
 		WriterExtensions.writeArray(io,this.convexHullEmitStrings,function(io,p) {
 			io.writeByte(p);
@@ -745,19 +752,19 @@ class Interior {
 		let pos = io.tell();
 		try {
 			it.surfaces = ReaderExtensions.readArray(io,function(io) {
-				return Surface.read(io,version);
+				return Surface.read(io,version,it);
 			});
 			if(version.interiorType == "?") {
 				version.interiorType = "tge";
 			}
 		} catch( _g ) {
-			if(version.interiorType == "?") {
-				version.interiorType = "mbg";
+			if(version.interiorType == "tgea") {
+				version.interiorType = "tge";
 			}
 			io.seek(pos);
 			try {
 				it.surfaces = ReaderExtensions.readArray(io,function(io) {
-					return Surface.read(io,version);
+					return Surface.read(io,version,it);
 				});
 			} catch( _g ) {
 			}
@@ -839,7 +846,9 @@ class Interior {
 			it.stateDataFlags = 0;
 			it.numSubObjects = io.readInt32();
 		}
-		it.convexHulls = ReaderExtensions.readArray(io,ConvexHull.read);
+		it.convexHulls = ReaderExtensions.readArray(io,function(io) {
+			return ConvexHull.read(io,version);
+		});
 		it.convexHullEmitStrings = ReaderExtensions.readArray(io,function(io) {
 			return io.readByte();
 		});
@@ -1298,17 +1307,34 @@ class Surface {
 			}
 		}
 	}
-	static read(io,version) {
+	static read(io,version,interior) {
 		let ret = new Surface();
 		ret.windingStart = io.readInt32();
+		if(interior.windings.length <= ret.windingStart) {
+			throw new haxe_Exception("DIF Type Error");
+		}
 		if(version.interiorVersion >= 13) {
 			ret.windingCount = io.readInt32();
 		} else {
 			ret.windingCount = io.readByte();
 		}
+		if(ret.windingStart + ret.windingCount > interior.windings.length) {
+			throw new haxe_Exception("DIF Type Error");
+		}
 		ret.planeIndex = io.readInt16();
+		let flipped = ret.planeIndex >> 15 != 0;
+		let planeIndexTemp = ret.planeIndex & -32769;
+		if((planeIndexTemp & -32769) >= interior.planes.length) {
+			throw new haxe_Exception("DIF Type Error");
+		}
 		ret.textureIndex = io.readInt16();
+		if(ret.textureIndex >= interior.materialList.length) {
+			throw new haxe_Exception("DIF Type Error");
+		}
 		ret.texGenIndex = io.readInt32();
+		if(ret.texGenIndex >= interior.texGenEQs.length) {
+			throw new haxe_Exception("DIF Type Error");
+		}
 		ret.surfaceFlags = io.readByte();
 		ret.fanMask = io.readInt32();
 		ret.lightMapFinalWord = io.readInt16();
@@ -1407,10 +1433,10 @@ Trigger.__name__ = true;
 class VehicleCollision {
 	constructor() {
 	}
-	write(io) {
+	write(io,version) {
 		io.writeInt32(this.vehicleCollisionFileVersion);
 		WriterExtensions.writeArray(io,this.convexHulls,function(io,p) {
-			p.write(io);
+			p.write(io,version);
 		});
 		WriterExtensions.writeArray(io,this.convexHullEmitStrings,function(io,p) {
 			io.writeByte(p);
@@ -1452,10 +1478,12 @@ class VehicleCollision {
 			p.write(io);
 		});
 	}
-	static read(io) {
+	static read(io,version) {
 		let ret = new VehicleCollision();
 		ret.vehicleCollisionFileVersion = io.readInt32();
-		ret.convexHulls = ReaderExtensions.readArray(io,ConvexHull.read);
+		ret.convexHulls = ReaderExtensions.readArray(io,function(io) {
+			return ConvexHull.read(io,version);
+		});
 		ret.convexHullEmitStrings = ReaderExtensions.readArray(io,function(io) {
 			return io.readByte();
 		});
@@ -1498,7 +1526,7 @@ class Version {
 	constructor() {
 		this.difVersion = 44;
 		this.interiorVersion = 0;
-		this.interiorType = "mbg";
+		this.interiorType = "?";
 	}
 }
 $hx_exports["Version"] = Version;
@@ -1628,6 +1656,12 @@ class haxe_Exception extends Error {
 		this.message = message;
 		this.__previousException = previous;
 		this.__nativeException = native != null ? native : this;
+	}
+	toString() {
+		return this.get_message();
+	}
+	get_message() {
+		return this.message;
 	}
 	get_native() {
 		return this.__nativeException;
@@ -1943,7 +1977,7 @@ class haxe_io_Bytes {
 		return b.bytes[pos];
 	}
 }
-$hx_exports["haxe_io_Bytes"] = haxe_io_Bytes;
+$hx_exports["haxe"]["io"]["Bytes"] = haxe_io_Bytes;
 haxe_io_Bytes.__name__ = true;
 class haxe_io_BytesBuffer {
 	constructor() {

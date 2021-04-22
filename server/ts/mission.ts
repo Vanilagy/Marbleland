@@ -14,7 +14,7 @@ import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
-export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
+export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.dds'];
 
 /** Representation of a mission in the database. */
 export interface MissionDoc {
@@ -221,8 +221,8 @@ export class Mission {
 		}
 	}
 
-	findFile(fileName: string, relativePath: string, walkUp?: boolean): Promise<string> {
-		return Util.findFile(fileName, relativePath, [this.baseDirectory, Config.dataPath], walkUp);
+	findFile(fileName: string, relativePath: string, walkUp?: boolean, permittedExtensions?: string[]): Promise<string> {
+		return Util.findFile(fileName, relativePath, [this.baseDirectory, Config.dataPath], walkUp, permittedExtensions);
 	}
 
 	findPath(filePath: string) {
@@ -286,7 +286,7 @@ export class Mission {
 			if (IGNORE_MATERIALS.includes(material)) continue;
 
 			let fileName = material.slice(material.lastIndexOf('/') + 1);
-			let filePath = await this.findFile(fileName, interiorDirectory);
+			let filePath = await this.findFile(fileName, interiorDirectory, true, IMAGE_EXTENSIONS);
 			if (filePath) paths.push(filePath);
 		}
 
@@ -312,7 +312,7 @@ export class Mission {
 
 		// Add all sky textures as dependencies
 		for (let line of lines) {
-			let filePath = await this.findFile(line, skyDirectory);
+			let filePath = await this.findFile(line, skyDirectory, true, IMAGE_EXTENSIONS); 
 			if (filePath) this.dependencies.add(filePath);
 		}
 	}
@@ -336,7 +336,7 @@ export class Mission {
 
 		// Add all used materials as dependencies
 		for (let matName of dtsFile.matNames) {
-			let relativePath = await this.findFile(matName, dtsDirectory, false);
+			let relativePath = await this.findFile(matName, dtsDirectory, false, IMAGE_EXTENSIONS.concat(['.ifl']));
 			if (relativePath) {
 				// We found an .ifl material, so add all of its materials.
 				if (relativePath.toLowerCase().endsWith('.ifl')) {
@@ -346,7 +346,7 @@ export class Mission {
 					for (let line of lines) {
 						let textureName = line.split(' ')[0]?.trim();
 						if (textureName) {
-							let filePath = await this.findFile(textureName, dtsDirectory, false);
+							let filePath = await this.findFile(textureName, dtsDirectory, false, IMAGE_EXTENSIONS);
 							if (filePath) this.dependencies.add(filePath);
 						}
 					}

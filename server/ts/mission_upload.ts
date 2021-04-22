@@ -173,8 +173,8 @@ export class MissionUpload {
 		}
 	}
 
-	findFile(fileName: string, relativePath: string): Promise<string> {
-		return Util.findFile(fileName, relativePath, [Config.dataPath]);
+	findFile(fileName: string, relativePath: string, permittedExtensions?: string[]): Promise<string> {
+		return Util.findFile(fileName, relativePath, [Config.dataPath], true, permittedExtensions);
 	}
 
 	findPath(filePath: string) {
@@ -186,7 +186,7 @@ export class MissionUpload {
 	 * be found in the regular PQ data directory and if so, we don't need to worry about it. If, however, it can't even be found there, then
 	 * this mission is dependening on an asset that cannot be found and therefore, the mission can't be submitted.
 	 */
-	async registerDependency(dependency: string, matchType: 'exact' | 'extension-agnostic', requiredBy: string, lookupMode: 'findFile' | 'findPath', interiorsMbgFallback = false, originalDependency?: string): Promise<{ found: jszip.JSZipObject, relativeDirectory: string }> {
+	async registerDependency(dependency: string, matchType: 'exact' | 'extension-agnostic', requiredBy: string, permittedExtensions?: string[], interiorsMbgFallback = false, originalDependency?: string): Promise<{ found: jszip.JSZipObject, relativeDirectory: string }> {;
 		// First, disect the dependency part into its different piecess
 		let fileName = Util.getFileName(dependency);
 		let dataIndex = dependency.indexOf('data/');
@@ -205,6 +205,9 @@ export class MissionUpload {
 				matches = fileName2.toLowerCase() === fileName.toLowerCase() + path.extname(fileName2.toLowerCase());
 			}
 
+			// Also check if the extension is permitted
+			if (permittedExtensions) matches &&= permittedExtensions.includes(path.extname(fileName2.toLowerCase()));
+
 			if (matches) {
 				if (!found) {
 					// The dependency was found in the archive, so add it to the normalized directory
@@ -222,14 +225,14 @@ export class MissionUpload {
 		if (!found) {
 			let fullPath: string;
 
-			// Find the file depending on the mode
-			if (lookupMode === 'findFile') fullPath = await this.findFile(fileName, relativeDirectory);
+			// Find the file differently depending on the match type
+			if (matchType === 'extension-agnostic') fullPath = await this.findFile(fileName, relativeDirectory, permittedExtensions);
 			else fullPath = await this.findPath(relativePath);
 
 			if (!fullPath) { // We couldn't resolve the dependency to any file
 				if (interiorsMbgFallback && relativeDirectory.startsWith('interiors/')) {
 					// Special case: If the directory is interiors, check again in interiors_mbg. This is because the default MBG assets (in PQ) are located in interiors_mbg, but the paths within the .mis files still point to interiors (it does some directory shadowing).
-					return this.registerDependency(dependency.replace('interiors/', 'interiors_mbg/'), matchType, requiredBy, lookupMode, false, dependency);
+					return this.registerDependency(dependency.replace('interiors/', 'interiors_mbg/'), matchType, requiredBy, permittedExtensions, false, dependency);
 				} else {
 					// We definitely couldn't locate a file, add a problem
 					this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
@@ -247,7 +250,7 @@ export class MissionUpload {
 	/** Walks over all interiors and checks their dependencies. */
 	async checkInteriors() {
 		for (let dependency of this.interiorDependencies) {
-			let result = await this.registerDependency(dependency, 'exact', this.misFilePath, 'findPath', true);
+			let result = await this.registerDependency(dependency, 'exact', this.misFilePath, null, true);
 			if (!result) continue;
 
 			let { found, relativeDirectory } = result;
@@ -262,7 +265,7 @@ export class MissionUpload {
 					if (IGNORE_MATERIALS.includes(material)) continue;
 
 					let materialFileName = Util.getFileName(material);
-					await this.registerDependency(path.posix.join(relativeDirectory, materialFileName), 'extension-agnostic', dependency, 'findFile');
+					await this.registerDependency(path.posix.join(relativeDirectory, materialFileName), 'extension-agnostic', dependency, IMAGE_EXTENSIONS);
 				}
 			}
 		}
@@ -271,7 +274,7 @@ export class MissionUpload {
 	/** Walks over the sky dependencies. */
 	async checkSky() {
 		for (let dependency of this.skyDependencies) {
-			let result = await this.registerDependency(dependency, 'exact', this.misFilePath, 'findPath');
+			let result = await this.registerDependency(dependency, 'exact', this.misFilePath);
 			if (!result) continue;
 
 			let { found, relativeDirectory } = result;
@@ -282,7 +285,7 @@ export class MissionUpload {
 	
 			// Register all sky textures as dependencies
 			for (let line of lines) {
-				await this.registerDependency(path.posix.join(relativeDirectory, line), 'extension-agnostic', dependency, 'findFile');
+				await this.registerDependency(path.posix.join(relativeDirectory, line), 'extension-agnostic', dependency, IMAGE_EXTENSIONS);
 			}
 		}
 	}
@@ -290,7 +293,7 @@ export class MissionUpload {
 	/** Walks over all shapes and checks their dependencies. */
 	async checkShapes() {
 		for (let dependency of this.shapeDependencies) {
-			let result = await this.registerDependency(dependency, 'exact', this.misFilePath, 'findPath');
+			let result = await this.registerDependency(dependency, 'exact', this.misFilePath);
 			if (!result) continue;
 
 			let { found, relativeDirectory } = result;
@@ -301,7 +304,7 @@ export class MissionUpload {
 
 			// Go over all materials and register them as dependencies
 			for (let matName of dtsFile.matNames) {
-				let result2 = await this.registerDependency(path.posix.join(relativeDirectory, matName), 'extension-agnostic', dependency, 'findFile');
+				let result2 = await this.registerDependency(path.posix.join(relativeDirectory, matName), 'extension-agnostic', dependency, IMAGE_EXTENSIONS.concat(['.ifl']));
 				if (!result2) continue;
 
 				let found2 = result2.found;
@@ -313,7 +316,7 @@ export class MissionUpload {
 					for (let line of lines) {
 						let textureName = line.split(' ')[0]?.trim();
 						if (textureName) {
-							await this.registerDependency(path.posix.join(relativeDirectory, textureName), 'extension-agnostic', found2.name, 'findFile');
+							await this.registerDependency(path.posix.join(relativeDirectory, textureName), 'extension-agnostic', found2.name, IMAGE_EXTENSIONS);
 						}
 					}
 				}

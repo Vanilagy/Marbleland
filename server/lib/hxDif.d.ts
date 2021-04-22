@@ -79,8 +79,9 @@ export class ConvexHull {
 	polyListPlaneStart: number;
 	polyListPointStart: number;
 	polyListStringStart: number;
-	write(io: io_BytesWriter): void;
-	static read(io: io_BytesReader): ConvexHull;
+	staticMesh: boolean;
+	write(io: io_BytesWriter, version: Version): void;
+	static read(io: io_BytesReader, version: Version): ConvexHull;
 }
 
 export class CoordBin {
@@ -362,7 +363,7 @@ export class Surface {
 	mapSizeY: number;
 	brushId: number;
 	write(io: io_BytesWriter, version: Version): void;
-	static read(io: io_BytesReader, version: Version): Surface;
+	static read(io: io_BytesReader, version: Version, interior: Interior): Surface;
 }
 
 export class TexGenEQ {
@@ -410,8 +411,8 @@ export class VehicleCollision {
 	planes: Plane[];
 	windings: number[];
 	windingIndices: WindingIndex[];
-	write(io: io_BytesWriter): void;
-	static read(io: io_BytesReader): VehicleCollision;
+	write(io: io_BytesWriter, version: Version): void;
+	static read(io: io_BytesReader, version: Version): VehicleCollision;
 }
 
 export class Version {
