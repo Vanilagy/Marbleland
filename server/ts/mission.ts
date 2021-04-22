@@ -564,7 +564,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 
 					if (replaceDuplicates) {
 						// Search for a duplicate level that was already added previously
-						let duplicate = await db.missions.findOne({ $or: [
+						let duplicatesArr = await db.missions.find({ $or: [
 							{
 								// Primitive heuristic, but should work to identify candidates
 								'info.name': mission.info.name,
@@ -575,22 +575,23 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 							{
 								misHash: mission.misHash
 							}
-						] }) as MissionDoc;
+						] }) as MissionDoc[];
 
-						outer:
-						if (duplicate) {
+						for (let duplicate of duplicatesArr) {
 							if (duplicate.misHash !== mission.misHash) {
 								// We found a possible duplicate candidate.
 								let mis1 = new MisParser((await fs.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString()).parse();
 								let mis2 = mission.mis;
 
 								// Compare the contents. If they don't match, it's (probably) not a duplicate.
-								if (!compareMissions(mis1, mis2)) break outer;
+								if (!compareMissions(mis1, mis2)) continue;
 							}
 
 							console.log(`Duplicate found for ${path.join(relativePath, entry)} in ${path.join(duplicate.baseDirectory, duplicate.relativePath)}. Replacing the old entry.`);
 							duplicates++;
 							mission.id = duplicate._id;
+
+							break;
 						}
 					}
 					
@@ -638,16 +639,16 @@ export const compareMissions = (mis1: MisFile, mis2: MisFile) => {
 	return JSON.stringify(root1) === JSON.stringify(root2);
 };
 
-export const refreshMissions = async () => {
+export const reimportMissions = async () => {
 	let missions = await db.missions.find({}) as MissionDoc[];
 	let baseDirectories = new Set(missions.map(x => x.baseDirectory));
 
-	console.log("Refreshing missions...");
+	console.log("Reimporting missions...");
 
 	for (let directory of baseDirectories) {
 		console.log(`Now re-scanning: ${directory}\n\n`);
 		await scanForMissions(directory, null, true);
 	}
 
-	console.log("Refresh complete.");
+	console.log("Reimport complete.");
 };

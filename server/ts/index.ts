@@ -1,4 +1,4 @@
-import { refreshMissions, scanForMissions } from "./mission";
+import { reimportMissions, scanForMissions } from "./mission";
 import { initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import { initApi } from "./api/api";
@@ -19,8 +19,8 @@ const init = async () => {
 		// Import a directory of levels to the level database.
 		await scanForMissions(argv._[1], argv["id-map"], !!argv["replace-duplicates"]);
 		process.exit();
-	} else if (argv._[0] === 'refresh-missions') {
-		await refreshMissions();
+	} else if (argv._[0] === 'reimport') {
+		await reimportMissions();
 		process.exit();
 	} else {
 		// Usual path, boot up the API and HTTP server.
