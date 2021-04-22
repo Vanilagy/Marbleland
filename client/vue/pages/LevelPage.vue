@@ -147,7 +147,7 @@ export default defineComponent({
 			result["Gem count"] = this.levelInfo.gems;
 			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg? 'Yes' : 'No';
 
-			let timeName = COUNT_DOWN_MODES.includes(this.levelInfo.gameMode)? 'Time' : 'Qualifying time';
+			let timeName = this.levelInfo.gameMode?.split(' ').some(x => COUNT_DOWN_MODES.includes(x))? 'Time' : 'Qualifying time';
 
 			if (this.levelInfo.qualifyingTime) result[timeName] = Util.secondsToTimeString(Number(this.levelInfo.qualifyingTime) / 1000);
 			if (this.levelInfo.goldTime) result[this.levelInfo.modification === Modification.Platinum? "Platinum time" : "Gold time"] = Util.secondsToTimeString(Number(this.levelInfo.goldTime) / 1000);
