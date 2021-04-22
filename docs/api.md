@@ -318,7 +318,8 @@ LevelInfo & {
 	remarks: string,
 	packs: PackInfo[],
 	comments: CommentInfo[],
-	downloads: number
+	downloads: number,
+	missesDependencies: boolean
 }
 ```
 

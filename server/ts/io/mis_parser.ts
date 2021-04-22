@@ -240,7 +240,7 @@ export interface MissionElementParticleEmitterNode extends MissionElementBase {
 type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode;
 
 //const elementHeadRegEx = /new (\w+)\((\w*)\) *{/g;
-const elementHeadRegEx = /new (\w+)\((.*?)\) *{/g;
+const elementHeadRegEx = /new\s+(\w+)\((.*?)\)\s*{/g;
 const blockCommentRegEx = /\/\*(.|\n)*?\*\//g;
 const lineCommentRegEx = /\/\/.*/g;
 const assignmentRegEx = /(\$(?:\w|\d)+)\s*=\s*(.+?);/g;

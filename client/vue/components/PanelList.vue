@@ -4,7 +4,8 @@
 			<panel-skeleton v-for="n in defaultCount" :key="n"></panel-skeleton>
 		</template>
 		<template v-else>
-			<template v-if="shownEntries.length > 0">
+			<template v-if="entries.length > 0">
+				<p class="entryCount">Total: {{ entries.length }}</p>
 				<template v-if="mode === 'level'">
 					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :actions="passedLevelPanelActions" class="entryPanel"></level-panel>
 				</template>
@@ -88,15 +89,23 @@ export default defineComponent({
 	font-size: 14px;
 }
 
+.entryCount {
+	width: 100%;
+	text-align: center;
+	font-size: 12px;
+	opacity: 0.5;
+	margin: 0;
+}
+
 .more {
 	display: block;
 	margin: auto;
 	width: 48px;
-	opacity: 0.25;
+	opacity: 0.25 !important;
 	cursor: pointer;
 }
 
 .more:hover {
-	opacity: 0.75;
+	opacity: 0.75 !important;
 }
 </style>

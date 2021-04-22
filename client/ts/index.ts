@@ -2,8 +2,7 @@ import { createApp } from '../../shared/app';
 import { SignInInfo } from '../../shared/types';
 import { store } from './store';
 
-let { app, router } = createApp();
-app.use(router).use(store);
+let { app } = createApp();
 if ((window as any)["INITIAL_STATE"]) store.replaceState((window as any)["INITIAL_STATE"]);
 
 /** Checks the login token and gets sign-in data if available. */

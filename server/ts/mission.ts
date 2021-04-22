@@ -33,7 +33,8 @@ export interface MissionDoc {
 	addedAt: number,
 	addedBy?: number,
 	remarks?: string,
-	downloads: number
+	downloads: number,
+	missesDependencies: boolean
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -55,6 +56,7 @@ export class Mission {
 	addedBy: number;
 	remarks: string;
 	downloads: number = 0;
+	missesDependencies = false;
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -83,6 +85,7 @@ export class Mission {
 		mission.addedBy = doc.addedBy;
 		mission.remarks = doc.remarks;
 		mission.downloads = doc.downloads;
+		mission.missesDependencies = doc.missesDependencies;
 
 		return mission;
 	}
@@ -168,7 +171,7 @@ export class Mission {
 
 		let i = this.info;
 
-		if (i.game && !i.game.startsWith('custom')) return stringMap[i.game.toLowerCase() as keyof typeof stringMap];
+		if (i.game && !i.game.toLowerCase().startsWith('custom')) return stringMap[i.game.toLowerCase() as keyof typeof stringMap];
 		if (i.modification) return stringMap[i.modification.toLowerCase() as keyof typeof stringMap];
 
 		let result = Modification.Gold;
@@ -207,8 +210,8 @@ export class Mission {
 			if (element._type === MissionElementType.SimGroup) {
 				this.scanSimGroup(element);
 			} else if (element._type === MissionElementType.Item) {
-				if (element.datablock?.includes('GemItem')) this.gems++;
-				if (['EasterEgg', 'NestEgg'].includes(element.datablock)) this.hasEasterEgg = true;
+				if (element.datablock?.toLowerCase().includes('gemitem')) this.gems++;
+				if (['easteregg', 'nestegg'].includes(element.datablock?.toLowerCase())) this.hasEasterEgg = true;
 			} else if (!this.info && element._type === MissionElementType.ScriptObject && element._name === "MissionInfo") {
 				this.info = element;
 				this.info = Util.jsonClone(this.info);
@@ -262,7 +265,11 @@ export class Mission {
 
 			// Special case: If the directory is interiors, check again in interiors_mbg. This is because the default MBG assets (in PQ) are located in interiors_mbg, but the paths within the .mis files still point to interiors (it does some directory shadowing).
 			if (interiorPath.startsWith('interiors/')) interiorPath = interiorPath.replace('interiors/', 'interiors_mbg/');
-			else return; // Otherwise, we haven't found a file, so abort.
+			else {
+				// Otherwise, we haven't found a file, so abort.
+				this.missesDependencies = true;
+				return;
+			}
 		}
 
 		this.dependencies.add(interiorPath); // Add the interior itself as a dependency
@@ -302,7 +309,10 @@ export class Mission {
 		else this.visitedPaths.add(skyPath);
 		
 		let fullPath = await this.findPath(skyPath);
-		if (!fullPath) return;
+		if (!fullPath) {
+			this.missesDependencies = true;
+			return;
+		}
 
 		this.dependencies.add(skyPath); // Add the .dml file itself
 
@@ -314,6 +324,7 @@ export class Mission {
 		for (let line of lines) {
 			let filePath = await this.findFile(line, skyDirectory, true, IMAGE_EXTENSIONS); 
 			if (filePath) this.dependencies.add(filePath);
+			else this.missesDependencies = true;
 		}
 	}
 
@@ -326,7 +337,10 @@ export class Mission {
 		else this.visitedPaths.add(dtsPath);
 
 		let fullPath = await this.findPath(dtsPath);
-		if (!fullPath) return;
+		if (!fullPath) {
+			this.missesDependencies = true;
+			return;
+		}
 
 		this.dependencies.add(dtsPath); // Add the .dts itself
 
@@ -418,7 +432,8 @@ export class Mission {
 			hasEasterEgg: this.hasEasterEgg,
 			misHash: this.misHash,
 			addedAt: Date.now(),
-			downloads: this.downloads
+			downloads: this.downloads,
+			missesDependencies: this.missesDependencies
 		};
 	}
 
@@ -467,16 +482,18 @@ export class Mission {
 			remarks: this.remarks,
 			packs: packInfos,
 			comments: await getCommentInfosForLevel(this.id),
-			downloads: this.downloads ?? 0
+			downloads: this.downloads ?? 0,
+			missesDependencies: this.missesDependencies
 		});
 	}
 
 	/** Get the path to the image thumbnail of this mission. */
 	getImagePath() {
 		let startsWith = Util.removeExtension(this.relativePath);
+		let potentialStarts = [startsWith + '.prev', startsWith]; // Prefer .prev first, because higher resolution and stuff
 		// Create a list of potential candidates for the thumbnail file name
-		let potentialNames = IMAGE_EXTENSIONS.map(x => (startsWith + x).toLowerCase());
-		return [...this.dependencies].find(x => potentialNames.includes(x.toLowerCase())) ?? null;
+		let potentialNames = potentialStarts.map(start => IMAGE_EXTENSIONS.map(extension => (start + extension).toLowerCase())).flat();
+		return [...this.dependencies].find(x => potentialNames.includes(x.toLowerCase()) && !x.includes('.dds') ) ?? null; // TEMP: Exclude dds files for now, until we can read them
 	}
 
 	/** Returns the mission file's name (without the path). */
@@ -488,18 +505,23 @@ export class Mission {
 /** Scans a given directory for missions and imports them all.
  * @param idMapPath Path to a JSON file which maps mission base names to IDs. Can be used for controlled setting of IDs.
  */
-export const scanForMissions = async (baseDirectory: string, idMapPath?: string) => {
+export const scanForMissions = async (baseDirectory: string, idMapPath?: string, replaceDuplicates = false) => {
 	let idMap: { id: number, baseName: string }[] = null;
 	if (idMapPath) {
 		idMap = JSON.parse(fs.readFileSync(idMapPath).toString());
 		console.log("ID map loaded.");
 	}
 
+	console.log("Replace duplicate mode: On.");
+
+	let success = 0;
+	let failure = 0;
+	let skipped = 0;
+	let duplicates = 0;
+
 	/** Recursively scans a directory. */
 	const scan = async (relativePath: string) => {
 		let entries = await fs.readdir(path.join(baseDirectory, relativePath));
-		let success = 0;
-		let failure = 0;
 
 		for (let entry of entries) {
 			let joined = path.join(baseDirectory, relativePath, entry);
@@ -507,11 +529,18 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 			let fromStart = path.posix.join(relativePath, entry);
 	
 			if (stat.isDirectory()) {
-				let subcount = await scan(fromStart); // Recurse
-				success += subcount.success;
-				failure += subcount.failure;
+				await scan(fromStart); // Recurse
 			} else {
 				if (entry.toLowerCase().endsWith('.mis')) {
+					// Check if the same file already exists in default PQ, and if so, skip it
+					let existsInPq = await fs.pathExists(path.join(Config.dataPath, relativePath, entry));
+					let isProbablyCustom = relativePath.includes('custom');
+					if (existsInPq && !isProbablyCustom) {
+						skipped++;
+						console.log("Skipping: ", fromStart);
+						continue;
+					}
+
 					console.log("Importing: ", fromStart);
 
 					let id: number;
@@ -530,7 +559,39 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 					} catch (e) {
 						console.error(`Error in loading mission ${entry}:`, e);
 						failure++;
-						break;
+						continue;
+					}
+
+					if (replaceDuplicates) {
+						// Search for a duplicate level that was already added previously
+						let duplicate = await db.missions.findOne({ $or: [
+							{
+								// Primitive heuristic, but should work to identify candidates
+								'info.name': mission.info.name,
+								'info.desc': mission.info.desc,
+								'info.artist': mission.info.artist,
+								'info.starthelptext': mission.info.starthelptext
+							},
+							{
+								misHash: mission.misHash
+							}
+						] }) as MissionDoc;
+
+						outer:
+						if (duplicate) {
+							if (duplicate.misHash !== mission.misHash) {
+								// We found a possible duplicate candidate.
+								let mis1 = new MisParser((await fs.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString()).parse();
+								let mis2 = mission.mis;
+
+								// Compare the contents. If they don't match, it's (probably) not a duplicate.
+								if (!compareMissions(mis1, mis2)) break outer;
+							}
+
+							console.log(`Duplicate found for ${path.join(relativePath, entry)} in ${path.join(duplicate.baseDirectory, duplicate.relativePath)}. Replacing the old entry.`);
+							duplicates++;
+							mission.id = duplicate._id;
+						}
 					}
 					
 					// Add the mission to the database
@@ -542,10 +603,51 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string)
 				}
 			}
 		}
-
-		return { success, failure };
 	};
 
-	let totalCount = await scan('');
-	console.log(`Imported ${totalCount.success + totalCount.failure} level(s). Successes: ${totalCount.success}. Failures: ${totalCount.failure}`);
+	await scan('');
+	console.log(
+`================
+Imported ${success + failure + skipped} level(s).
+Successes: ${success}
+Failures: ${failure}
+Skipped: ${skipped}
+Duplicates: ${duplicates}
+	`);
+};
+
+/** Compares two missions and returns true, if their contents match (excluding MissionInfo). */
+export const compareMissions = (mis1: MisFile, mis2: MisFile) => {
+	let root1 = Util.jsonClone(mis1.root);
+	let root2 = Util.jsonClone(mis2.root);
+
+	const prepare = (simGroup: MissionElementSimGroup) => {
+		for (let i = 0; i < simGroup.elements.length; i++) {
+			let element = simGroup.elements[i];
+
+			if (element._type === MissionElementType.SimGroup) {
+				prepare(element);
+			} else if (element._type === MissionElementType.ScriptObject && element._name === "MissionInfo") {
+				simGroup.elements.splice(i--, 1);
+			}
+		}
+	};
+	prepare(root1);
+	prepare(root2);
+
+	return JSON.stringify(root1) === JSON.stringify(root2);
+};
+
+export const refreshMissions = async () => {
+	let missions = await db.missions.find({}) as MissionDoc[];
+	let baseDirectories = new Set(missions.map(x => x.baseDirectory));
+
+	console.log("Refreshing missions...");
+
+	for (let directory of baseDirectories) {
+		console.log(`Now re-scanning: ${directory}\n\n`);
+		await scanForMissions(directory, null, true);
+	}
+
+	console.log("Refresh complete.");
 };

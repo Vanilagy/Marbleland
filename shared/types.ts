@@ -45,7 +45,8 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	remarks: string,
 	packs: PackInfo[],
 	comments: CommentInfo[],
-	downloads: number
+	downloads: number,
+	missesDependencies: boolean
 }
 
 /** Contains metadata about a profile. */

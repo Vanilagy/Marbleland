@@ -230,14 +230,14 @@ h1 {
 }
 
 .editBio {
-	opacity: 0.25;
+	opacity: 0.25 !important;
 	cursor: pointer;
 	display: block;
 	margin: auto;
 }
 
 .editBio:hover {
-	opacity: 0.75;
+	opacity: 0.75 !important;
 }
 
 .bioTextarea {

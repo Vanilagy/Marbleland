@@ -14,7 +14,7 @@
 			<aside>
 				<img v-if="!imageHidden" :src="imageSource" class="thumbnail" @error="imageHidden = true">
 				<download-button style="margin-top: 10px" :id="levelInfo.id" mode="level" @download="levelInfo.downloads++"></download-button>
-				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Added on {{ formattedDate }}</p>
+				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Added on {{ formattedDate }}<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span></p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
 			<div style="flex: 1 1 auto; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
@@ -143,7 +143,8 @@ export default defineComponent({
 
 			result["Modification"] = this.prettyModification(this.levelInfo.modification);
 			result["Game type"] = this.levelInfo.gameType === 'single'? 'Single-player' : 'Multiplayer';
-			if (this.levelInfo.gameMode) result["Game mode"] = this.levelInfo.gameMode.split(' ').map(x => Util.splitWords(x).join(' ')).join(', ');
+			if (this.levelInfo.gameMode && this.levelInfo.gameMode !== 'null')
+				result["Game mode"] = this.levelInfo.gameMode.split(' ').map(x => Util.splitWords(x).join(' ')).join(', ');
 			result["Gem count"] = this.levelInfo.gems;
 			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg? 'Yes' : 'No';
 
