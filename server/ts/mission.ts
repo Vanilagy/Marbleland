@@ -110,6 +110,10 @@ export class Mission {
 		// Hash the mission text for easy duplicate detection later on
 		let misHash = crypto.createHash('sha256').update(missionText).digest('base64');
 		this.misHash = misHash;
+
+		if (!missionText.includes('//--- OBJECT WRITE BEGIN ---') || !missionText.includes('//--- OBJECT WRITE END ---')) {
+			throw new Error(`Mission file does not contain both "//--- OBJECT WRITE BEGIN ---" and "//--- OBJECT WRITE END ---", which are necessary for the level to behave correctly upon restarts.`);
+		}
 	}
 
 	/** Finds all the dependencies of this mission. */

@@ -112,6 +112,11 @@ export class MissionUpload {
 			return false;
 		}
 
+		if (!text.includes('//--- OBJECT WRITE BEGIN ---') || !text.includes('//--- OBJECT WRITE END ---')) {
+			this.problems.add(`Your .mis file does not contain both "//--- OBJECT WRITE BEGIN ---" and "//--- OBJECT WRITE END ---", which are necessary for the level to behave correctly upon restarts.`);
+			return false;
+		}
+
 		try {
 			let parser = new MisParser(text);
 			misFile = parser.parse();

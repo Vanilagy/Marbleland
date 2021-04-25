@@ -9,7 +9,7 @@
 		<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
 		<progress-bar class="progressBar" :loaded="uploadLoaded" :total="uploadTotal" :state="uploadState" v-if="uploading" :class="{ disabled: successResponse }"></progress-bar>
 		<div v-if="problems.length > 0" class="problemContainer">
-			<h3>There are problems with your level that prevent it from being uploaded.</h3>
+			<h3>There are problems with your level that prevent it from being uploaded:</h3>
 			<p v-for="problem of problems" :key="problem">- {{ problem }}</p>
 		</div>
 		<div v-else-if="successResponse" class="successContainer" :class="{ disabled: submitting }">
