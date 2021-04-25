@@ -12,6 +12,7 @@ import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
+import sharp from 'sharp';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.dds'];
@@ -34,7 +35,8 @@ export interface MissionDoc {
 	addedBy?: number,
 	remarks?: string,
 	downloads: number,
-	missesDependencies: boolean
+	missesDependencies: boolean,
+	preferPrevThumbnail: boolean
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -57,6 +59,7 @@ export class Mission {
 	remarks: string;
 	downloads: number = 0;
 	missesDependencies = false;
+	preferPrevThumbnail = false;
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -86,6 +89,7 @@ export class Mission {
 		mission.remarks = doc.remarks;
 		mission.downloads = doc.downloads;
 		mission.missesDependencies = doc.missesDependencies;
+		mission.preferPrevThumbnail = doc.preferPrevThumbnail;
 
 		return mission;
 	}
@@ -120,6 +124,20 @@ export class Mission {
 		let fileNames = await Util.getFullFileNames(Util.removeExtension(missionFileName), path.join(this.baseDirectory, missionDirectory));
 		let thumbnailPaths = fileNames.filter(x => IMAGE_EXTENSIONS.includes(path.extname(x).toLowerCase()));
 		for (let thumbnailPath of thumbnailPaths) this.dependencies.add(path.posix.join(missionDirectory, thumbnailPath));
+
+		let startsWith = Util.removeExtension(this.relativePath);
+		// Create a list of potential candidates for the thumbnail file name
+		let potentialNames = IMAGE_EXTENSIONS.map(x => (startsWith + x).toLowerCase());
+		let thumbnail = [...this.dependencies].find(x => potentialNames.includes(x.toLowerCase()) && !x.includes('.dds'));
+		if (thumbnail) {
+			let buffer = await fs.readFile(path.join(this.baseDirectory, thumbnail));
+			let metadata = await sharp(buffer).metadata();
+
+			// If the regular thumbnail looks too crappy, fall back to the .prev
+			if (Math.max(metadata.width, metadata.height) < 128) {
+				this.preferPrevThumbnail = true;
+			}
+		}
 
 		// Start walking over all elements over the mission file
 		this.visitedPaths.clear();
@@ -433,7 +451,8 @@ export class Mission {
 			misHash: this.misHash,
 			addedAt: Date.now(),
 			downloads: this.downloads,
-			missesDependencies: this.missesDependencies
+			missesDependencies: this.missesDependencies,
+			preferPrevThumbnail: this.preferPrevThumbnail
 		};
 	}
 
@@ -490,10 +509,18 @@ export class Mission {
 	/** Get the path to the image thumbnail of this mission. */
 	getImagePath() {
 		let startsWith = Util.removeExtension(this.relativePath);
-		let potentialStarts = [startsWith + '.prev', startsWith]; // Prefer .prev first, because higher resolution and stuff
+		let potentialStarts = [startsWith, startsWith + '.prev'];
+		if (this.preferPrevThumbnail) potentialStarts.reverse();
 		// Create a list of potential candidates for the thumbnail file name
 		let potentialNames = potentialStarts.map(start => IMAGE_EXTENSIONS.map(extension => (start + extension).toLowerCase())).flat();
-		return [...this.dependencies].find(x => potentialNames.includes(x.toLowerCase()) && !x.includes('.dds') ) ?? null; // TEMP: Exclude dds files for now, until we can read them
+
+		let dependencyArray = [...this.dependencies];
+
+		for (let potentialName of potentialNames) {
+			let dependency = dependencyArray.find(x => potentialName.includes(x.toLowerCase()) && !x.includes('.dds')); // Exclude dds files for now, until we can read them (aka probably never)
+			if (dependency) return dependency;
+		}
+		return null;
 	}
 
 	/** Returns the mission file's name (without the path). */

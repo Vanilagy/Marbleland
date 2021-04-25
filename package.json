@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "webpack watch",
     "start": "node server/server_bundle.js",
-	"add-directory": "node server/server_bundle.js add-directory",
-	"reimport": "node server/server_bundle.js reimport"
+    "add-directory": "node server/server_bundle.js add-directory",
+    "reimport": "node server/server_bundle.js reimport"
   },
   "author": "",
   "license": "ISC",
