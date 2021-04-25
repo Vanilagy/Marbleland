@@ -9,6 +9,7 @@ import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission } from './mission';
 import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
+import sharp from 'sharp';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -138,8 +139,15 @@ export class MissionUpload {
 		let imageFound = false;
 
 		for (let filePath in this.zip.files) {
-			if (potentialNames.includes(filePath.toLowerCase())) {
+			if (!imageFound && potentialNames.includes(filePath.toLowerCase())) {
 				imageFound = true;
+
+				let buffer = await this.zip.files[filePath].async('nodebuffer');
+				let metadata = await sharp(buffer).metadata();
+
+				if (Math.max(metadata.width, metadata.height) < 128) {
+					this.warnings.add(`The image thumbnail contained with the level has a very low resolution (${metadata.width}x${metadata.height}). Please consider upping its resolution or including a .prev.png with your level.`);
+				}
 			}
 
 			// Include all files as a dependency who start with the .mis file name and end with an image extension. So, level.mis would cause the inclusion of level.png, level.jpg and also level.prev.png and things like that.

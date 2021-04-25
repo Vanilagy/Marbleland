@@ -13,7 +13,10 @@
 			<p v-for="problem of problems" :key="problem">- {{ problem }}</p>
 		</div>
 		<div v-else-if="successResponse" class="successContainer" :class="{ disabled: submitting }">
-			<p v-for="warning of successResponse.warnings" :key="warning" class="warning">- {{ warning }}</p>
+			<div v-if="successResponse.warnings.length > 0" style="margin-bottom: 30px;">
+				<h3>Please consider the following before submitting the level:</h3>
+				<p v-for="warning of successResponse.warnings" :key="warning" class="warning">- {{ warning }}</p>
+			</div>
 			<h3>Your level has been processed successfully! If you want to, add a few additional remarks describing the level and its creation before submitting it.</h3>
 			<textarea class="remarks basicTextarea" placeholder="Additional remarks" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks"></textarea>
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit">Submit level</button-with-icon>
