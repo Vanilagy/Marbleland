@@ -2,7 +2,7 @@
 	<header>
 		<img src="/assets/img/favicon.png" class="homeIcon" title="Home" @click="$router.push('/')">
 		<div v-for="target of targets" :key="target.path" class="targetContainer" :title="target.label" :class="{ selected: currentPath === target.path }" @click="navigate(target.path)">
-			<img :src="target.icon" class="basicIcon">
+			<a :href="target.path" @click.prevent=""><img :src="target.icon" class="basicIcon"></a>
 			<div class="underline"></div>
 		</div>
 		<profile-icon class="profileIcon"></profile-icon>
@@ -37,7 +37,6 @@ export default defineComponent({
 	},
 	computed: {
 		currentPath(): string {
-			return '/';
 			return this.$route.path;
 		}
 	},
@@ -90,7 +89,7 @@ header {
 	margin-right: 10px;
 }
 
-.targetContainer > img {
+.targetContainer img {
 	width: 32px;
 }
 

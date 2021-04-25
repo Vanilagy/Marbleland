@@ -4,6 +4,7 @@
 		<meta name="og:title" content="Packs - Marbleland">
 	</Head>
 	<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createPackButton" @click="createPack" v-if="$store.state.loggedInAccount">Create new pack</button-with-icon>
+	<a href="/create-pack" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
 	<search-bar :config="searchBarConfig" :placeholder="searchBarPlaceholder()"></search-bar>
 	<panel-list :entries="filteredPacks" :defaultCount="24" mode="pack" :noEntriesNotice="noEntriesNotice"></panel-list>
 </template>

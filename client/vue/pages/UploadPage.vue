@@ -6,6 +6,7 @@
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Upload a level</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
+		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
 		<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
 		<progress-bar class="progressBar" :loaded="uploadLoaded" :total="uploadTotal" :state="uploadState" v-if="uploading" :class="{ disabled: successResponse }"></progress-bar>
 		<div v-if="problems.length > 0" class="problemContainer">

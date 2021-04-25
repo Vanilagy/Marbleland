@@ -1,6 +1,6 @@
 <template>
 	<div class="homeAction" @click="navigate">
-		<img :src="icon" class="basicIcon">
+		<a :href="path" @click.prevent=""><img :src="icon" class="basicIcon"></a>
 		<h2>{{ name }}</h2>
 		<p>{{ description }}</p>
 	</div>
@@ -42,7 +42,7 @@ export default defineComponent({
 	transform: translate(0px, 5px);
 }
 
-.homeAction > img {
+.homeAction img {
 	position: absolute;
 	width: 50px;
 	opacity: 0.75;
@@ -51,7 +51,7 @@ export default defineComponent({
 	transform: translate(-50%, -50%);
 }
 
-.homeAction > h2 {
+.homeAction h2 {
 	text-align: center;
 	width: 100%;
 	font-weight: normal;
@@ -61,7 +61,7 @@ export default defineComponent({
 	left: 0
 }
 
-.homeAction > p {
+.homeAction p {
 	width: 100%;
 	padding: 12px;
 	position: absolute;

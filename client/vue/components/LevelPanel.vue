@@ -1,7 +1,7 @@
 <template>
 	<div class="levelPanelWrapper">
 		<div class="panel notSelectable" @click="clicked">
-			<img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage">
+			<a :href="`/level/${levelInfo.id}`" @click.prevent=""><img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage"></a>
 			<div class="bottom">
 				<div class="name">{{levelInfo.name}}</div>
 				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>

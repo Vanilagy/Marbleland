@@ -1,6 +1,6 @@
 <template>
 	<div class="profileBanner notSelectable" @click="clicked">
-		<img :src="avatarSrc" :class="{ basicIcon: !profileInfo.hasAvatar }">
+		<a :href="`/profile/${profileInfo.id}`" @click.prevent=""><img :src="avatarSrc" :class="{ basicIcon: !profileInfo.hasAvatar }"></a>
 		<div>
 			<p class="username">{{ profileInfo.username }}</p>
 			<p class="secondaryText">{{ secondaryText }}</p>

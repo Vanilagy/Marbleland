@@ -1,7 +1,7 @@
 <template>
 	<div class="packPanelWrapper">
 		<div class="panel notSelectable" @click="clicked">
-			<img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage">
+			<a :href="`/pack/${packInfo.id}`" @click.prevent=""><img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage"></a>
 			<div class="bottom">
 				<div class="name">{{packInfo.name}}</div>
 				<div class="creator">
