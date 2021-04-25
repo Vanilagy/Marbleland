@@ -4,7 +4,7 @@
 		<meta name="og:title" content="Search - Marbleland">
 	</Head>
 	<search-bar :config="$store.state.searchState.searchBar" :placeholder="searchBarPlaceholder()"></search-bar>
-	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList"></panel-list>
+	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList" showTotal></panel-list>
 </template>
 
 <script lang="ts">

@@ -5,7 +5,7 @@
 		</template>
 		<template v-else>
 			<template v-if="entries.length > 0">
-				<p class="entryCount">Total: {{ entries.length }}</p>
+				<p class="entryCount" v-if="showTotal">Total: {{ entries.length }}</p>
 				<template v-if="mode === 'level'">
 					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :actions="passedLevelPanelActions" class="entryPanel"></level-panel>
 				</template>
@@ -33,7 +33,8 @@ export default defineComponent({
 		noEntriesNotice: String as PropType<string>,
 		defaultCount: Number as PropType<number>,
 		/** Object of additional actions to pass down to the individual level panels */
-		levelPanelActions: Object as PropType<LevelPanelActions>
+		levelPanelActions: Object as PropType<LevelPanelActions>,
+		showTotal: Boolean as PropType<boolean>
 	},
 	data() {
 		return {
