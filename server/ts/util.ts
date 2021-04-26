@@ -200,10 +200,13 @@ export class Util {
 	 * full path to the file in the first base directory in which it was found.
 	*/
 	static async findPath(relativeFilePath: string, baseDirectories: string[]) {
+		let relativeDirectory = relativeFilePath.substring(0, relativeFilePath.lastIndexOf('/'));
+		let lowerCase = Util.getFileName(relativeFilePath).toLowerCase();
+
 		for (let baseDirectory of baseDirectories) {
-			let fullPath = path.join(baseDirectory, relativeFilePath);
-			let exists = await fs.pathExists(fullPath);
-			if (exists) return fullPath;
+			let dir = await Util.readdirCached(path.join(baseDirectory, relativeDirectory));
+			let found = dir.find(x => x.toLowerCase() === lowerCase);
+			if (found) return path.join(baseDirectory, relativeDirectory, found);
 		}
 		
 		return null;
