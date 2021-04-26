@@ -1,6 +1,6 @@
 <template :key="$route.path">
 	<Head v-if="levelInfo">
-		<title v-if="levelInfo">{{ title }}</title>
+		<title v-if="levelInfo">{{ title }} - Marbleland</title>
 		<meta name="description" :content="levelInfo.desc">
 		<meta name="og:title" :content="title">
 		<meta name="og:description" :content="levelInfo.desc">
@@ -181,7 +181,7 @@ export default defineComponent({
 			return Util.linkify(this.levelInfo.remarks);
 		},
 		title(): string {
-			return this.levelInfo.name + (this.levelInfo.artist? ' by ' + this.levelInfo.artist : '') + ' - Marbleland';
+			return this.levelInfo.name + (this.levelInfo.artist? ' by ' + this.levelInfo.artist : '');
 		},
 		origin(): string {
 			return ORIGIN;

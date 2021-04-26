@@ -1,7 +1,7 @@
 <template>
 	<Head>
 		<title>About level uploading - Marbleland</title>
-		<meta name="og:title" content="About level uploading - Marbleland">
+		<meta name="og:title" content="About level uploading">
 	</Head>
 	<h1>About level uploading</h1>
 	<h3>Overview</h3>

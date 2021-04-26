@@ -2,7 +2,7 @@
 	<Head v-if="profileInfo">
 		<title>{{ profileInfo.username }} - Marbleland</title>
 		<meta name="description" :content="profileInfo.bio">
-		<meta name="og:title" :content="profileInfo.username + ' - Marbleland'">
+		<meta name="og:title" :content="profileInfo.username">
 		<meta name="og:description" :content="profileInfo.bio">
 		<meta name="og:image" :content="origin + `/api/account/${profileInfo.id}/avatar`">
 	</Head>

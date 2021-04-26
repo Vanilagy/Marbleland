@@ -1,7 +1,7 @@
 <template>
 	<Head>
 		<title>Sign in - Marbleland</title>
-		<meta name="og:title" content="Sign in - Marbleland">
+		<meta name="og:title" content="Sign in">
 	</Head>
 	<sign-in-or-up-component type="signIn"></sign-in-or-up-component>
 </template>

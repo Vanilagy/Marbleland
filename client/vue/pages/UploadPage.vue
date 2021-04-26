@@ -1,7 +1,7 @@
 <template>
 	<Head>
 		<title>Upload level - Marbleland</title>
-		<meta name="og:title" content="Upload level - Marbleland">
+		<meta name="og:title" content="Upload level">
 	</Head>
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Upload a level</h1>

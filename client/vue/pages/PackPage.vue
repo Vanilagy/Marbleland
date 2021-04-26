@@ -1,6 +1,6 @@
 <template :key="$route.path">
 	<Head v-if="packInfo">
-		<title v-if="packInfo">{{ title }}</title>
+		<title v-if="packInfo">{{ title }} - Marbleland</title>
 		<meta name="description" :content="packInfo.description">
 		<meta name="og:title" :content="title">
 		<meta name="og:description" :content="packInfo.description">
@@ -140,7 +140,7 @@ export default defineComponent({
 			return Util.linkify(this.packInfo.description);
 		},
 		title(): string {
-			return `[Pack] ${this.packInfo.name} by ${this.packInfo.createdBy.username} - Marbleland`;
+			return `[Pack] ${this.packInfo.name} by ${this.packInfo.createdBy.username}`;
 		},
 		origin(): string {
 			return ORIGIN;

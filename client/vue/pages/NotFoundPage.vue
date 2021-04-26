@@ -1,7 +1,7 @@
 <template>
 	<Head>
 		<title>Not found - Marbleland</title>
-		<meta name="og:title" content="Not found - Marbleland">
+		<meta name="og:title" content="Not found">
 	</Head>
 	<h1>404</h1>
 	<p>Page not found. Marble sad. :(</p>	

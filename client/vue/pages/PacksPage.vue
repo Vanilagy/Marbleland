@@ -1,7 +1,7 @@
 <template>
 	<Head>
 		<title>Packs - Marbleland</title>
-		<meta name="og:title" content="Packs - Marbleland">
+		<meta name="og:title" content="Packs">
 	</Head>
 	<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createPackButton" @click="createPack" v-if="$store.state.loggedInAccount">Create new pack</button-with-icon>
 	<a href="/create-pack" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->

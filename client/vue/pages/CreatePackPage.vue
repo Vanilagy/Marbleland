@@ -1,7 +1,7 @@
 <template>
 	<Head>
 		<title>Create pack - Marbleland</title>
-		<meta name="og:title" content="Create pack - Marbleland">
+		<meta name="og:title" content="Create pack">
 	</Head>
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Create new level pack</h1>

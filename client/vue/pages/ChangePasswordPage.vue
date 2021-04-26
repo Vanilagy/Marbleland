@@ -1,7 +1,7 @@
 <template>
 	<Head>
 		<title>Change password - Marbleland</title>
-		<meta name="og:title" content="Change password - Marbleland">
+		<meta name="og:title" content="Change password">
 	</Head>
 	<div :class="{ disabled: waitingForResponse }" v-if="$store.state.loggedInAccount">
 		<h1>Change your password</h1>
