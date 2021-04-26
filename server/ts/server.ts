@@ -10,8 +10,12 @@ import { Util } from './util';
 export const app = express();
 
 export const startHTTPServer = (port: number) => {
+	app.use(express.static(path.join(__dirname, '../dist'), {
+		index: false
+	}));
+
 	app.get('*', async (req, res, next) => {
-		if (!req.url.includes('.') && req.headers.accept.includes('text/html')) {
+		if (!req.url.includes('.')) {
 			let html = await generateHTML(req.url);
 			res.set('Content-Type', 'text/html');
 			res.send(html);
@@ -19,8 +23,6 @@ export const startHTTPServer = (port: number) => {
 			next();
 		}
 	});
-
-	app.use(express.static(path.join(__dirname, '../dist')));
 
 	app.listen(port, () => {
 		console.log(`Started HTTP server on port ${port}.`);
