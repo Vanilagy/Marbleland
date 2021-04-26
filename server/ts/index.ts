@@ -1,5 +1,5 @@
 import { reimportMissions, scanForMissions } from "./mission";
-import { initGlobals } from "./globals";
+import { config, initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import { initApi } from "./api/api";
 import * as fs from 'fs-extra';
@@ -25,7 +25,7 @@ const init = async () => {
 	} else {
 		// Usual path, boot up the API and HTTP server.
 		initApi();
-		startHTTPServer(8080);
+		startHTTPServer(config.port);
 	}
 };
 init();

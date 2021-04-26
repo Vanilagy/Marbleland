@@ -6,6 +6,7 @@ import Datastore from 'nedb-promises';
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
 export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
 
+export let config: { port: number };
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {
 	missions: Datastore,
@@ -17,6 +18,8 @@ export let structureMBG: DirectoryStructure;
 export let structurePQ: DirectoryStructure;
 
 export const initGlobals = () => {
+	config = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/config.json')).toString());
+
 	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 0, accountId: 0, packId: 0, commentId: 0 });
 
 	// Sometimes, NeDB kinda discards data for some weird reasons when first writing to a database file, so I'm doing this to (maybe) help prevent that:

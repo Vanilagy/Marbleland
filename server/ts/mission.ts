@@ -593,6 +593,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 						continue;
 					}
 
+					let duplicateDoc: MissionDoc;
 					if (replaceDuplicates) {
 						// Search for a duplicate level that was already added previously
 						let duplicatesArr = await db.missions.find({ $or: [
@@ -619,8 +620,8 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 							}
 
 							console.log(`Duplicate found for ${path.join(relativePath, entry)} in ${path.join(duplicate.baseDirectory, duplicate.relativePath)}. Replacing the old entry.`);
+							duplicateDoc = duplicate;
 							duplicates++;
-							mission.id = duplicate._id;
 
 							break;
 						}
@@ -628,6 +629,14 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 					
 					// Add the mission to the database
 					let doc = mission.createDoc();
+					if (duplicateDoc) {
+						doc._id = duplicateDoc._id;
+						doc.addedAt = duplicateDoc.addedAt;
+						doc.addedBy = duplicateDoc.addedBy;
+						doc.downloads = duplicateDoc.downloads;
+						doc.remarks = duplicateDoc.remarks;
+					}
+
 					await db.missions.update({ _id: doc._id }, doc, { upsert: true });
 	
 					console.log("Level imported successfully with id " + mission.id);

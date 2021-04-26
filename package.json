@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "webpack watch",
+    "build": "webpack build --env production",
     "start": "node server/server_bundle.js",
     "add-directory": "node server/server_bundle.js add-directory",
     "reimport": "node server/server_bundle.js reimport"

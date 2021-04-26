@@ -7,7 +7,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const WebpackBar = require('webpackbar');
 
-module.exports = [{
+module.exports = env => [{
 	mode: 'none',
 	entry: path.join(__dirname, 'server/ts/index.ts'),
 	output: {
@@ -39,7 +39,7 @@ module.exports = [{
 		]
 	},
 	optimization: {
-		minimize: false
+		minimize: false // Can stay unminified always
 	},
 	stats: 'minimal',
 	plugins: [
@@ -54,7 +54,6 @@ module.exports = [{
 	entry: path.join(__dirname, 'client/ts/index.ts'),
 	output: {
 		filename: 'js/[name]_[contenthash]_client_bundle.js',
-		chunkFilename: 'js/vendor_[contenthash]_bruh.js',
 		path: path.join(__dirname, 'dist'),
 		clean: true
 	},
@@ -81,7 +80,7 @@ module.exports = [{
 	resolve: {
 		extensions: ['.ts', '.js'],
 		alias: {
-			vue: 'vue/dist/vue.esm-browser.js' || 'vue/dist/vue.esm-browser.prod.js'
+			vue: env.production? 'vue/dist/vue.esm-browser.prod.js': 'vue/dist/vue.esm-browser.js'
 		}
 	},
 	externals: [
@@ -93,16 +92,16 @@ module.exports = [{
 		}
 	],
 	optimization: {
-		minimize: false,
+		minimize: env.production,
 		splitChunks: {
 			cacheGroups: {
 				vendor: {
 					test: /[\\/]node_modules[\\/]/,
 					name: 'vendor',
 					chunks: 'all',
-				},
-			},
-		},
+				}
+			}
+		}
 	},
 	stats: 'minimal',
 	plugins: [
