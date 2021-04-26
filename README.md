@@ -22,7 +22,7 @@ Marbleland also provides a RESTful API for full programmatic interfacing with it
 Check out the docs [here.](docs/api.md)
 
 ## Implementation
-Marbleland's frontend was built using Vue.js and its backend using Node. When custom levels are imported/uploaded, an asset dependency tree is constructed by scanning the .mis file for the required files, and then scanning those files for their dependencies. This way, all assets needed to correctly run the custom level can be identified and included in the .zip. Marbleland currently identifies the mission file and thumbnails, interiors, interior textures, sky materials, TSStatic shapes and shape materials as level dependencies.
+Marbleland's frontend was built using Vue.js and its backend using Node. When custom levels are imported/uploaded, an asset dependency tree is constructed by scanning the .mis file for the required files, and then scanning those files for their dependencies. This way, all assets needed to correctly run the custom level can be identified and included in the .zip. Marbleland currently identifies the mission file and thumbnails, interiors, interior textures, sky materials, TSStatic shapes and shape materials as level dependencies. .mis and .dts file parsing is done using the parsers used in the [webport](https://github.com/Vanilagy/MarbleBlast), and .dif parsing uses RandomityGuy's [hxDif](https://github.com/RandomityGuy/hxDIF) library.
 
 ## Building and developing
 This project requires Node.js v14.0.0 and up to run. After cloning, simply run `npm install` in the cloned directory to install all required dependencies. Then run `npm run watch` to create the necessary JavaScript bundles and to watch for future file changes. Run `npm run build` to create minified bundles.

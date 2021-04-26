@@ -80,7 +80,7 @@ export class MissionUpload {
 		}
 
 		if (excludedFiles.length > 0) {
-			this.warnings.add(`The .zip contains additional files that won't be submitted: ${excludedFiles.join(', ')}`);
+			this.warnings.add(`The .zip contains additional files that won't be submitted because they're not a dependency: ${excludedFiles.join(', ')}`);
 		}
 	}
 

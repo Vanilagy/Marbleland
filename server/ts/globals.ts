@@ -18,6 +18,8 @@ export let structureMBG: DirectoryStructure;
 export let structurePQ: DirectoryStructure;
 
 export const initGlobals = () => {
+	let configExists = fs.existsSync(path.join(__dirname, 'data/config.json'));
+	if (!configExists) fs.copyFileSync(path.join(__dirname, 'data/default_config.json'), path.join(__dirname, 'data/config.json'));
 	config = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/config.json')).toString());
 
 	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 0, accountId: 0, packId: 0, commentId: 0 });
