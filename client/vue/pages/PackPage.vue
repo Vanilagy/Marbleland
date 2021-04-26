@@ -251,6 +251,7 @@ h3 {
 @media (max-width: 629px) {
 	.topRight {
 		width: 100%;
+		margin-top: 10px;
 	}
 }
 
