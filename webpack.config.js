@@ -80,7 +80,7 @@ module.exports = env => [{
 	resolve: {
 		extensions: ['.ts', '.js'],
 		alias: {
-			vue: env.production? 'vue/dist/vue.esm-browser.prod.js': 'vue/dist/vue.esm-browser.js'
+			vue: (env.production && false)? 'vue/dist/vue.esm-browser.prod.js': 'vue/dist/vue.esm-browser.js' // Always use the dev build because the prod build has bugs!
 		}
 	},
 	externals: [
