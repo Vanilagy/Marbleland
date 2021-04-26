@@ -1,6 +1,7 @@
 node_modules
 server/bundle.js
 server/server_bundle.js
+server/data/config.json
 storage
 todo.txt
 missions.json
