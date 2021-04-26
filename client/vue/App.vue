@@ -6,6 +6,7 @@
 		<meta name="og:type" content="website">
 		<meta name="og:url" :content="origin + $route.path">
 		<meta name="og:description" content="Marbleland is a custom level sharing platform for Marble Blast, on which you can find, download, upload and share levels and level packs.">
+		<meta name="og:image" :content="origin + '/assets/img/favicon.png'">
 	</Head>
 	<div id="center">
 		<navigation-bar></navigation-bar>
