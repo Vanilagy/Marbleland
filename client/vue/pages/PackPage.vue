@@ -5,6 +5,7 @@
 		<meta name="og:title" :content="title">
 		<meta name="og:description" :content="packInfo.description">
 		<meta name="og:image" :content="origin + `/api/pack/${packInfo.id}/image`">
+		<meta name="twitter:card" content="summary_large_image">
 	</Head>
 	<loader v-if="!packInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This pack doesn't exist or has been deleted. :(</p>

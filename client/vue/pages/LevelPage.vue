@@ -5,6 +5,7 @@
 		<meta name="og:title" :content="title">
 		<meta name="og:description" :content="levelInfo.desc">
 		<meta name="og:image" :content="origin + `/api/level/${levelInfo.id}/image`">
+		<meta name="twitter:card" content="summary_large_image">
 	</Head>
 	<loader v-if="!levelInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This level doesn't exist or has been deleted. :(</p>
