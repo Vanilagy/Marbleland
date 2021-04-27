@@ -1,5 +1,10 @@
 # Version history
 
+## 0.0.2
+- Add cookie-based authentication
+- Style fixes
+- Fix search bar bugs
+
 ## 0.0.1
 - Fix OpenGraph metadata
 - Fix case-insensitive path matching
