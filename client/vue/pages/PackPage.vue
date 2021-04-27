@@ -116,13 +116,11 @@ export default defineComponent({
 					ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
 
 					// Send the update request to the server
-					let token = localStorage.getItem('token');
 					await fetch(`/api/pack/${self.packInfo.id}/set-levels`, {
 						method: 'POST',
 						body: JSON.stringify(self.packInfo.levels.map(x => x.id)),
 						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${token}`
+							'Content-Type': 'application/json'
 						}
 					});
 
@@ -162,7 +160,6 @@ export default defineComponent({
 			ownPack.name = this.packInfo.name;
 
 			// Submit the changes to the server
-			let token = localStorage.getItem('token');
 			await fetch(`/api/pack/${this.packInfo.id}/edit`, {
 				method: 'PATCH',
 				body: JSON.stringify({
@@ -170,8 +167,7 @@ export default defineComponent({
 					description: this.packInfo.description
 				}),
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				}
 			});
 
@@ -183,12 +179,8 @@ export default defineComponent({
 			this.deleting = true;
 
 			// Tell the server to delete this pack
-			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/pack/${this.packInfo.id}/delete`, {
-				method: 'DELETE',
-				headers: {
-					'Authorization': `Bearer ${token}`
-				}
+				method: 'DELETE'
 			});
 
 			if (response.ok) {

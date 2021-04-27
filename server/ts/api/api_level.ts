@@ -202,7 +202,7 @@ export const initLevelApi = () => {
 
 	// Submit a previously uploaded mission
 	app.post('/api/level/submit', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -230,7 +230,7 @@ export const initLevelApi = () => {
 
 	// Edit a previously submitted level, currently only the remarks
 	app.patch('/api/level/:levelId/edit', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -261,7 +261,7 @@ export const initLevelApi = () => {
 
 	// Delete a previous submitted level
 	app.delete('/api/level/:levelId/delete', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -299,7 +299,7 @@ export const initLevelApi = () => {
 
 	// Add a comment to a level
 	app.post('/api/level/:levelId/comment', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;

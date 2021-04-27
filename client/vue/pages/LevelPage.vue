@@ -208,15 +208,13 @@ export default defineComponent({
 			this.editing = false;
 
 			// Submit the changes to the server
-			let token = localStorage.getItem('token');
 			fetch(`/api/level/${this.levelInfo.id}/edit`, {
 				method: 'PATCH',
 				body: JSON.stringify({
 					remarks: this.levelInfo.remarks
 				}),
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				}
 			});
 		},
@@ -226,12 +224,8 @@ export default defineComponent({
 			this.deleting = true;
 
 			// Do the level delete API call
-			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/level/${this.levelInfo.id}/delete`, {
-				method: 'DELETE',
-				headers: {
-					'Authorization': `Bearer ${token}`
-				}
+				method: 'DELETE'
 			});
 
 			if (response.ok) {
@@ -255,15 +249,13 @@ export default defineComponent({
 			this.sendingComment = true;
 
 			// Send the comment to the server
-			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/level/${this.levelInfo.id}/comment`, {
 				method: 'POST',
 				body: JSON.stringify({
 					content: this.commentInput
 				}),
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				}
 			});
 			let json = await response.json() as CommentInfo[];
@@ -276,12 +268,8 @@ export default defineComponent({
 		async deleteComment(commentId: number) {
 			if (!confirm("Are you sure you want to delete this comment?")) return;
 
-			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/comment/${commentId}/delete`, {
-				method: 'DELETE',
-				headers: {
-					'Authorization': `Bearer ${token}`
-				}
+				method: 'DELETE'
 			});
 			let json = await response.json();
 

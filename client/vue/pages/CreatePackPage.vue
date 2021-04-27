@@ -44,7 +44,6 @@ export default defineComponent({
 			this.creating = true;
 
 			// Send a pack create API call
-			let token = localStorage.getItem('token');
 			let response = await fetch('/api/pack/create', {
 				method: 'POST',
 				body: JSON.stringify({
@@ -52,8 +51,7 @@ export default defineComponent({
 					description: this.description
 				}),
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				}
 			});
 

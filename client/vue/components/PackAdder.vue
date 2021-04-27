@@ -53,13 +53,11 @@ export default defineComponent({
 			this.shown = false;
 
 			// Sync the changes with the server
-			let token = localStorage.getItem('token');
 			await fetch(`/api/pack/${packId}/set-levels`, {
 				method: 'POST',
 				body: JSON.stringify(pack.levelIds),
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				}
 			});
 

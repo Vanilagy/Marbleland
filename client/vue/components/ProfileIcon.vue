@@ -58,14 +58,9 @@ export default defineComponent({
 					label: 'Sign out',
 					onClick() {
 						// Sign out the account
-						let token = localStorage.getItem('token');
 						fetch('/api/account/sign-out', { // Don't await this boy for more instant feedback
-							method: 'POST',
-							headers: {
-								'Authorization': `Bearer ${token}`
-							}
+							method: 'POST'
 						});
-						localStorage.removeItem('token');
 						self.$store.state.loggedInAccount = null;
 					}
 				}, themeOption];

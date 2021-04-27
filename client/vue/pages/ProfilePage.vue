@@ -114,13 +114,11 @@ export default defineComponent({
 				if (!file) return;
 
 				// Upload the new image to the server
-				let token = localStorage.getItem('token');
 				let response = await fetch(`/api/account/${this.profileInfo.id}/set-avatar`, {
 					method: 'POST',
 					body: file,
 					headers: {
-						'Content-Type': 'application/octet-stream',
-						'Authorization': `Bearer ${token}`
+						'Content-Type': 'application/octet-stream'
 					}
 				});
 
@@ -137,13 +135,11 @@ export default defineComponent({
 			this.editingBio = false;
 
 			// Send the new bio to the server
-			let token = localStorage.getItem('token');
 			fetch(`/api/account/${this.profileInfo.id}/set-bio`, {
 				method: 'POST',
 				body: this.profileInfo.bio ?? '',
 				headers: {
-					'Content-Type': 'text/plain',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'text/plain'
 				}
 			});
 		}

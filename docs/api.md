@@ -14,7 +14,9 @@ All of Marbleland's functionality can be accessed programatically through an API
 # Authentication
 Some API calls require the user to be authenticated to perform them.
 
-Authentication works by setting the `Authorization` header with a value of `Bearer <your-token>`, so for example `Bearer JBajPPAt+w/2tshyPSWNskWs054Zl2tFuPIzmcq7+WI=`. A token can be acquired through sign-in and sign-up.
+Authentication works by setting the `Authorization` header with a value of `Bearer <your-token>`, so for example `Bearer JBajPPAt+w/2tshyPSWNskWs054Zl2tFuPIzmcq7+WI=`. Alternatively, you can send a cookie called `token` with `<your-token>` as its value.
+
+A token can be acquired through sign-in and sign-up.
 
 # API endpoints
 ## Level

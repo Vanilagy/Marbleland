@@ -110,7 +110,6 @@ export default defineComponent({
 				this.waitingForResponse = false;
 			} else {
 				// User successfully signed in! Set values and route accordingly.
-				localStorage.setItem('token', json.token);
 				this.$store.state.loggedInAccount = json.signInInfo.profile;
 				this.$store.state.ownPacks = json.signInInfo.packs;
 				if (this.type === 'signUp') this.$store.state.nextInfoBannerMessage = "Account created successfully!";

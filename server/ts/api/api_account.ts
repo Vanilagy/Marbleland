@@ -2,7 +2,7 @@ import sharp from "sharp";
 import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getTokenFromAuthHeader, getExtendedProfileInfo } from "../account";
+import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie } from "../account";
 import { db, keyValue } from "../globals";
 import { app } from "../server";
 
@@ -79,12 +79,13 @@ export const initAccountApi = () => {
 		await db.accounts.insert(doc);
 
 		// Send sign in info back
+		setTokenCookie(res, newToken);
 		res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
 	});
 
 	// Checks if a given token is still valid. If so, returns the sign in info for the corresponding account.
 	app.get('/api/account/check-token', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -122,22 +123,23 @@ export const initAccountApi = () => {
 
 		await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 
+		setTokenCookie(res, newToken);
 		res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
 	});
 
 	// Sign out a user by invalidating their current access token
 	app.post('/api/account/sign-out', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc, token } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
 		}
 
 		// Remove the token from the list
-		let token = getTokenFromAuthHeader(req);
 		doc.tokens = doc.tokens.filter(x => x.value !== token);
 		await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 		
+		res.set('Set-Cookie', `token=; Path=/; Max-Age=1;`); // Clear the cookie
 		res.end();
 	});
 
@@ -190,7 +192,7 @@ export const initAccountApi = () => {
 
 	// Set the avatar image for an account
 	app.post('/api/account/:accountId/set-avatar', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -211,7 +213,7 @@ export const initAccountApi = () => {
 
 	// Set the biography for an account
 	app.post('/api/account/:accountId/set-bio', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -231,7 +233,7 @@ export const initAccountApi = () => {
 
 	// Change the password for an account
 	app.post('/api/account/change-password', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;

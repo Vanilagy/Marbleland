@@ -6,7 +6,7 @@ import { renderToString } from '@vue/server-renderer';
 import { renderHeadToString } from '@vueuse/head';
 import serialize from 'serialize-javascript';
 import { Util } from './util';
-
+import { authorize, getSignInInfo, setTokenCookie } from './account';
 export const app = express();
 
 export const startHTTPServer = (port: number) => {
@@ -16,7 +16,7 @@ export const startHTTPServer = (port: number) => {
 
 	app.get('*', async (req, res, next) => {
 		if (!req.url.includes('.')) {
-			let html = await generateHTML(req.url);
+			let html = await generateHTML(req, res);
 			res.set('Content-Type', 'text/html');
 			res.send(html);
 		} else {
@@ -29,12 +29,20 @@ export const startHTTPServer = (port: number) => {
 	});
 };
 
-export const generateHTML = async (url: string) => {
+export const generateHTML = async (req: express.Request, res: express.Response) => {
 	let template = (await fs.readFile(path.join(__dirname, '../dist/index.html'))).toString();
 	let { app, router, head, store } = createApp();
 
-	router.push(url);
+	router.push(req.url);
 	await router.isReady();
+
+	let { doc: accountDoc, token } = await authorize(req);
+	if (accountDoc) {
+		let signInInfo = await getSignInInfo(accountDoc);
+		store.state.loggedInAccount = signInInfo.profile;
+		store.state.ownPacks = signInInfo.packs;
+		setTokenCookie(res, token); // Update its expiration date
+	}
 
 	let rendered = await renderToString(app);
 	let { headTags } = renderHeadToString(head);

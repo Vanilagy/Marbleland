@@ -24,7 +24,7 @@ export const initPackApi = () => {
 
 	// Create a new, empty pack
 	app.post('/api/pack/create', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -105,7 +105,7 @@ export const initPackApi = () => {
 
 	// Set the ordered list of levels contained in a pack
 	app.post('/api/pack/:packId/set-levels', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -162,7 +162,7 @@ export const initPackApi = () => {
 
 	// Edit pack metadata
 	app.patch('/api/pack/:packId/edit', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -193,7 +193,7 @@ export const initPackApi = () => {
 
 	// Delete a pack
 	app.delete('/api/pack/:packId/delete', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;

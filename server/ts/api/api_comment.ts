@@ -6,7 +6,7 @@ import { app } from "../server";
 export const initCommentApi = () => {
 	// Delete a comment
 	app.delete('/api/comment/:commentId/delete', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;

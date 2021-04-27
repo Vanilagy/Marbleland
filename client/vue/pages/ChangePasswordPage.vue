@@ -65,7 +65,6 @@ export default defineComponent({
 			this.waitingForResponse = true;
 
 			// Send the request and wait for the response
-			let token = localStorage.getItem('token');
 			let response = await fetch('/api/account/change-password', {
 				method: 'POST',
 				body: JSON.stringify({
@@ -73,8 +72,7 @@ export default defineComponent({
 					newPassword: this.newPassword
 				}),
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				}
 			});
 

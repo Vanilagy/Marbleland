@@ -66,11 +66,10 @@ export default defineComponent({
 				let file = fileInput.files[0];
 				if (!file) return;
 
-				let token = localStorage.getItem('token');
 				let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
 				request.open('POST', '/api/level/upload', true);
 				request.setRequestHeader('Content-Type', 'application/zip');
-				request.setRequestHeader('Authorization', `Bearer ${token}`);
+				request.withCredentials = true;
 
 				request.upload.onprogress = (ev) => {
 					this.uploadLoaded = ev.loaded;
@@ -112,11 +111,9 @@ export default defineComponent({
 			this.submitting = true;
 
 			// Tell the server to submit the upload
-			let token = localStorage.getItem('token');
 			let response = await fetch(`/api/level/submit`, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
