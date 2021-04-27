@@ -22,7 +22,7 @@ export default defineComponent({
 			return (completion * 100) + '%';
 		},
 		color(): string {
-			if (this.state === 'neutral') return 'var(--background-2)';
+			if (this.state === 'neutral') return 'var(--text-color)';
 			if (this.state === 'negative') return 'crimson';
 			return 'lightgreen';
 		}
