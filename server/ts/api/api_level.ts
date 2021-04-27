@@ -82,6 +82,7 @@ export const initLevelApi = () => {
 			return;
 		}
 
+		res.removeHeader('Cache-Control');
 		await compressAndSendImage(path.join(mission.baseDirectory, imagePath), req, res, { width: 640, height: 480 });
 	});
 

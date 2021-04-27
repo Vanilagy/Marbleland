@@ -1,14 +1,17 @@
 # Version history
 
+## 0.0.3
+- Refined caching logic
+
 ## 0.0.2
-- Add cookie-based authentication
+- Added cookie-based authentication
 - Style fixes
-- Fix search bar bugs
+- Fixed search bar bugs
 
 ## 0.0.1
-- Fix OpenGraph metadata
-- Fix case-insensitive path matching
-- Fix Vue-related navigation bugs
+- Fixed OpenGraph metadata
+- Fixed case-insensitive path matching
+- Fixed Vue-related navigation bugs
 
 ## 0.0.0
 Initial beta release
