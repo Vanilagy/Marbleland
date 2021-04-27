@@ -2,7 +2,7 @@
 	<div class="outer notSelectable">
 		<div class="wrapper" :style="wrapperStyle">
 			<p @click="toggleExpand">{{ currentLabel }}</p>
-			<img src="/assets/svg/expand_more_black_24dp.svg" :style="chevronStyle">
+			<img src="/assets/svg/expand_more_black_24dp.svg" :style="chevronStyle" class="basicIcon">
 			<div v-if="expanded" style="border-top: 1px solid var(--background-2);" class="expander">
 				<p v-for="option of options" :key="option.name" @click="select(option.name)">{{ option.label }}</p>
 			</div>

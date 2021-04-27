@@ -63,8 +63,8 @@ export abstract class Search {
 			// Apply additional filtering
 			if (filter.modification.value !== 'all' && info.modification !== filter.modification.value) return false;
 			if (filter.gameType.value !== 'all' && info.gameType !== filter.gameType.value) return false;
-			if (filter.hasGems.value !== 'all' && info.gems > 0 !== (filter.hasGems.value === 'yes')) return false;
-			if (filter.hasGems.value !== 'all' && info.hasEasterEgg !== (filter.hasGems.value === 'yes')) return false;
+			if (filter.hasGems.value !== 'all' && (info.gems > 0) !== (filter.hasGems.value === 'yes')) return false;
+			if (filter.hasEasterEgg.value !== 'all' && info.hasEasterEgg !== (filter.hasEasterEgg.value === 'yes')) return false;
 
 			return true;
 		});

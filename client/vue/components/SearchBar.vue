@@ -138,7 +138,7 @@ export default defineComponent({
 	background: var(--background-1);
 	border-radius: 5px;
 	margin: 5px;
-	margin-top: 26px;
+	margin-top: 24px;
 	cursor: pointer;
 }
 
