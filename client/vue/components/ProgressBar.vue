@@ -35,12 +35,12 @@ export default defineComponent({
 	height: 10px;
 	border-radius: 5px;
 	overflow: hidden;
-	background: var(--background-1);
+	background: var(--background-2);
 }
 
 .progress {
 	height: 100%;
 	width: 33%;
-	background: var(--background-2);
+	background: var(--text-color);
 }
 </style>

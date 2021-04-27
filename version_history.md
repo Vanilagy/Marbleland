@@ -2,6 +2,7 @@
 
 ## 0.0.3
 - Refined caching logic
+- Changed progress bar colors
 
 ## 0.0.2
 - Added cookie-based authentication
