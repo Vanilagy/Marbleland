@@ -32,7 +32,7 @@
 				<h3>Details</h3>
 				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
 				<h3 v-if="levelInfo.remarks || editing">Remarks</h3>
-				<p class="regularParagraph" v-if="!editing && levelInfo.remarks" v-html="remarks"></p>
+				<p class="regularParagraph remarks" v-if="!editing && levelInfo.remarks" v-html="remarks"></p>
 				<textarea v-if="editing" class="basicTextarea remarksInput" v-model.trim="levelInfo.remarks" :maxlength="$store.state.levelRemarksMaxLength"></textarea>
 				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" @click="submitChanges">Save changes</button-with-icon>
 			</div>
@@ -370,6 +370,10 @@ h3 {
 	width: 100%;
 	height: 200px;
 	margin-bottom: 10px;
+}
+
+.remarks {
+	white-space: pre-wrap;
 }
 
 .saveChangesButton {
