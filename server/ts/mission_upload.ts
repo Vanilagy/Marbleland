@@ -113,7 +113,7 @@ export class MissionUpload {
 		}
 
 		if (!text.includes('//--- OBJECT WRITE BEGIN ---') || !text.includes('//--- OBJECT WRITE END ---')) {
-			this.problems.add(`Your .mis file does not contain both "//--- OBJECT WRITE BEGIN ---" and "//--- OBJECT WRITE END ---", which are necessary for the level to behave correctly upon restarts.`);
+			this.problems.add(`Your .mis file does not contain both "//--- OBJECT WRITE BEGIN ---" and "//--- OBJECT WRITE END ---", which are necessary for the level to behave correctly in the editor. Please add them around the outer MissionGroup element.`);
 			return false;
 		}
 
