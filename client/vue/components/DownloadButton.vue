@@ -43,10 +43,12 @@ export default defineComponent({
 	methods: {
 		/** Start downloading the .zip with the correct assumption parameter */
 		download(assumption: string) {
-			window.location.href = window.location.origin + 
-				((this.mode === 'level')? `/api/level/${this.id}/zip?assuming=${assumption}`
-				: `/api/pack/${this.id}/zip?assuming=${assumption}`);
-			;
+			let a = document.createElement('a');
+			a.href = (this.mode === 'level')? `/api/level/${this.id}/zip?assuming=${assumption}`
+				: `/api/pack/${this.id}/zip?assuming=${assumption}`;
+			a.setAttribute('download', '');
+			a.click();
+
 			this.$emit('download');
 		}
 	},
