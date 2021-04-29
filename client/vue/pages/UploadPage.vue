@@ -8,6 +8,10 @@
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
 		<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
+		<div v-if="!uploading" class="dropArea" @drop.prevent="dropFile" @dragover.prevent="" @dragenter="dragEntered = true" @dragleave="dragEntered = false" :style="{ 'border-color': dragEntered? 'var(--text-color)' : '' }">
+			<img src="/assets/svg/download_black_24dp.svg" class="basicIcon">
+			<p>Or drop .zip here</p>
+		</div>
 		<progress-bar class="progressBar" :loaded="uploadLoaded" :total="uploadTotal" :state="uploadState" v-if="uploading" :class="{ disabled: successResponse }"></progress-bar>
 		<div v-if="problems.length > 0" class="problemContainer">
 			<h3>There are problems with your level that prevent it from being uploaded:</h3>
@@ -51,7 +55,8 @@ export default defineComponent({
 				warnings: string[]
 			},
 			remarks: '',
-			submitting: false
+			submitting: false,
+			dragEntered: false
 		};
 	},
 	methods: {
@@ -62,45 +67,46 @@ export default defineComponent({
 			fileInput.setAttribute('accept', 'application/zip');
 			fileInput.click();
 
-			fileInput.addEventListener('change', async () => {
+			fileInput.addEventListener('change', () => {
 				let file = fileInput.files[0];
-				if (!file) return;
-
-				let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
-				request.open('POST', '/api/level/upload', true);
-				request.setRequestHeader('Content-Type', 'application/zip');
-				request.withCredentials = true;
-
-				request.upload.onprogress = (ev) => {
-					this.uploadLoaded = ev.loaded;
-					this.uploadTotal = ev.total;
-				};
-				request.onloadend = () => {
-					let json = JSON.parse(request.responseText) as {
-						status: 'error' | 'success',
-						problems: string[],
-						uploadId: string,
-						warnings: string[]
-					};
-
-					if (json.status === 'error') {
-						// There were problems with the upload, show them to the user
-						this.problems = json.problems;
-						this.uploadState = 'negative';
-						this.uploading = false;
-					} else if (json.status === 'success') {
-						// The upload was successful
-						this.successResponse = json;
-						this.uploadState = 'positive';
-					}
-				};
-
-				request.send(file);
-				this.resetUpload();
-				this.uploading = true;
-				this.problems = [];
-				this.uploadState = 'neutral';
+				if (file) this.uploadFile(file);
 			});
+		},
+		uploadFile(file: File) {
+			let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
+			request.open('POST', '/api/level/upload', true);
+			request.setRequestHeader('Content-Type', 'application/zip');
+			request.withCredentials = true;
+
+			request.upload.onprogress = (ev) => {
+				this.uploadLoaded = ev.loaded;
+				this.uploadTotal = ev.total;
+			};
+			request.onloadend = () => {
+				let json = JSON.parse(request.responseText) as {
+					status: 'error' | 'success',
+					problems: string[],
+					uploadId: string,
+					warnings: string[]
+				};
+
+				if (json.status === 'error') {
+					// There were problems with the upload, show them to the user
+					this.problems = json.problems;
+					this.uploadState = 'negative';
+					this.uploading = false;
+				} else if (json.status === 'success') {
+					// The upload was successful
+					this.successResponse = json;
+					this.uploadState = 'positive';
+				}
+			};
+
+			request.send(file);
+			this.resetUpload();
+			this.uploading = true;
+			this.problems = [];
+			this.uploadState = 'neutral';
 		},
 		resetUpload() {
 			this.uploadLoaded = 0;
@@ -132,6 +138,23 @@ export default defineComponent({
 			} else {
 				alert("There was an error submitting your level. This is either because of a bug or because you waited too long to submit after initially uploading your .zip. If you want to try again, refresh this page.");
 			}
+		},
+		dropFile(e: DragEvent) {
+			this.dragEntered = false;
+			let files = e.dataTransfer.files;
+
+			if (files.length !== 1) {
+				alert("You must drop exactly one file.");
+				return;
+			}
+
+			let file = files[0];
+			if (!file.name.endsWith('.zip')) {
+				alert("You can only upload .zip files.");
+				return;
+			}
+
+			this.uploadFile(file);
 		}
 	}
 });
@@ -198,7 +221,7 @@ h3 {
 
 .learnMore {
 	margin: auto;
-    width: 100px;
+	width: 100px;
 	font-size: 14px;
 	opacity: 0.5;
 	text-align: center;
@@ -209,5 +232,28 @@ h3 {
 .learnMore:hover {
 	opacity: 1.0;
 	text-decoration: underline;
+}
+
+.dropArea {
+	margin: auto;
+	width: 100%;
+	max-width: 500px;
+	height: 250px;
+	border: 2px dashed var(--background-1);
+	border-radius: 5px;
+	margin-top: 20px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.dropArea > * {
+	pointer-events: none;
+}
+
+.dropArea > p {
+	margin: 0;
+	margin-top: 5px;
 }
 </style>
