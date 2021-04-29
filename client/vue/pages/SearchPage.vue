@@ -4,7 +4,7 @@
 		<meta name="og:title" content="Search">
 	</Head>
 	<search-bar :config="$store.state.searchState.searchBar" :placeholder="searchBarPlaceholder()"></search-bar>
-	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice" :defaultCount="24" ref="levelList" showTotal></panel-list>
+	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice()" :defaultCount="24" ref="levelList" showTotal></panel-list>
 </template>
 
 <script lang="ts">
@@ -33,9 +33,6 @@ export default defineComponent({
 		else Search.loadLevels(); // Cause a server fetch if levels haven't been loaded yet
 	},
 	computed: {
-		noLevelsNotice(): string {
-			return Search.levels?.length? "There are no levels matching your search query." : "There are no levels to search for.";
-		},
 		levelsVersion(): number {
 			return this.$store.state.searchState.levelsVersion;
 		},
@@ -53,6 +50,9 @@ export default defineComponent({
 		searchBarPlaceholder() {
 			if (!this.loaded) return "Search levels";
 			else return `Search ${Search.levels.length} ${(Search.levels.length === 1)? 'level' : 'levels'}`;
+		},
+		noLevelsNotice(): string {
+			return Search.levels?.length? "There are no levels matching your search query." : "There are no levels to search for.";
 		}
 	},
 	watch: {

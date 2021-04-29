@@ -30,6 +30,38 @@ export const createNewStore = () => {
 								{ name: 'multi', label: 'Multiplayer '}
 							]
 						},
+						gameMode: {
+							label: 'Game mode',
+							value: 'all',
+							options: [
+								{ name: 'all', label: "All"},
+								{ name: 'null', label: 'Normal'},
+								{ name: '2d', label: '2D'},
+								{ name: 'collection', label: 'Collection'},
+								{ name: 'consistency', label: 'Consistency'},
+								{ name: 'coop', label: 'Co-op'},
+								{ name: 'elimination', label: 'Elimination'},
+								{ name: 'free', label: 'Free'},
+								{ name: 'gemMadness', label: 'Gem Madness'},
+								{ name: 'ghosts', label: 'Ghosts'},
+								{ name: 'haste', label: 'Haste'},
+								{ name: 'hunt', label: 'Hunt'},
+								{ name: 'king', label: 'King'},
+								{ name: 'laps', label: 'Laps'},
+								{ name: 'mega', label: 'Mega'},
+								{ name: 'party', label: 'Party'},
+								{ name: 'props', label: 'Props'},
+								{ name: 'quota', label: 'Quota'},
+								{ name: 'race', label: 'Race'},
+								{ name: 'seek', label: 'Seek'},
+								{ name: 'snowball', label: 'Snowball'},
+								{ name: 'snowballsOnly', label: 'Snowballs Only'},
+								{ name: 'spooky', label: 'Spooky'},
+								{ name: 'steal', label: 'Steal'},
+								{ name: 'tag', label: 'Tag'},
+								{ name: 'training', label: 'Training'}
+							]
+						},
 						hasGems: {
 							label: 'Has gems',
 							value: 'all',

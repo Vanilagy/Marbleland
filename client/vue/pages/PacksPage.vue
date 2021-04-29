@@ -6,7 +6,7 @@
 	<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createPackButton" @click="createPack" v-if="$store.state.loggedInAccount">Create new pack</button-with-icon>
 	<a href="/create-pack" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
 	<search-bar :config="searchBarConfig" :placeholder="searchBarPlaceholder()"></search-bar>
-	<panel-list :entries="filteredPacks" :defaultCount="24" mode="pack" :noEntriesNotice="noEntriesNotice" showTotal></panel-list>
+	<panel-list :entries="filteredPacks" :defaultCount="24" mode="pack" :noEntriesNotice="noEntriesNotice()" showTotal></panel-list>
 </template>
 
 <script lang="ts">
@@ -130,9 +130,7 @@ export default defineComponent({
 		searchBarPlaceholder() {
 			if (!this.packs) return "Search packs";
 			else return `Search ${this.packs.length} ${(this.packs.length === 1)? 'pack' : 'packs'}`;
-		}
-	},
-	computed: {
+		},
 		noEntriesNotice(): string {
 			return this.packs?.length? "There are no packs matching your search query." : "There are no packs to search for.";
 		}

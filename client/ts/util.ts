@@ -32,7 +32,7 @@ export class Util {
 	/** Split a word in camelCame into it's individual parts, while capitalizing each part's first letter. */
 	static splitWords(s: string) {
 		let re, match, output = [];
-		re = /([A-Za-z]?)([a-z]+)/g;
+		re = /([A-Za-z0-9]?)([a-z]+)/g;
 	
 		match = re.exec(s);
 		while (match) {

@@ -111,5 +111,7 @@ p:hover {
 .expander {
 	z-index: 1;
 	width: 100%;
+	max-height: 230px;
+	overflow-y: auto;
 }
 </style>
