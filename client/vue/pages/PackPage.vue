@@ -118,7 +118,7 @@ export default defineComponent({
 					// Send the update request to the server
 					await fetch(`/api/pack/${self.packInfo.id}/set-levels`, {
 						method: 'POST',
-						body: JSON.stringify(self.packInfo.levels.map(x => x.id)),
+						body: JSON.stringify(ownPack.levelIds),
 						headers: {
 							'Content-Type': 'application/json'
 						}
@@ -128,6 +128,12 @@ export default defineComponent({
 						id: self.packInfo.id,
 						levelIds: ownPack.levelIds
 					});
+				},
+				async swapLeft(info: LevelInfo) {
+					self.swapLevels(info.id, -1);
+				},
+				async swapRight(info: LevelInfo) {
+					self.swapLevels(info.id, 1);
 				}
 			};
 		},
@@ -193,6 +199,33 @@ export default defineComponent({
 				this.deleting = false;
 				alert("Something went wrong.");
 			}
+		},
+		async swapLevels(levelId: number, direction: -1 | 1) {
+			let index = this.packInfo.levels.findIndex(x => x.id === levelId);
+			let otherIndex = index + direction;
+			if (otherIndex < 0 || otherIndex >= this.packInfo.levels.length) return; // Can't swap with nothing
+
+			// Update the locally stored packs
+			let temp = this.packInfo.levels[index];
+			this.packInfo.levels[index] = this.packInfo.levels[otherIndex];
+			this.packInfo.levels[otherIndex] = temp;
+			
+			let ownPack = this.$store.state.ownPacks.find(x => x.id === this.packInfo.id);
+			ownPack.levelIds = this.packInfo.levels.map(x => x.id);
+
+			// Send the update request to the server
+			await fetch(`/api/pack/${this.packInfo.id}/set-levels`, {
+				method: 'POST',
+				body: JSON.stringify(ownPack.levelIds),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			emitter.emit('packUpdate', {
+				id: this.packInfo.id,
+				levelIds: ownPack.levelIds
+			});
 		}
 	},
 	components: {

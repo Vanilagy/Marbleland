@@ -7,6 +7,8 @@
 				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
 			</div>
 			<div class="actions" :style="actionsStyle">
+				<img src="/assets/svg/west_black_24dp.svg" v-if="actions && actions.swapLeft" title="Swap to the left" @click.stop="actions.swapLeft(levelInfo)" class="basicIcon">
+				<img src="/assets/svg/east_black_24dp.svg" v-if="actions && actions.swapRight" title="Swap to the right" @click.stop="actions.swapRight(levelInfo)" class="basicIcon">
 				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions && actions.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)" class="basicIcon">
 				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions && actions.addToPack" title="Add level to pack" @click.stop="$refs.packAdder.toggle()" class="basicIcon">
 				<img src="/assets/svg/download_black_24dp.svg" title="Download level" @click.stop="download" class="basicIcon">
@@ -25,7 +27,9 @@ import PackAdder from './PackAdder.vue';
 /** Specifies options actions a level panel can display. */
 export interface LevelPanelActions {
 	removeFromPack?: (info: LevelInfo) => void,
-	addToPack?: boolean
+	addToPack?: boolean,
+	swapLeft?: (info: LevelInfo) => void,
+	swapRight?: (info: LevelInfo) => void
 }
 
 export default defineComponent({
