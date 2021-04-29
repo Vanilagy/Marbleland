@@ -64,7 +64,6 @@ export const initLevelApi = () => {
 		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
 
 		res.set('Content-Type', 'application/zip');
-		res.set('Content-Type', 'application/octet-stream');
 		res.set('Content-Disposition', `attachment; filename="${fileName}-${doc._id}.zip"`);
 		stream.pipe(res);
 	});
