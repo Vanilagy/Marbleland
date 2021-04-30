@@ -7,7 +7,7 @@ import { Config } from "./config";
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
 export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
 
-export let config: { port: number };
+export let config: { port: number, dataPq: string };
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {
 	missions: Datastore,
@@ -22,6 +22,7 @@ export const initGlobals = async () => {
 	let configExists = fs.existsSync(path.join(__dirname, 'data/config.json'));
 	if (!configExists) fs.copyFileSync(path.join(__dirname, 'data/default_config.json'), path.join(__dirname, 'data/config.json'));
 	config = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/config.json')).toString());
+	Config.init();
 
 	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 0, accountId: 0, packId: 0, commentId: 0 });
 
