@@ -7,6 +7,5 @@ export class Config {
 
 	static init() {
 		this.dataPath = path.resolve(__dirname, config.dataPq).replace(/\\/g, '/'); // Make sure it's a POSIX path
-		console.log(this.dataPath);
 	}
 }
