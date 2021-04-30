@@ -2,6 +2,7 @@ import { KeyValueStore, Util } from "./util";
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import Datastore from 'nedb-promises';
+import { Config } from "./config";
 
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
 export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
@@ -17,7 +18,7 @@ export let db: {
 export let structureMBG: DirectoryStructure;
 export let structurePQ: DirectoryStructure;
 
-export const initGlobals = () => {
+export const initGlobals = async () => {
 	let configExists = fs.existsSync(path.join(__dirname, 'data/config.json'));
 	if (!configExists) fs.copyFileSync(path.join(__dirname, 'data/default_config.json'), path.join(__dirname, 'data/config.json'));
 	config = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/config.json')).toString());
@@ -39,7 +40,43 @@ export const initGlobals = () => {
 	db.comments = Datastore.create({ filename: path.join(__dirname, 'storage/comments.db'), autoload: true });
 	db.comments.persistence.setAutocompactionInterval(1000 * 60 * 60);
 
+	let pqStructurePath = path.join(__dirname, 'data/structure_pq.json');
+	let exists = fs.existsSync(pqStructurePath);
+	if (!exists) {
+		console.log("No PQ data directory structure file found. Generating... (might take a while)");
+		let structure = await scanDirectory(Config.dataPath);
+		console.log("Generation complete.");
+
+		fs.writeFileSync(pqStructurePath, JSON.stringify(structure));
+	}
+
 	// These two are used to quickly check if an asset is included in MBG/PQ or not
 	structureMBG = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(path.join(__dirname, 'data/structure_mbg.json')).toString()));
-	structurePQ = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(path.join(__dirname, 'data/structure_pq.json')).toString()));
+	structurePQ = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(pqStructurePath).toString()));
+};
+
+/** Scans the directory recursively. */
+const scanDirectory = async (directoryPath: string) => {
+	let files = await fs.readdir(directoryPath);
+	let temp: DirectoryStructure = {};
+	let promises: Promise<void>[] = [];
+
+	for (let file of files) {
+		promises.push(new Promise(async resolve => {
+			let newPath = path.join(directoryPath, file);
+			let stats = await fs.stat(newPath);
+			if (stats.isDirectory()) temp[file] = await scanDirectory(newPath); // Recurse if necessary
+			else temp[file] = null;
+
+			resolve();
+		}));
+	}
+
+	await Promise.all(promises);
+
+	// Sort the keys to guarantee a deterministic outcome despite asynchronous nature of the function
+	let keys = Object.keys(temp).sort((a, b) => a.localeCompare(b));
+	let result: DirectoryStructure = {};
+	for (let key of keys) result[key] = temp[key];
+	return result;
 };
