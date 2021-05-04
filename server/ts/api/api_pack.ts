@@ -1,4 +1,3 @@
-import JSZip from "jszip";
 import * as fs from 'fs-extra';
 import { PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
@@ -8,6 +7,7 @@ import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPack
 import { app } from "../server";
 import { compressAndSendImage } from "./api";
 import { Util } from "../util";
+import { MissionZipStream } from "../zip";
 
 export const initPackApi = () => {
 	// Get a list of all packs
@@ -75,32 +75,35 @@ export const initPackApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // PQ is the dafult
 
-		let zip = new JSZip();
+		let missions: Mission[] = [];
+		let missionDocs: MissionDoc[] = [];
 
 		// Iterate over all levels in this pack and add their contents to the zip one-by-one
 		for (let levelId of doc.levels) {
 			let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 			if (!missionDoc) continue;
 
-			// Maybe using Promise.all for this here would be faster, but if files would be overridden, then pack zip generation would no longer be deterministic. So that's why I'm not doing it rn.
 			let mission = Mission.fromDoc(missionDoc);
-			await mission.addToZip(zip, assuming as ('none' | 'gold' | 'platinumquest'));
-			
-			// Make sure to increase the download count for each level too
-			missionDoc.downloads = (missionDoc.downloads ?? 0) + 1;
-			await db.missions.update({ _id: levelId }, missionDoc);
+			missions.push(mission);
+			missionDocs.push(missionDoc);
 		}
+
+		// Don't wait for this to finish because it can take quite a while
+		(async () => {
+			for (let doc of missionDocs) {
+				doc.downloads = (doc.downloads ?? 0) + 1;
+				await db.missions.update({ _id: doc._id }, doc);
+			}
+		})();
+
+		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'));
 
 		// Increment the download count for the entire pack
 		doc.downloads = (doc.downloads ?? 0) + 1;
 		await db.packs.update({ _id: doc._id }, doc);
 
-		let stream = zip.generateNodeStream();
 		let fileName = Util.removeSpecialChars(doc.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
-
-		res.set('Content-Type', 'application/zip');
-		res.set('Content-Disposition', `attachment; filename="${fileName}-pack-${doc._id}.zip"`);
-		stream.pipe(res);
+		stream.connectToResponse(res, `${fileName}-pack-${doc._id}.zip`);
 	});
 
 	// Set the ordered list of levels contained in a pack

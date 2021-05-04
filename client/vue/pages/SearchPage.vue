@@ -4,6 +4,7 @@
 		<meta name="og:title" content="Search">
 	</Head>
 	<search-bar :config="$store.state.searchState.searchBar" :placeholder="searchBarPlaceholder()"></search-bar>
+	<download-button @download="downloadAll" mode="multipleLevels" class="downloadButton" v-if="filteredLevels && filteredLevels.length">Download all matching levels</download-button>
 	<panel-list mode="level" :entries="filteredLevels" :noEntriesNotice="noLevelsNotice()" :defaultCount="24" ref="levelList" showTotal></panel-list>
 </template>
 
@@ -11,6 +12,7 @@
 import { defineComponent } from 'vue';
 import SearchBar, { SearchBarConfig } from '../components/SearchBar.vue';
 import PanelList from '../components/PanelList.vue';
+import DownloadButton from '../components/DownloadButton.vue';
 import { LevelInfo } from '../../../shared/types';
 import { Search } from '../../ts/search';
 import { Head } from '@vueuse/head';
@@ -26,7 +28,8 @@ export default defineComponent({
 	components: {
 		SearchBar,
 		PanelList,
-		Head
+		Head,
+		DownloadButton
 	},
 	mounted() {
 		if (this.loaded) this.updateFilteredLevels();
@@ -53,11 +56,30 @@ export default defineComponent({
 		},
 		noLevelsNotice(): string {
 			return Search.levels?.length? "There are no levels matching your search query." : "There are no levels to search for.";
+		},
+		downloadAll(assumption: string) {
+			if (this.filteredLevels.length >= 100) {
+				if (!confirm(`You're about to download ${this.filteredLevels.length} levels. Are you sure?`)) return;
+			}
+
+			let form = document.createElement('form');
+			form.method = 'POST';
+			form.action = window.location.origin + `/api/level/zip?assuming=${assumption}`;
+
+			let input = document.createElement('input');
+			input.name = 'ids';
+			input.value = this.filteredLevels.map(x => x.id).join(',');
+			form.appendChild(input);
+			form.style.display = 'none';
+
+			document.body.appendChild(form);
+			form.submit();
+			document.body.removeChild(form);
 		}
 	},
 	watch: {
 		searchBar: {
-			handler(newState, old) {
+			handler() {
 				if (this.loaded) this.updateFilteredLevels();
 			},
 			deep: true
@@ -70,5 +92,10 @@ export default defineComponent({
 </script>
 
 <style scoped>
-
+.downloadButton {
+	margin: auto;
+	width: 100%;
+	max-width: 380px;
+	margin-top: 10px;
+}
 </style>

@@ -5,9 +5,8 @@ import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup,
 import hxDif from '../lib/hxDif';
 import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
-import JSZip from 'jszip';
 import { Config } from './config';
-import { db, keyValue, structureMBG, structurePQ } from './globals';
+import { db, keyValue, structureMBGSet, structurePQSet } from './globals';
 import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
@@ -25,6 +24,7 @@ export interface MissionDoc {
 	/** The relative path to the mission file from the base directory. */
 	relativePath: string,
 	dependencies: string[],
+	fileSizes: number[],
 	info: MissionElementScriptObject,
 	gameType: GameType,
 	modification: Modification,
@@ -44,6 +44,8 @@ export class Mission {
 	baseDirectory: string;
 	relativePath: string;
 	dependencies = new Set<string>();
+	/** One for each dependency, matches with index. */
+	fileSizes: number[];
 	mis: MisFile;
 	info: MissionElementScriptObject;
 	gameType: GameType;
@@ -78,6 +80,7 @@ export class Mission {
 	static fromDoc(doc: MissionDoc) {
 		let mission = new Mission(doc.baseDirectory, doc.relativePath, doc._id);
 		mission.dependencies = new Set(doc.dependencies);
+		mission.fileSizes = doc.fileSizes;
 		mission.info = doc.info;
 		mission.gameType = doc.gameType;
 		mission.modification = doc.modification;
@@ -98,6 +101,7 @@ export class Mission {
 	async hydrate() {
 		await this.parseMission();
 		await this.findDependencies();
+		await this.storeFileSizes();
 		this.scanSimGroup(this.mis.root);
 		this.classify();
 	}
@@ -240,6 +244,22 @@ export class Mission {
 				delete this.info._name;
 			}
 		}
+	}
+
+	async storeFileSizes() {
+		let sizes: number[] = [];
+
+		for (let dependency of this.dependencies) {
+			let fullPath = await this.findPath(dependency);
+			if (fullPath) {
+				let stats = await fs.stat(fullPath);
+				sizes.push(stats.size);
+			} else {
+				sizes.push(0);
+			}
+		}
+
+		this.fileSizes = sizes;
 	}
 
 	findFile(fileName: string, relativePath: string, walkUp?: boolean, permittedExtensions?: string[]): Promise<string> {
@@ -389,32 +409,6 @@ export class Mission {
 		}
 	}
 
-	/** Creates a .zip archive containing the assets for this mission. */
-	async createZip(assuming: 'none' | 'gold' | 'platinumquest') {
-		let zip = new JSZip();
-		await this.addToZip(zip, assuming);
-		return zip;
-	}
-
-	/** Adds all of this mission's assets to a zip archive.
-	 * @param assuming Specifies the game we assume the downloader already has. Assets contained in that game by default will not be included in the zip.
-	 */
-	async addToZip(zip: JSZip, assuming: 'none' | 'gold' | 'platinumquest') {
-		for (let dependency of this.dependencies) {
-			// Skip default assets
-			let normalized = this.normalizeDependency(dependency);
-			if (assuming === 'gold' && Util.directoryStructureHasPath(structureMBG, normalized)) continue;
-			if (assuming === 'platinumquest' && Util.directoryStructureHasPath(structurePQ, normalized)) continue;
-
-			let fullPath = await this.findPath(dependency);
-			if (fullPath) {
-				// Open up a read stream and add it to the zip
-				let stream = fs.createReadStream(fullPath);
-				zip.file(normalized, stream);
-			}
-		}
-	}
-
 	/** Normalizes all dependencies related directly to the .mis file to be in the missions/ directory, and leaves everything else untouched. */
 	normalizeDependency(dependency: string) {
 		let withoutExtension = Util.removeExtension(this.relativePath);
@@ -427,8 +421,8 @@ export class Mission {
 
 		for (let dependency of this.dependencies) {
 			let normalized = this.normalizeDependency(dependency);
-			if (assuming === 'gold' && Util.directoryStructureHasPath(structureMBG, normalized)) continue;
-			if (assuming === 'platinumquest' && Util.directoryStructureHasPath(structurePQ, normalized)) continue;
+			if (assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
+			if (assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
 
 			result.push(normalized);
 		}
@@ -443,6 +437,7 @@ export class Mission {
 			baseDirectory: this.baseDirectory,
 			relativePath: this.relativePath,
 			dependencies: [...this.dependencies],
+			fileSizes: this.fileSizes,
 			info: this.info,
 			gameType: this.gameType,
 			modification: this.modification,

@@ -1,6 +1,7 @@
 import * as express from 'express';
 import * as path from 'path';
 import * as fs from 'fs-extra';
+import * as crypto from 'crypto';
 import jszip from 'jszip';
 import { LevelInfo, PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
@@ -12,6 +13,7 @@ import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
 import { app } from "../server";
 import { compressAndSendImage } from "./api";
 import { Util } from '../util';
+import { MissionZipStream } from '../zip';
 
 /** Verifies that the accessed level actually exists. */
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
@@ -44,6 +46,33 @@ export const initLevelApi = () => {
 		res.send(response);
 	});
 
+	// Get a .zip of multiple levels
+	app.post('/api/level/zip', async (req, res) => {
+		let levelIdsRaw = (req.body.ids as string).split(',').map(x => Number(x));
+		let levelIds = new Set(levelIdsRaw); // Remove duplicates
+		
+		// Fastest if we just get all missions at once because NeDB is kinda dumb
+		let missionDocs = await db.missions.find({}) as MissionDoc[];
+		missionDocs = missionDocs.filter(x => levelIds.has(x._id));
+		let missions = missionDocs.map(x => Mission.fromDoc(x));
+
+		// Don't wait for this to finish because it can take quite a while
+		(async () => {
+			for (let doc of missionDocs) {
+				doc.downloads = (doc.downloads ?? 0) + 1;
+				await db.missions.update({ _id: doc._id }, doc);
+			}
+		})();
+
+		let assuming = req.query.assuming as string;
+		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
+
+		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'));
+		let hash = crypto.createHash('sha256').update([...levelIds].join(',')).digest('hex');
+		let fileName = `levels-${hash.slice(0, 8)}.zip`;
+		stream.connectToResponse(res, fileName);
+	});
+
 	// Get the .zip of a given level
 	app.get('/api/level/:levelId/zip', async (req, res) => {
 		let levelId = await verifyLevelId(req, res);
@@ -55,17 +84,13 @@ export const initLevelApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
-		let zip = await mission.createZip(assuming as ('none' | 'gold' | 'platinumquest'));
-		let stream = zip.generateNodeStream();
+		let stream = new MissionZipStream([mission], assuming as ('none' | 'gold' | 'platinumquest'));
 
 		doc.downloads = (doc.downloads ?? 0) + 1;
 		await db.missions.update({ _id: levelId }, doc);
 
 		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
-
-		res.set('Content-Type', 'application/zip');
-		res.set('Content-Disposition', `attachment; filename="${fileName}-${doc._id}.zip"`);
-		stream.pipe(res);
+		stream.connectToResponse(res, `${fileName}-${doc._id}.zip`);
 	});
 
 	// Get the image thumbnail of a level

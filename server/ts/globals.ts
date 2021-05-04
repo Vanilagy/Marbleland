@@ -17,6 +17,8 @@ export let db: {
 } = {} as any;
 export let structureMBG: DirectoryStructure;
 export let structurePQ: DirectoryStructure;
+export let structureMBGSet: Set<string>;
+export let structurePQSet: Set<string>;
 
 export const initGlobals = async () => {
 	let configExists = fs.existsSync(path.join(__dirname, 'data/config.json'));
@@ -54,6 +56,8 @@ export const initGlobals = async () => {
 	// These two are used to quickly check if an asset is included in MBG/PQ or not
 	structureMBG = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(path.join(__dirname, 'data/structure_mbg.json')).toString()));
 	structurePQ = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(pqStructurePath).toString()));
+	structureMBGSet = Util.directoryStructureToSet(structureMBG);
+	structurePQSet = Util.directoryStructureToSet(structurePQ);
 };
 
 /** Scans the directory recursively. */

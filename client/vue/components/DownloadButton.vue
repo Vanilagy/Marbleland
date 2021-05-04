@@ -1,6 +1,6 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;" class="notSelectable">
-		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest')" style="border-radius: 0px;">{{ buttonText }}</button-with-icon>
+		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest')" style="border-radius: 0px;"><slot></slot></button-with-icon>
 		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore basicIcon" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
 		<div v-if="expanded">
 			<p v-for="assumption of assuming" :key="assumption.name" @click="download(assumption.name)" v-html="assumption.label"></p>
@@ -14,7 +14,7 @@ import ButtonWithIcon from './ButtonWithIcon.vue';
 
 export default defineComponent({
 	props: {
-		mode: String as PropType<'level' | 'pack'>,
+		mode: String as PropType<'level' | 'pack' | 'multipleLevels'>,
 		id: Number as PropType<number>
 	},
 	data() {
@@ -33,9 +33,6 @@ export default defineComponent({
 		};
 	},
 	computed: {
-		buttonText(): string {
-			return this.mode === 'level'? 'Download level' : 'Download pack';
-		},
 		chevronTransform(): string {
 			return this.expanded? 'rotate(180deg)' : '';
 		}
@@ -43,11 +40,11 @@ export default defineComponent({
 	methods: {
 		/** Start downloading the .zip with the correct assumption parameter */
 		download(assumption: string) {
-			window.location.href = window.location.origin + 
+			if (this.mode !== 'multipleLevels') window.location.href = window.location.origin + 
 				((this.mode === 'level')? `/api/level/${this.id}/zip?assuming=${assumption}`
 				: `/api/pack/${this.id}/zip?assuming=${assumption}`);
 
-			this.$emit('download');
+			this.$emit('download', assumption);
 		}
 	},
 	components: {

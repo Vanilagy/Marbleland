@@ -16,6 +16,7 @@ export const initApi = () => {
 	}));
 	app.use(express.json()); // The default size limits for these are sane enough
 	app.use(express.text());
+	app.use(express.urlencoded({ extended: true }));
 	
 	// Allow the CORS thing for all API requests
 	app.use('/api', (req, res, next) => {

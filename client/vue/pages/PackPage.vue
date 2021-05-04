@@ -26,7 +26,7 @@
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }" class="basicIcon">
 				</div>
-				<download-button :id="packInfo.id" mode="pack" @download="packInfo.downloads++"></download-button>
+				<download-button :id="packInfo.id" mode="pack" @download="packInfo.downloads++">Download pack</download-button>
 				<p class="additionalInfo">Downloads: {{ packInfo.downloads }}</p>
 			</div>
 		</div>

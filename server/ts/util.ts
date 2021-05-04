@@ -133,19 +133,20 @@ export class Util {
 		return JSON.parse(JSON.stringify(obj));
 	}
 
-	/** Returns true iff a given directory structure contains a certain relative path. */
-	static directoryStructureHasPath(directoryStructure: DirectoryStructure, path: string): boolean {
-		if (!path) return false;
-		let parts = path.split('/');
-		let lowerCase = parts[0].toLowerCase();
+	/** Flattens a given directory structure to a set of all paths included in it. */
+	static directoryStructureToSet(directoryStructure: DirectoryStructure) {
+		let set = new Set<string>();
 
-		if (lowerCase in directoryStructure) {
-			let entry = directoryStructure[lowerCase];
-			if (entry) return this.directoryStructureHasPath(entry, parts.slice(1).join('/')); // We found a directory, so go one level deeper
-			return parts.length === 1; // Returns true if we've reached the end of the path
-		}
+		const traverse = (structure: DirectoryStructure, currentPath: string) => {
+			for (let entryName in structure) {
+				let entry = structure[entryName];
+				if (entry) traverse(entry, path.posix.join(currentPath, entryName));
+				else set.add(path.posix.join(currentPath, entryName).toLowerCase());
+			}
+		};
+		traverse(directoryStructure, '');
 
-		return false;
+		return set;
 	}
 
 	static equalCaseInsensitive(s1: string, s2: string) {
