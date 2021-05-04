@@ -26,7 +26,7 @@ export const createNewStore = () => {
 							value: 'all',
 							options: [
 								{ name: 'all', label: 'All'},
-								{ name: 'single', label: 'Single-player'},
+								{ name: 'single', label: 'Singleplayer'},
 								{ name: 'multi', label: 'Multiplayer '}
 							]
 						},

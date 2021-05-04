@@ -217,8 +217,10 @@ export class Mission {
 		for (let dependency of this.dependencies) {
 			if (dependency.startsWith('pq_')) pickHigher(Modification.PlatinumQuest);
 			if (dependency.startsWith('interiors_pq')) pickHigher(Modification.PlatinumQuest);
+			if (dependency.startsWith('lbinteriors_pq')) pickHigher(Modification.PlatinumQuest);
 			if (dependency.startsWith('mbp_')) pickHigher(Modification.Platinum);
 			if (dependency.startsWith('interiors_mbp')) pickHigher(Modification.Platinum);
+			if (dependency.startsWith('lbinteriors_mbp')) pickHigher(Modification.Platinum);
 			if (dependency.startsWith('fubargame')) pickHigher(Modification.Fubar);
 			if (dependency.startsWith('mbu_')) pickHigher(Modification.Ultra);
 		}
@@ -233,7 +235,8 @@ export class Mission {
 				this.scanSimGroup(element);
 			} else if (element._type === MissionElementType.Item) {
 				if (element.datablock?.toLowerCase().includes('gemitem')) this.gems++;
-				if (['easteregg', 'nestegg'].includes(element.datablock?.toLowerCase())) this.hasEasterEgg = true;
+				let a = element.datablock?.toLowerCase();
+				if (a && (a.startsWith('easteregg') || a.startsWith('nestegg'))) this.hasEasterEgg = true;
 			} else if (!this.info && element._type === MissionElementType.ScriptObject && element._name === "MissionInfo") {
 				this.info = element;
 				this.info = Util.jsonClone(this.info);
@@ -282,6 +285,13 @@ export class Mission {
 				await this.addSkyDependencies(element);
 			} else if (element._type === MissionElementType.TSStatic) {
 				await this.addTSStaticDependencies(element);
+			} else if (element._type === MissionElementType.ScriptObject && element._name === 'MissionInfo') {
+				if (element.music) {
+					// Add the music as a dependency
+					let relativePath = path.posix.join('sound/music', element.music);
+					let fullPath = await this.findPath(relativePath);
+					if (fullPath) this.dependencies.add(relativePath);
+				}
 			}
 		}
 	}

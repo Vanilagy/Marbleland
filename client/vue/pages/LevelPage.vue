@@ -143,7 +143,7 @@ export default defineComponent({
 			let result: Record<string, number | string> = {};
 
 			result["Modification"] = this.prettyModification(this.levelInfo.modification);
-			result["Game type"] = this.levelInfo.gameType === 'single'? 'Single-player' : 'Multiplayer';
+			result["Game type"] = this.levelInfo.gameType === 'single'? 'Singleplayer' : 'Multiplayer';
 			if (this.levelInfo.gameMode && this.levelInfo.gameMode !== 'null')
 				result["Game mode"] = this.levelInfo.gameMode.split(' ').map(x => Util.splitWords(x).join(' ')).join(', ');
 			result["Gem count"] = this.levelInfo.gems;

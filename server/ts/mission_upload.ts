@@ -126,7 +126,7 @@ export class MissionUpload {
 		}
 
 		this.misFile = misFile;
-		this.traverseMis(misFile.root); // Start scanning all elements in the .mis file to find possible dependencies
+		await this.traverseMis(misFile.root); // Start scanning all elements in the .mis file to find possible dependencies
 
 		if (!this.missionInfo) {
 			this.problems.add("The mission does not contain a MissionInfo ScriptObject.");
@@ -168,12 +168,15 @@ export class MissionUpload {
 		return true;
 	}
 
-	traverseMis(simGroup: MissionElementSimGroup) {
+	async traverseMis(simGroup: MissionElementSimGroup) {
 		for (let element of simGroup.elements) {
 			if (element._type === MissionElementType.ScriptObject && element._name === 'MissionInfo' && !this.missionInfo) {
 				this.missionInfo = element;
+
+				// Check for a music dependency
+				if (element.music) await this.registerDependency(path.posix.join('sound/music', element.music), 'exact', this.misFilePath);
 			} else if (element._type === MissionElementType.SimGroup) {
-				this.traverseMis(element); // Recurse
+				await this.traverseMis(element); // Recurse
 			} else if (element._type === MissionElementType.InteriorInstance) {
 				this.interiorDependencies.add(element.interiorfile);
 			} else if (element._type === MissionElementType.PathedInterior) {
