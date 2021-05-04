@@ -24,6 +24,21 @@ A token can be acquired through sign-in and sign-up.
 ### `GET` /api/level/list
 Returns a list of all levels as an array of [LevelInfo](#levelinfo).
 
+### `POST` /api/level/zip
+Get a .zip archive containing all the levels specified in the request.
+
+**Form parameters (`Content-Type: application/x-www-form-urlencoded`):**
+
+Name | Type | Meaning
+--- | --- | ---
+ids | `string` | A comma-separated list of level IDs to include in the .zip.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+
 ### `GET` /api/level/{level-id}/zip
 Get the .zip archive for a given level.
 
