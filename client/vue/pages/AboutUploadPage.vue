@@ -23,6 +23,12 @@
 		<li><b>"The dependency X could not be uniquely resolved to a file in the archive":</b> Remember that "flattening" step from earlier? Because of this step, file names are the only differentiating factor between files and sometimes, this can lead to Marbleland being unsure about which files belong to what. Assume your level includes an interior that uses the texture "wood", but your .zip file includes both "wood.jpg" and "wood.png". Marbleland can't guess which one you meant and therefore complains about it.</li>
 		<li><b>"Missing dependency: X is required by Y but couldn't be found":</b> This simply means that your level requires assets that you forgot to include in your .zip. Say your .mis file uses the interior "MyLevel.dif", but you didn't include that .dif with your .zip - then you're missing a dependency.</li>
 	</ul>
+	<h3>Controlling level classification</h3>
+	<p>
+		Marbleland tries its best to guess a level's modification (the game it's meant to run in) and type (singleplayer/multiplayer) by looking at the mission and the assets it uses. However, sometimes it will get it wrong. You can therefore precisely control this classification by setting specific fields in your level's MissionInfo:<br><br>
+		Set the <b>game</b> or <b>modification</b> field to one of <b>gold</b>, <b>platinum</b>, <b>fubar</b>, <b>ultra</b> or <b>platinumquest</b> to set the level's modification.<br>
+		Set the <b>gameType</b> field to either <b>singleplayer</b> or <b>multiplayer</b> to set the level's game type.
+	</p>
 	<h3>Additional notes</h3>
 	<p>
 		The hard size cap for the .zips you upload is 15 MB (we think this will be more than enough). All of this goes without saying that we still ask you to use the level upload system responsibly and for Marble Blast-related content only.

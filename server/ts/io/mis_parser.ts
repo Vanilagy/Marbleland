@@ -60,6 +60,7 @@ export interface MissionElementScriptObject extends MissionElementBase {
 	modification: string,
 	gamemode: string,
 	music: string,
+	gametype: string,
 
 	score: any,
 	score0: any,

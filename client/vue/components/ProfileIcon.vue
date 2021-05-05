@@ -109,7 +109,7 @@ img:hover {
 	border-radius: 5px;
 	overflow: hidden;
 	box-shadow: 0px 0px 5px #00000052;
-	width: 150px;
+	width: 180px;
 	z-index: 1;
 }
 

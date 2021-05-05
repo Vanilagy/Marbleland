@@ -155,9 +155,10 @@ export class Mission {
 
 	/** Try to guess the game type of this mission. */
 	guessGameType() {
-		if (this.relativePath.startsWith('multiplayer/')) return GameType.Multiplayer;
-
 		let i = this.info;
+
+		if (i.gametype) return (i.gametype.toLowerCase() === 'singleplayer')? GameType.SinglePlayer : GameType.Multiplayer; // Explicitly set in the .mis
+		if (this.relativePath.startsWith('multiplayer/')) return GameType.Multiplayer;
 
 		// "Telltale" multiplayer stuff
 		if (Array.isArray(i.score) || i.score0 || i.score1 ||
