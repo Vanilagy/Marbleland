@@ -537,7 +537,7 @@ export class Mission {
 /** Scans a given directory for missions and imports them all.
  * @param idMapPath Path to a JSON file which maps mission base names to IDs. Can be used for controlled setting of IDs.
  */
-export const scanForMissions = async (baseDirectory: string, idMapPath?: string, replaceDuplicates = false) => {
+export const scanForMissions = async (baseDirectory: string, idMapPath?: string, replaceDuplicates = false, allowedRelativePaths?: Set<string>) => {
 	let idMap: { id: number, baseName: string }[] = null;
 	if (idMapPath) {
 		idMap = JSON.parse(fs.readFileSync(idMapPath).toString());
@@ -564,6 +564,8 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 				await scan(fromStart); // Recurse
 			} else {
 				if (entry.toLowerCase().endsWith('.mis')) {
+					if (allowedRelativePaths && !allowedRelativePaths.has(fromStart)) continue;
+
 					// Check if the same file already exists in default PQ, and if so, skip it
 					let existsInPq = await fs.pathExists(path.join(Config.dataPath, relativePath, entry));
 					let isProbablyCustom = relativePath.includes('custom');
@@ -680,15 +682,19 @@ export const compareMissions = (mis1: MisFile, mis2: MisFile) => {
 	return JSON.stringify(root1) === JSON.stringify(root2);
 };
 
-export const reimportMissions = async () => {
+export const reimportMissions = async (levelIds: number[]) => {
 	let missions = await db.missions.find({}) as MissionDoc[];
+	if (levelIds.length > 0) missions = missions.filter(x => levelIds.includes(x._id));
 	let baseDirectories = new Set(missions.map(x => x.baseDirectory));
 
+	let relativePaths = (levelIds.length > 0)? new Set(missions.map(x => x.relativePath)) : null;
+
 	console.log("Reimporting missions...");
+	if (levelIds.length > 0) console.log(`Reimporting only level IDs ${levelIds.join(', ')}`);
 
 	for (let directory of baseDirectories) {
 		console.log(`Now re-scanning: ${directory}\n\n`);
-		await scanForMissions(directory, null, true);
+		await scanForMissions(directory, null, true, relativePaths);
 	}
 
 	console.log("Reimport complete.");
