@@ -17,7 +17,7 @@
 		</ul>
 		<b>On Mac:</b>
 		<ul>
-			<li><b>MBG:</b> /Applications/MarbleBlastGold.app/marble/data (show package contents)</li>
+			<li><b>MBG:</b> /Applications/MarbleBlast Gold/MarbleBlastGold.app/marble/data (show package contents)</li>
 			<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
 		</ul>
 	</p>
