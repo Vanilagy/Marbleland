@@ -35,7 +35,7 @@ Marbleland offers a few CLI commands:
 
 - `npm run add-directory -- <directory-path> [--id-map <id-map-path>] [--replace-duplicates]`<br>
 Imports a directory of custom levels into the database. Will import all .mis files in `<directory-path>`.<br><br>
-The ID map, when specified, has to point to a JSON file that contains an array of `{ id: number, baseName: string }` objects. Imported missions whose base name (file name of the .mis file without path) matches a base name in the array will automatically get their ID set to the one specified by the ID map.<br><br>
+The ID map, when specified, has to point to a JSON file that contains an array of `{id: number, baseName: string}` objects. Imported missions whose base name (file name of the .mis file without path) matches a base name in the array will automatically get their ID set to the one specified by the ID map.<br><br>
 When the `--replace-duplicates` option is set, duplicate levels already present in the database will be replaced by the freshly imported ones. If it isn't set, the level will be in the database twice. Replaced levels will maintain stats like download count. This option is usually recommended.
 
 - `npm run reimport -- [level_id ...]`<br>
