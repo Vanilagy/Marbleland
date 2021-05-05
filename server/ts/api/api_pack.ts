@@ -120,8 +120,8 @@ export const initPackApi = () => {
 			return;
 		}
 
-		// Make sure the user actually owns the pack
-		if (packDoc.createdBy !== doc._id) {
+		// Make sure the user actually has permission
+		if (packDoc.createdBy !== doc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}
@@ -177,7 +177,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		if (packDoc.createdBy !== doc._id) {
+		if (packDoc.createdBy !== doc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}
@@ -208,7 +208,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		if (packDoc.createdBy !== doc._id) {
+		if (packDoc.createdBy !== doc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}

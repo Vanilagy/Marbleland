@@ -18,8 +18,8 @@ export const initCommentApi = () => {
 			return;
 		}
 
-		// Ensure the one deleting it is the one who wrote it
-		if (commentDoc.author !== doc._id) {
+		// Ensure the one deleting it has permission to do so
+		if (commentDoc.author !== doc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}

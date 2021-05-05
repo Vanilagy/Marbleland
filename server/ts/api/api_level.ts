@@ -273,8 +273,8 @@ export const initLevelApi = () => {
 
 		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 
-		// Make sure the level was actually uploaded by the one editing it
-		if (missionDoc.addedBy !== doc._id) {
+		// Make sure the person editing has permission to do so
+		if (missionDoc.addedBy !== doc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}
@@ -298,8 +298,8 @@ export const initLevelApi = () => {
 
 		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 
-		// Make sure the level was actually uploaded by the one deleting it
-		if (missionDoc.addedBy !== doc._id) {
+		// Make sure the person deleting has permission to do so
+		if (missionDoc.addedBy !== doc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}
@@ -317,8 +317,9 @@ export const initLevelApi = () => {
 		// Delete all comments for this level
 		await db.comments.remove({ forType: 'level', for: levelId }, { multi: true });
 
-		// Delete the level's folder
-		await fs.remove(missionDoc.baseDirectory);
+		// Delete the level's folder if there are no other levels that reside in it
+		let canDeleteDirectory = !(await db.missions.findOne({ baseDirectory: missionDoc.baseDirectory }));
+		if (canDeleteDirectory) await fs.remove(missionDoc.baseDirectory);
 
 		res.end();
 	});

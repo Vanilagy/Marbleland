@@ -53,7 +53,8 @@ export interface ExtendedLevelInfo extends LevelInfo {
 export interface ProfileInfo {
 	id: number,
 	username: string,
-	hasAvatar: boolean
+	hasAvatar: boolean,
+	isModerator: boolean
 }
 
 /** Contains metadata about a profile, as well as additional data to display on the Profile page. */

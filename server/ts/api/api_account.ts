@@ -198,15 +198,21 @@ export const initAccountApi = () => {
 			return;
 		}
 
-		// Ensure the person doing the request is the one that owns the account
-		if (doc._id !== Number(req.params.accountId)) {
+		let accountDoc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+		if (!accountDoc) {
+			res.end(400);
+			return;
+		}
+
+		// Ensure the person doing the request has permission to set the avatar
+		if (doc._id !== accountDoc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}
 
 		// Norm the avatar into a square format
 		let normed = await sharp(req.body).resize({ width: 1024, height: 1024, fit: 'cover', withoutEnlargement: true }).jpeg({ quality: 100 }).toBuffer();
-		await fs.writeFile(path.join(__dirname, `storage/avatars/${doc._id}.jpg`), normed);
+		await fs.writeFile(path.join(__dirname, `storage/avatars/${accountDoc._id}.jpg`), normed);
 
 		res.end();
 	});
@@ -219,14 +225,20 @@ export const initAccountApi = () => {
 			return;
 		}
 
-		// Ensure the person doing the request is the one that owns the account
-		if (doc._id !== Number(req.params.accountId)) {
+		let accountDoc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+		if (!accountDoc) {
+			res.end(400);
+			return;
+		}
+
+		// Ensure the person doing the request has permission to edit the bio
+		if (doc._id !== accountDoc._id && !doc.moderator) {
 			res.status(403).end();
 			return;
 		}
 
-		doc.bio = req.body.toString();
-		await db.accounts.update({ _id: doc._id }, doc);
+		accountDoc.bio = req.body.toString();
+		await db.accounts.update({ _id: accountDoc._id }, accountDoc);
 
 		res.end();
 	});

@@ -383,7 +383,8 @@ Contains metadata about a profile.
 {
 	id: number,
 	username: string,
-	hasAvatar: boolean
+	hasAvatar: boolean,
+	isModerator: boolean
 }
 ```
 

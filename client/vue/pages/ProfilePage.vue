@@ -12,15 +12,16 @@
 		<info-banner></info-banner>
 		<p v-if="shouldSetAvatar" class="noAvatarNotice">❗ You should set your profile avatar. Do so by clicking the avatar icon. ❗</p>
 		<div class="avatar">
-			<div class="setAvatar" v-if="isOwnProfile" title="Upload new avatar" @click="chooseAvatar">
+			<div class="setAvatar" v-if="hasOwnershipPermissions" title="Upload new avatar" @click="chooseAvatar">
 				<img src="/assets/svg/file_upload_white_24dp.svg">
 			</div>
 			<img :src="avatarSrc" :class="{ basicIcon: !profileInfo.hasAvatar }">
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
-		<template v-if="!editingBio || !isOwnProfile">
+		<p class="moderatorBadge" v-if="profileInfo.isModerator">Moderator</p>
+		<template v-if="!editingBio || !hasOwnershipPermissions">
 			<p class="bio" :class="{ emptyBio: !profileInfo.bio }" v-html="bio"></p>
-			<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio basicIcon" title="Edit bio" v-if="isOwnProfile" @click="editingBio = true">
+			<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio basicIcon" title="Edit bio" v-if="hasOwnershipPermissions" @click="editingBio = true">
 		</template>
 		<template v-else>
 			<textarea class="bioTextarea basicTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
@@ -89,10 +90,10 @@ export default defineComponent({
 			return `/api/account/${this.profileInfo.id}/avatar?v=${this.$store.state.avatarVersion}&size=256`;
 		},
 		shouldSetAvatar(): boolean {
-			return this.isOwnProfile && !this.profileInfo.hasAvatar;
+			return this.profileInfo.id === this.$store.state.loggedInAccount?.id && !this.profileInfo.hasAvatar;
 		},
-		isOwnProfile(): boolean {
-			return this.profileInfo.id === this.$store.state.loggedInAccount?.id
+		hasOwnershipPermissions(): boolean {
+			return this.profileInfo.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount?.isModerator;
 		},
 		bio(): string {
 			return Util.linkify(this.profileInfo.bio) || "This user hasn't set a bio.";
@@ -262,5 +263,18 @@ h3 {
 .notFound {
 	text-align: center;
 	margin-top: 50px;
+}
+
+.moderatorBadge {
+	width: 85px;
+    margin: 5px auto;
+    text-align: center;
+    background: #3c68e6;
+    font-size: 10px;
+    color: white;
+    text-transform: uppercase;
+    border-radius: 5px;
+    font-weight: bold;
+    padding: 1px;
 }
 </style>

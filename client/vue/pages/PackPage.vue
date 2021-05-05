@@ -22,7 +22,7 @@
 				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" :class="{ disabled: !canSubmitChanges }" @click="submitChanges">Save changes</button-with-icon>
 			</div>
 			<div class="topRight">
-				<div class="actions" v-if="isOwnPack">
+				<div class="actions" v-if="hasOwnershipPermissions">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }" class="basicIcon">
 				</div>
@@ -32,7 +32,7 @@
 		</div>
 		<h3>Included levels ({{ packInfo.levels.length }})</h3>
 		<panel-list mode="level" :entries="packInfo.levels" :defaultCount="24" :levelPanelActions="levelPanelActions" noEntriesNotice="This pack contains no levels."></panel-list>
-		<p v-if="isOwnPack && packInfo.levels.length === 0" class="howToAdd">Add levels to this pack by searching for the levels you want to add and then adding them from there.</p>
+		<p v-if="hasOwnershipPermissions && packInfo.levels.length === 0" class="howToAdd">Add levels to this pack by searching for the levels you want to add and then adding them from there.</p>
 	</div>
 </template>
 
@@ -99,12 +99,12 @@ export default defineComponent({
 		createdText(): string {
 			return `Created this pack on ${Util.formatDate(new Date(this.packInfo.createdAt))}`;
 		},
-		isOwnPack(): boolean {
-			return this.packInfo && this.packInfo.createdBy.id === this.$store.state.loggedInAccount?.id;
+		hasOwnershipPermissions(): boolean {
+			return this.packInfo && (this.packInfo.createdBy.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount?.isModerator);
 		},
 		levelPanelActions(): LevelPanelActions {
 			let self = this;
-			if (!this.isOwnPack) return null;
+			if (!this.hasOwnershipPermissions) return null;
 
 			return {
 				addToPack: true,
@@ -238,8 +238,8 @@ export default defineComponent({
 		Head
 	},
 	watch: {
-		isOwnPack() {
-			if (!this.isOwnPack) this.editing = false;
+		hasOwnershipPermissions() {
+			if (!this.hasOwnershipPermissions) this.editing = false;
 		}
 	}
 });

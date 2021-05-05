@@ -2,7 +2,7 @@
 	<div class="commentElement">
 		<profile-banner :profileInfo="commentInfo.author" :secondaryText="sentDate" class="profileBanner"></profile-banner>
 		<p v-html="content"></p>
-		<img src="/assets/svg/delete_black_24dp.svg" class="delete basicIcon" title="Delete this comment" v-if="isOwnComment" :style="{ display: deleteDisplayStyle }" @click="$emit('delete')">
+		<img src="/assets/svg/delete_black_24dp.svg" class="delete basicIcon" title="Delete this comment" v-if="hasOwnershipPermissions" :style="{ display: deleteDisplayStyle }" @click="$emit('delete')">
 	</div>
 </template>
 
@@ -25,8 +25,8 @@ export default defineComponent({
 
 			return `on ${Util.formatDate(date)} at ${hours}:${minutes}`;
 		},
-		isOwnComment(): boolean {
-			return this.commentInfo.author.id === this.$store.state.loggedInAccount?.id;
+		hasOwnershipPermissions(): boolean {
+			return this.commentInfo.author.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount?.isModerator;
 		},
 		deleteDisplayStyle(): string {
 			return Util.deviceSupportsHover()? '' : 'block';

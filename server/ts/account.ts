@@ -19,7 +19,8 @@ export interface AccountDoc {
 		/** The UNIX timestamp in milliseconds when the token was last utilized for authorization. */
 		lastUsed: number
 	}[],
-	bio: string
+	bio: string,
+	moderator?: boolean
 }
 
 export const generateNewAccessToken = () => {
@@ -96,7 +97,8 @@ export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 	return {
 		id: doc._id,
 		username: doc.username,
-		hasAvatar
+		hasAvatar,
+		isModerator: !!doc.moderator
 	};
 };
 
