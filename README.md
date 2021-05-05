@@ -22,13 +22,21 @@ Marbleland also provides a RESTful API for full programmatic interfacing with it
 Check out the docs [here.](docs/api.md)
 
 ## Implementation
-Marbleland's frontend was built using Vue.js and its backend using Node. When custom levels are imported/uploaded, an asset dependency tree is constructed by scanning the .mis file for the required files, and then scanning those files for their dependencies. This way, all assets needed to correctly run the custom level can be identified and included in the .zip. Marbleland currently identifies the mission file and thumbnails, interiors, interior textures, sky materials, TSStatic shapes and shape materials as level dependencies. .mis and .dts file parsing is done using the parsers used in the [webport](https://github.com/Vanilagy/MarbleBlast), and .dif parsing uses RandomityGuy's [hxDif](https://github.com/RandomityGuy/hxDIF) library.
+Marbleland's frontend was built using Vue.js and its backend using Node. When custom levels are imported/uploaded, an asset dependency tree is constructed by scanning the .mis file for the required files, and then scanning those files for their dependencies. This way, all assets needed to correctly run the custom level can be identified and included in the .zip. Marbleland currently identifies the mission file and thumbnails, interiors, interior textures, sky materials, TSStatic shapes, shape materials and music as level dependencies. .mis and .dts file parsing is done using the parsers used in the [webport](https://github.com/Vanilagy/MarbleBlast), and .dif parsing uses RandomityGuy's [hxDif](https://github.com/RandomityGuy/hxDIF) library.
 
 ## Building and developing
-This project requires Node.js v14.0.0 and up to run. After cloning, simply run `npm install` in the cloned directory to install all required dependencies. Then run `npm run watch` to create the necessary JavaScript bundles and to watch for future file changes. Run `npm run build` to create minified bundles.
+This project requires Node.js v14.0.0 and above to run. After cloning, simply run `npm install` in the cloned directory to install all required dependencies. Then run `npm run watch` to create the necessary JavaScript bundles and to watch for future file changes. Run `npm run build` to create minified bundles.
+
+Marbleland requires a PQ data directory for default asset lookup. This directory isn't included in the repo, so you'll have to download it. You can get it [here](https://drive.google.com/file/d/14IocHL5g7t0Bf1Iyu1ExKvyKvReLlE7E/view?usp=sharing) or by cloning [PlatinumQuest](https://github.com/PlatinumTeam/PlatinumQuest). Once downloaded, you'll need to tell Marbleland where it is by setting `dataPQ` in `server/data/config.json` to the correct path.
 
 Running `npm start` starts the HTTP server on the port defined in `server/data/config.json` (8080 by default).
 
-If you want to import custom levels into the database through the command line, run `npm run add-directory -- <directory-path> [--id-map <id-map-path>] [--replace-duplicates]`, which will import all .mis files in `<directory-path>`. The ID map, when specified, has to point to a JSON file that contains an array of `{ id: number, baseName: string }` objects. Imported missions whose base name (file name of the .mis file without path) matches a base name in the array will automatically get their ID set to the one specified by the ID map. When the `--replace-duplicates` option is set, duplicate levels already present in the database will be replaced by the freshly imported ones. If it isn't set, the level will be in the database twice. Replaced levels will maintain stats like download count.
+Marbleland offers a few CLI commands:
 
-Running `npm run reimport` will go over all imported levels and reimport them (rebuilding the dependency tree and so on).
+- `npm run add-directory -- <directory-path> [--id-map <id-map-path>] [--replace-duplicates]`<br>
+Imports a directory of custom levels into the database. Will import all .mis files in `<directory-path>`.<br><br>
+The ID map, when specified, has to point to a JSON file that contains an array of `{ id: number, baseName: string }` objects. Imported missions whose base name (file name of the .mis file without path) matches a base name in the array will automatically get their ID set to the one specified by the ID map.<br><br>
+When the `--replace-duplicates` option is set, duplicate levels already present in the database will be replaced by the freshly imported ones. If it isn't set, the level will be in the database twice. Replaced levels will maintain stats like download count. This option is usually recommended.
+
+- `npm run reimport -- [level_id ...]`<br>
+Will go over all imported levels and reimport them (rebuilding the dependency tree and so on). A list of level IDs can be passed as an optional argument. When present, instead of reimporting all levels only the levels with the specified IDs will be reimported.

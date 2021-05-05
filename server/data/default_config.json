@@ -1,4 +1,4 @@
 {
 	"port": 8080,
-	"dataPq": "data/data_pq"
+	"dataPQ": "data/data_pq"
 }

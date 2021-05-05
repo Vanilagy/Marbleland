@@ -1,5 +1,15 @@
 # Version history
 
+## 1.0.0
+The first non-beta version of Marbleland. It has a number of improvements over the beta:
+- Added batch level download to the search page
+- Added drag and drop support for level upload
+- Added filter by game mode
+- Added level reordering support for packs
+- Added music dependencies
+- Added moderator role
+- Various small improvements and fixes
+
 ## 0.0.3
 - Refined caching logic
 - Changed progress bar colors

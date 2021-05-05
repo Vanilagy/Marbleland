@@ -6,6 +6,6 @@ export class Config {
 	static dataPath: string;
 
 	static init() {
-		this.dataPath = path.resolve(__dirname, config.dataPq).replace(/\\/g, '/'); // Make sure it's a POSIX path
+		this.dataPath = path.resolve(__dirname, config.dataPQ).replace(/\\/g, '/'); // Make sure it's a POSIX path
 	}
 }

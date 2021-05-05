@@ -21,6 +21,9 @@
 			<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
 		</ul>
 	</p>
+	<footer>
+		Marbleland v1.0.0
+	</footer>
 </template>
 
 <script lang="ts">
@@ -104,5 +107,12 @@ h3 {
 	text-transform: uppercase;
 	font-weight: bold;
 	margin-top: 25px;
+}
+
+footer {
+	margin-top: 30px;
+	text-align: center;
+	font-size: 12px;
+	opacity: 0.333;
 }
 </style>
