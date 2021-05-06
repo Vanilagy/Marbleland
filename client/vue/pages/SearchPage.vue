@@ -51,8 +51,7 @@ export default defineComponent({
 			this.filteredLevels = Search.filter();
 		},
 		searchBarPlaceholder() {
-			if (!this.loaded) return "Search levels";
-			else return `Search ${Search.levels.length} ${(Search.levels.length === 1)? 'level' : 'levels'}`;
+			return `Search ${!this.loaded? 'levels' : Search.levels.length + ((Search.levels.length === 1)? ' level' : ' levels')} for name, artist, file name or ID`;
 		},
 		noLevelsNotice(): string {
 			return Search.levels?.length? "There are no levels matching your search query." : "There are no levels to search for.";

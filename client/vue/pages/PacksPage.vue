@@ -128,8 +128,7 @@ export default defineComponent({
 			if (!this.packs.some(x => x.info.id === newPackId)) this.fetch();
 		},
 		searchBarPlaceholder() {
-			if (!this.packs) return "Search packs";
-			else return `Search ${this.packs.length} ${(this.packs.length === 1)? 'pack' : 'packs'}`;
+			return `Search ${!this.packs? 'packs' : this.packs.length + ((this.packs.length === 1)? ' pack' : ' packs')} for name, creator or ID`;
 		},
 		noEntriesNotice(): string {
 			return this.packs?.length? "There are no packs matching your search query." : "There are no packs to search for.";
