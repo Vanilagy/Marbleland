@@ -31,7 +31,7 @@
 			</div>
 		</div>
 		<h3>Included levels ({{ packInfo.levels.length }})</h3>
-		<panel-list mode="level" :entries="packInfo.levels" :defaultCount="24" :levelPanelActions="levelPanelActions" noEntriesNotice="This pack contains no levels."></panel-list>
+		<panel-list mode="level" :entries="packInfo.levels" :defaultCount="24" :levelPanelActions="levelPanelActions" noEntriesNotice="This pack contains no levels." noShrink></panel-list>
 		<p v-if="hasOwnershipPermissions && packInfo.levels.length === 0" class="howToAdd">Add levels to this pack by searching for the levels you want to add and then adding them from there.</p>
 	</div>
 </template>
@@ -113,12 +113,12 @@ export default defineComponent({
 					// Update the locally stored packs
 					self.packInfo.levels = self.packInfo.levels.filter(x => x.id !== info.id);
 					let ownPack = self.$store.state.ownPacks.find(x => x.id === self.packInfo.id);
-					ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
+					if (ownPack) ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
 
 					// Send the update request to the server
 					await fetch(`/api/pack/${self.packInfo.id}/set-levels`, {
 						method: 'POST',
-						body: JSON.stringify(ownPack.levelIds),
+						body: JSON.stringify(self.packInfo.levels.map(x => x.id)),
 						headers: {
 							'Content-Type': 'application/json'
 						}
@@ -126,7 +126,7 @@ export default defineComponent({
 
 					emitter.emit('packUpdate', {
 						id: self.packInfo.id,
-						levelIds: ownPack.levelIds
+						levelIds: self.packInfo.levels.map(x => x.id)
 					});
 				},
 				async swapLeft(info: LevelInfo) {
@@ -163,7 +163,7 @@ export default defineComponent({
 			this.editing = false;
 			// Edit the local pack values
 			let ownPack = this.$store.state.ownPacks.find(x => x.id === this.packInfo.id);
-			ownPack.name = this.packInfo.name;
+			if (ownPack) ownPack.name = this.packInfo.name;
 
 			// Submit the changes to the server
 			await fetch(`/api/pack/${this.packInfo.id}/edit`, {
@@ -211,12 +211,12 @@ export default defineComponent({
 			this.packInfo.levels[otherIndex] = temp;
 			
 			let ownPack = this.$store.state.ownPacks.find(x => x.id === this.packInfo.id);
-			ownPack.levelIds = this.packInfo.levels.map(x => x.id);
+			if (ownPack) ownPack.levelIds = this.packInfo.levels.map(x => x.id);
 
 			// Send the update request to the server
 			await fetch(`/api/pack/${this.packInfo.id}/set-levels`, {
 				method: 'POST',
-				body: JSON.stringify(ownPack.levelIds),
+				body: JSON.stringify(this.packInfo.levels.map(x => x.id)),
 				headers: {
 					'Content-Type': 'application/json'
 				}
@@ -224,7 +224,7 @@ export default defineComponent({
 
 			emitter.emit('packUpdate', {
 				id: this.packInfo.id,
-				levelIds: ownPack.levelIds
+				levelIds: this.packInfo.levels.map(x => x.id)
 			});
 		}
 	},

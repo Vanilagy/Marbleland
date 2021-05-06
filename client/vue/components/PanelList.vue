@@ -34,7 +34,8 @@ export default defineComponent({
 		defaultCount: Number as PropType<number>,
 		/** Object of additional actions to pass down to the individual level panels */
 		levelPanelActions: Object as PropType<LevelPanelActions>,
-		showTotal: Boolean as PropType<boolean>
+		showTotal: Boolean as PropType<boolean>,
+		noShrink: Boolean as PropType<boolean>
 	},
 	data() {
 		return {
@@ -68,7 +69,7 @@ export default defineComponent({
 	watch: {
 		entries() {
 			// Whenever the entry array changes, reset the shown count back to its default
-			this.shownCount = this.defaultCount;
+			if (!this.noShrink) this.shownCount = this.defaultCount;
 		}
 	}
 });
