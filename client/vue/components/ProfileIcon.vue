@@ -1,6 +1,6 @@
 <template>
 	<div class="notSelectable">
-		<img :src="iconSrc" @click="expanded = !expanded" :class="{ containsAvatar: $store.state.loggedInAccount && $store.state.loggedInAccount.hasAvatar, basicIcon: !($store.state.loggedInAccount && $store.state.loggedInAccount.hasAvatar) }">
+		<img :src="iconSrc" @click="expanded = true" :class="{ containsAvatar: $store.state.loggedInAccount && $store.state.loggedInAccount.hasAvatar, basicIcon: !($store.state.loggedInAccount && $store.state.loggedInAccount.hasAvatar) }">
 		<div v-if="expanded" class="options">
 			<p v-for="option of options" :key="option.label" @click="expanded = false, option.onClick()">{{ option.label }}</p>
 		</div>
@@ -77,7 +77,22 @@ export default defineComponent({
 				document.documentElement.classList.add('dark');
 				localStorage.setItem('colorTheme', 'dark');
 			}
+		},
+		mouseUpListener() {
+			if (this.expanded) setTimeout(() => this.expanded = false);
 		}
+	},
+	mounted() {
+		window.addEventListener('mouseup', this.mouseUpListener);
+	},
+	activated() {
+		window.addEventListener('mouseup', this.mouseUpListener);
+	},
+	deactivated() {
+		window.removeEventListener('mouseup', this.mouseUpListener);
+	},
+	unmounted() {
+		window.removeEventListener('mouseup', this.mouseUpListener);
 	}
 });
 </script>

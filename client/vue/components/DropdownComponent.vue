@@ -1,7 +1,7 @@
 <template>
 	<div class="outer notSelectable">
 		<div class="wrapper" :style="wrapperStyle">
-			<p @click="toggleExpand">{{ currentLabel }}</p>
+			<p @click="show">{{ currentLabel }}</p>
 			<img src="/assets/svg/expand_more_black_24dp.svg" :style="chevronStyle" class="basicIcon">
 			<div v-if="expanded" style="border-top: 1px solid var(--background-2);" class="expander">
 				<p v-for="option of options" :key="option.name" @click="select(option.name)">{{ option.label }}</p>
@@ -12,7 +12,6 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
-import { emitter } from '../../ts/emitter';
 
 export default defineComponent({
 	props: {
@@ -44,13 +43,8 @@ export default defineComponent({
 		}
 	},
 	methods: {
-		toggleExpand() {
-			if (this.expanded) {
-				this.expanded = false;
-			} else {
-				emitter.emit('dropdownOpen');
-				this.expanded = true;
-			}
+		show() {
+			this.expanded = true;
 		},
 		select(name: string) {
 			this.$emit('update:modelValue', name);
@@ -58,13 +52,22 @@ export default defineComponent({
 		},
 		close() {
 			this.expanded = false;
+		},
+		mouseUpListener() {
+			if (this.expanded) setTimeout(() => this.expanded = false);
 		}
 	},
 	mounted() {
-		emitter.on('dropdownOpen', this.close); // Close the dropdown if any other dropdown opens
+		window.addEventListener('mouseup', this.mouseUpListener);
+	},
+	activated() {
+		window.addEventListener('mouseup', this.mouseUpListener);
+	},
+	deactivated() {
+		window.removeEventListener('mouseup', this.mouseUpListener);
 	},
 	unmounted() {
-		emitter.off('dropdownOpen', this.close);
+		window.removeEventListener('mouseup', this.mouseUpListener);
 	}
 });
 </script>

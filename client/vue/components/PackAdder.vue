@@ -67,9 +67,24 @@ export default defineComponent({
 				levelIds: pack.levelIds
 			});
 		},
-		toggle() {
-			this.shown = !this.shown;
+		show() {
+			this.shown = true;
+		},
+		mouseUpListener() {
+			if (this.shown) setTimeout(() => this.shown = false);
 		}
+	},
+	mounted() {
+		window.addEventListener('mouseup', this.mouseUpListener);
+	},
+	activated() {
+		window.addEventListener('mouseup', this.mouseUpListener);
+	},
+	deactivated() {
+		window.removeEventListener('mouseup', this.mouseUpListener);
+	},
+	unmounted() {
+		window.removeEventListener('mouseup', this.mouseUpListener);
 	}
 });
 </script>
