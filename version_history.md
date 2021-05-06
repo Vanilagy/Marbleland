@@ -1,5 +1,10 @@
 # Version history
 
+## 1.0.1
+- Improved search bar placeholders
+- Made all dropdown popups properly disappear when clicking somewhere else
+- Fixed pack bugs
+
 ## 1.0.0
 The first non-beta version of Marbleland. It has a number of improvements over the beta:
 - Added batch level download to the search page
