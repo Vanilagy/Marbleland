@@ -1,5 +1,8 @@
 # Version history
 
+## 1.0.2
+- Small style fixes and improvements
+
 ## 1.0.1
 - Improved search bar placeholders
 - Made all dropdown popups properly disappear when clicking somewhere else

@@ -88,12 +88,12 @@ body, html {
 	margin: 0;
 	font-family: 'Nunito Sans', sans-serif;
 	color: var(--text-color);
-	margin-bottom: 10px;
 	background: var(--background-color);
 }
 
 body {
 	margin: 0px 15px;
+	margin-bottom: 10px;
 }
 
 * {

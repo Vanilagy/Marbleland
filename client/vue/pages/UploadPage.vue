@@ -73,6 +73,11 @@ export default defineComponent({
 			});
 		},
 		uploadFile(file: File) {
+			if (!file.name.endsWith('.zip')) {
+				alert("You can only upload .zip files.");
+				return;
+			}
+
 			let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
 			request.open('POST', '/api/level/upload', true);
 			request.setRequestHeader('Content-Type', 'application/zip');
@@ -149,11 +154,6 @@ export default defineComponent({
 			}
 
 			let file = files[0];
-			if (!file.name.endsWith('.zip')) {
-				alert("You can only upload .zip files.");
-				return;
-			}
-
 			this.uploadFile(file);
 		}
 	}

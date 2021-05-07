@@ -75,7 +75,7 @@ header {
 
 .profileIcon {
 	position: absolute;
-	top: 8px;
+	top: 7px;
 	right: 0;
 }
 
@@ -87,6 +87,7 @@ header {
 	margin-top: 7px;
 	cursor: pointer;
 	margin-right: 10px;
+	margin-bottom: -6px;
 }
 
 .targetContainer img {

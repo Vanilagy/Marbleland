@@ -22,7 +22,7 @@
 		</ul>
 	</p>
 	<footer>
-		Marbleland v1.0.1
+		Marbleland v1.0.2
 	</footer>
 </template>
 
