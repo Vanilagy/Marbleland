@@ -115,4 +115,8 @@ footer {
 	font-size: 12px;
 	opacity: 0.333;
 }
+
+li {
+	overflow-wrap: break-word;
+}
 </style>
