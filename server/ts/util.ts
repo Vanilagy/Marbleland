@@ -188,7 +188,7 @@ export class Util {
 		let lowerCase = fileName.toLowerCase();
 
 		for (let file of concatted) {
-			if (Util.removeExtension(file).toLowerCase() === lowerCase && (!permittedExtensions || permittedExtensions.includes(path.extname(file))))
+			if (Util.removeExtension(file).toLowerCase() === lowerCase && (!permittedExtensions || permittedExtensions.includes(path.extname(file).toLowerCase())))
 				return path.posix.join(relativePath, file);
 		}
 
