@@ -1,6 +1,7 @@
 import * as fs from "fs-extra";
 import * as zlib from "zlib";
 import * as crypto from "crypto";
+import * as util from "util";
 import path from "path";
 import NodeRSA from "node-rsa";
 import { Mission } from "../mission";
@@ -43,10 +44,7 @@ export class MBPakFileEntry {
 
 		let data = Buffer.from(await fs.readFile(filePath, "binary"), "binary");
 		this.uncompressedSize = data.length;
-		let prom = new Promise<Buffer>((resolve, reject) => zlib.deflate(data, (e) => {
-			resolve(data);
-		}));
-		this.compressedContents = await prom;
+		this.compressedContents = await util.promisify(zlib.deflate)(data);
 	}
 
 	/* Encrypts the data */
