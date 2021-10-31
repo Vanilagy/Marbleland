@@ -105,6 +105,11 @@ export const initLevelApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
+		if (mbcryptRsaKey === undefined) {
+			res.status(401).send("401\nUnsupported");
+			return;
+		}
+
 		let mbpak = await MBPakFile.create(mission, assuming);
 
 		doc.downloads = (doc.downloads ?? 0) + 1;
@@ -116,7 +121,7 @@ export const initLevelApi = () => {
 
 		res.writeHead(200, {
 			'Content-Type': 'application/octet-stream',
-			'Content-disposition': 'attachment;filename=' + `${fileName}-${doc._id}.mbpak`,
+			'Content-Disposition': 'attachment;filename=' + `${fileName}-${doc._id}.mbpak`,
 			'Content-Length': mbpakdata.length
 		});
 		res.end(mbpakdata);
