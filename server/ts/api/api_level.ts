@@ -6,7 +6,7 @@ import jszip from 'jszip';
 import { LevelInfo, PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
 import { CommentDoc, getCommentInfosForLevel } from "../comment";
-import { db, keyValue } from "../globals";
+import { db, keyValue, mbcryptRsaKey} from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { MissionUpload, ongoingUploads } from "../mission_upload";
 import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
@@ -14,6 +14,7 @@ import { app } from "../server";
 import { compressAndSendImage } from "./api";
 import { Util } from '../util';
 import { MissionZipStream } from '../zip';
+import { MBPakFile } from '../mbcrypt/mbcrypt';
 
 /** Verifies that the accessed level actually exists. */
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
@@ -91,6 +92,34 @@ export const initLevelApi = () => {
 
 		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
 		stream.connectToResponse(res, `${fileName}-${doc._id}.zip`);
+	});
+
+	// Get the .mbpak of a given level
+	app.get('/api/level/:levelId/mbpak', async (req, res) => {
+		let levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
+
+		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let mission = Mission.fromDoc(doc);
+
+		let assuming = req.query.assuming as string;
+		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
+
+		let mbpak = await MBPakFile.create(mission, assuming);
+
+		doc.downloads = (doc.downloads ?? 0) + 1;
+		await db.missions.update({ _id: levelId }, doc);
+
+		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
+
+		let mbpakdata = mbpak.write(mbcryptRsaKey);
+
+		res.writeHead(200, {
+			'Content-Type': 'application/octet-stream',
+			'Content-disposition': 'attachment;filename=' + `${fileName}-${doc._id}.mbpak`,
+			'Content-Length': mbpakdata.length
+		});
+		res.end(mbpakdata);
 	});
 
 	// Get the image thumbnail of a level

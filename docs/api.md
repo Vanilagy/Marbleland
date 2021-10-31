@@ -10,6 +10,7 @@ All of Marbleland's functionality can be accessed programatically through an API
 	- [Pack](#pack)
 	- [Home](#home)
 - [Data types](#data-types)
+- [MBPak Support](#mbpak-support)
 
 # Authentication
 Some API calls require the user to be authenticated to perform them.
@@ -41,6 +42,15 @@ assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'
 
 ### `GET` /api/level/{level-id}/zip
 Get the .zip archive for a given level.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+
+### `GET` /api/level/{level-id}/mbpak
+Get the .mbpak archive for a given level.
 
 **Query parameters:**
 
@@ -417,4 +427,34 @@ Describes the data displayed on the Home page.
 {
 	latestLevels: LevelInfo[]
 }
+```
+
+# MBPak Support
+Marbleland also supports retrieving levels as MBPak archives that can be directly installed by PQ without having to extract it. To set it up, you require a key.txt containing the RSA and AES-256 encryption keys at the server/data directory.  
+Format of key.txt: (replace RSAKEYRSAKEY... with your RSA key)
+```
+# -----BEGIN RSA PRIVATE KEY-----
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# -----END RSA PRIVATE KEY-----
+# -----BEGIN RSA PUBLIC KEY-----
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# RSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEYRSAKEY
+# -----END RSA PUBLIC KEY-----
+# -----BEGIN AES KEY-----
+# < SHA256 hash of any plaintext password to be used as aes key, remove the brackets >
+# -----END AES KEY-----
 ```

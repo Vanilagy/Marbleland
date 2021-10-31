@@ -20,12 +20,21 @@ export let structurePQ: DirectoryStructure;
 export let structureMBGSet: Set<string>;
 export let structurePQSet: Set<string>;
 
+export let mbcryptRsaKey: string;
+export let mbcryptAesKey: Buffer;
+
 export const initGlobals = async () => {
 	let configExists = fs.existsSync(path.join(__dirname, 'data/config.json'));
 	if (!configExists) fs.copyFileSync(path.join(__dirname, 'data/default_config.json'), path.join(__dirname, 'data/config.json'));
 	config = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/config.json')).toString());
 	Config.init();
 
+	if (fs.existsSync(path.join(__dirname, 'data/key.txt'))) {
+		let key = parseKeyfile(path.join(__dirname, 'data/key.txt'));
+		mbcryptRsaKey = key.rsakey;
+		mbcryptAesKey = key.aeskey;
+	}
+	
 	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 0, accountId: 0, packId: 0, commentId: 0 });
 
 	// Sometimes, NeDB kinda discards data for some weird reasons when first writing to a database file, so I'm doing this to (maybe) help prevent that:
@@ -85,3 +94,14 @@ const scanDirectory = async (directoryPath: string) => {
 	for (let key of keys) result[key] = temp[key];
 	return result;
 };
+
+const parseKeyfile = (file: string) => {
+    let data = fs.readFileSync(file, "utf-8");
+    let key = data.substring(data.indexOf("-----BEGIN RSA PRIVATE KEY-----") + 32, data.indexOf("-----END RSA PRIVATE KEY-----"));
+    let rsakey = "-----BEGIN RSA PRIVATE KEY-----\r" + key + "-----END RSA PRIVATE KEY-----";
+    let aeskey = Buffer.from(data.substring(data.indexOf("-----BEGIN AES KEY-----") + 25, data.indexOf("-----END AES KEY-----") - 2), "base64");
+    return {
+        rsakey: rsakey,
+        aeskey: aeskey
+    }
+}
