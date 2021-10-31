@@ -79,11 +79,13 @@ export class MBPakFile {
 		let includedFiles = new Set<string>();
 		let mbpak = new MBPakFile();
 
+		let rootpath = assuming === 'gold' ? 'marble/data/' : 'platinum/data/';
+
 		/** Normalizes all dependencies related directly to the .mis file to be in the missions/marbleland directory, and leaves everything else untouched. */
 		function normalizeDependency(mission: Mission, dependency: string) {
 			let withoutExtension = Util.removeExtension(mission.relativePath);
-			if (dependency.startsWith(withoutExtension)) return path.posix.join('missions/marbleland', dependency.slice(dependency.lastIndexOf('/') + 1));
-			return dependency;
+			if (dependency.startsWith(withoutExtension)) return path.posix.join(rootpath + 'missions/marbleland', dependency.slice(dependency.lastIndexOf('/') + 1));
+			return rootpath + dependency;
 		}
 
 		for (let dependency of mission.dependencies) {
