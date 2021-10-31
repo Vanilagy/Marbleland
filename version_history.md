@@ -2,6 +2,7 @@
 
 ## 1.1.0
 - Added API support for .mbpak level export
+- Changed order of uploaded levels in profiles to be newest-to-oldest
 - Fixed file extension case bugs
 - Fixed unintuitive behavior of `--reimport`
 

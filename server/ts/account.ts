@@ -108,6 +108,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 
 	// Add all of their levels
 	let missionDocs = await db.missions.find({ addedBy: doc._id }) as MissionDoc[];
+	missionDocs.sort((a, b) => b.addedAt - a.addedAt); // Show newest ones first
 	let uploadedLevels: LevelInfo[] = [];
 
 	for (let doc of missionDocs) {

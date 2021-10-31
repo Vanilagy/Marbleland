@@ -403,7 +403,7 @@ Contains metadata about a profile, as well as additional data to display on the 
 ```typescript
 ProfileInfo & {
 	bio: string,
-	uploadedLevels: LevelInfo[],
+	uploadedLevels: LevelInfo[], // Newest levels first
 	createdPacks: PackInfo[]
 }
 ```
