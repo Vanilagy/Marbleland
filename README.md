@@ -38,5 +38,5 @@ Imports a directory of custom levels into the database. Will import all .mis fil
 The ID map, when specified, has to point to a JSON file that contains an array of `{id: number, baseName: string}` objects. Imported missions whose base name (file name of the .mis file without path) matches a base name in the array will automatically get their ID set to the one specified by the ID map.<br><br>
 When the `--replace-duplicates` option is set, duplicate levels already present in the database will be replaced by the freshly imported ones. If it isn't set, the level will be in the database twice. Replaced levels will maintain stats like download count. This option is usually recommended.
 
-- `npm run reimport -- [level_id ...]`<br>
-Will go over all imported levels and reimport them (rebuilding the dependency tree and so on). A list of level IDs can be passed as an optional argument. When present, instead of reimporting all levels only the levels with the specified IDs will be reimported.
+- `npm run reimport -- [--allow-creation] [level_id ...]`<br>
+Will go over all imported levels and reimport them (rebuilding the dependency tree and so on). A list of level IDs can be passed as an optional argument. When present, instead of reimporting all levels only the levels with the specified IDs will be reimported. When the `--allow-creation` option is set, this command will also be able to import new missions it finds in the directories (instead of just updating old ones).

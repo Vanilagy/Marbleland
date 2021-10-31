@@ -683,12 +683,12 @@ export const compareMissions = (mis1: MisFile, mis2: MisFile) => {
 	return JSON.stringify(root1) === JSON.stringify(root2);
 };
 
-export const reimportMissions = async (levelIds: number[]) => {
+export const reimportMissions = async (levelIds: number[], allowCreation: boolean) => {
 	let missions = await db.missions.find({}) as MissionDoc[];
 	if (levelIds.length > 0) missions = missions.filter(x => levelIds.includes(x._id));
 	let baseDirectories = new Set(missions.map(x => x.baseDirectory));
 
-	let relativePaths = (levelIds.length > 0)? new Set(missions.map(x => x.relativePath)) : null;
+	let relativePaths = allowCreation? null : new Set(missions.map(x => x.relativePath));
 
 	console.log("Reimporting missions...");
 	if (levelIds.length > 0) console.log(`Reimporting only level IDs ${levelIds.join(', ')}`);

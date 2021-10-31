@@ -1,5 +1,10 @@
 # Version history
 
+## 1.1.0
+- Added API support for .mbpak level export
+- Fixed file extension case bugs
+- Fixed unintuitive behavior of `--reimport`
+
 ## 1.0.2
 - Small style fixes and improvements
 

@@ -41,7 +41,7 @@ const init = async () => {
 		await scanForMissions(argv._[1], argv["id-map"], !!argv["replace-duplicates"]);
 		process.exit();
 	} else if (argv._[0] === 'reimport') {
-		await reimportMissions(argv._.slice(1).map(x => Number(x)));
+		await reimportMissions(argv._.slice(1).map(x => Number(x)), !!argv["allow-creation"]);
 		process.exit();
 	} else if (argv._[0] === 'datablock-filter') {
 		let goldMissions = await db.missions.find({ modification: Modification.Gold }) as MissionDoc[];
