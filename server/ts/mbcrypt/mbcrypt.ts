@@ -77,22 +77,7 @@ export class MBPakFile {
 		let includedFiles = new Set<string>();
 		let mbpak = new MBPakFile();
 
-		let rootpath = assuming === 'gold' ? 'marble/data/' : 'platinum/data/';
-
-		/** Normalizes all dependencies related directly to the .mis file to be in the missions/marbleland directory, and leaves everything else untouched. */
-		function normalizeDependency(dependency: string) {
-			let withoutExtension = Util.removeExtension(mission.relativePath);
-			if (dependency.startsWith(withoutExtension)) {
-				let end = dependency.slice(dependency.lastIndexOf('/') + 1);
-				let extension = end.slice(end.indexOf('.'));
-				if (appendIdToMis) {
-					end = `${end.slice(0, -extension.length)}_${mission.id}${extension}`;
-				}
-
-				return path.posix.join(rootpath + 'missions/marbleland', end);
-			}
-			return rootpath + dependency;
-		}
+		let rootPath = assuming === 'gold' ? 'marble/data' : 'platinum/data';
 
 		for (let dependency of mission.dependencies) {
 			// Skip default assets
@@ -105,7 +90,8 @@ export class MBPakFile {
 			if (fullPath) {
 				// Open up a read stream and add it to the mbpak
 				let entry = new MBPakFileEntry();
-				await entry.makeEntry(fullPath, normalizeDependency(dependency));
+				let normalized = mission.normalizeDependency(dependency, appendIdToMis, rootPath, 'missions/marbleland');
+				await entry.makeEntry(fullPath, normalized);
 				entry.encrypt(mbcryptAesKey);
 				mbpak.entries.push(entry);
 			}
