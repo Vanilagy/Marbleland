@@ -79,7 +79,8 @@ Returns a list of files (assets) a given level depends on as an array of `string
 
 Name | Type | Meaning
 --- | --- | ---
-assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the dependencies. For example, if set to `'gold'`, all MBG default assets won't be listed as a dependency.
+append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/info
 Returns the metadata for a given level in the form of [LevelInfo](#levelinfo).
