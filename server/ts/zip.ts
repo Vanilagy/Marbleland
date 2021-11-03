@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 import express from 'express';
 
 /** Generates chunks of the zip over time. */
-export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold' | 'platinumquest') {
+export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean) {
 	let centralDirectories: Uint8Array[] = [];
 	let centralDirectorySizeTotal = 0;
 	let mainPartLength = 0;
@@ -25,6 +25,10 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 
 			let fullPath = await mission.findPath(dependency);
 			if (fullPath) {
+				if (appendIdToMis && fullPath.toLowerCase().endsWith('.mis')) {
+					fullPath = `${fullPath.slice(0, -4)}_${mission.id}${fullPath.slice(-4)}`;
+				}
+
 				// Open up a read stream and add it to the zip
 				let stream = fs.createReadStream(fullPath);
 				zip.file(normalized, stream);
@@ -100,19 +104,21 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 export class MissionZipStream extends Readable {
 	missions: Mission[];
 	assuming: 'none' | 'gold' | 'platinumquest';
+	appendIdToMis: boolean;
 	generator: AsyncGenerator<ArrayBufferLike, void, unknown>;
 	expectedSize: number;
 
-	constructor(missions: Mission[], assuming: 'none' | 'gold' | 'platinumquest') {
+	constructor(missions: Mission[], assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean) {
 		super();
 
 		missions = missions.filter(x => x.fileSizes); // Kick the shitty ones
 		this.missions = missions;
 		this.assuming = assuming;
+		this.appendIdToMis = appendIdToMis;
 	}
 
 	async init() {
-		this.generator = generateZip(this.missions, this.assuming);
+		this.generator = generateZip(this.missions, this.assuming, this.appendIdToMis);
 
 		// Precompute the final total size of the zip
 

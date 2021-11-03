@@ -39,6 +39,7 @@ ids | `string` | A comma-separated list of level IDs to include in the .zip.
 Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/zip
 Get the .zip archive for a given level.
@@ -48,6 +49,7 @@ Get the .zip archive for a given level.
 Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/mbpak
 Get the .mbpak archive for a given level.
@@ -57,6 +59,7 @@ Get the .mbpak archive for a given level.
 Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/image
 Get the image thumbnail for a given level.

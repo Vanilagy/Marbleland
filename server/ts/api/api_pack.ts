@@ -96,7 +96,7 @@ export const initPackApi = () => {
 			}
 		})();
 
-		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'));
+		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'), !!req.query['append-id-to-mis']);
 
 		// Increment the download count for the entire pack
 		doc.downloads = (doc.downloads ?? 0) + 1;

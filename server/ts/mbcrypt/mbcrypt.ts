@@ -73,7 +73,7 @@ export class MBPakFile {
 	}
 
 	/** Creates an MBPakFile object from the mission */
-	static async create(mission: Mission, assuming: string) {
+	static async create(mission: Mission, assuming: string, appendIdToMis: boolean) {
 		let includedFiles = new Set<string>();
 		let mbpak = new MBPakFile();
 
@@ -95,6 +95,10 @@ export class MBPakFile {
 
 			let fullPath = await mission.findPath(dependency);
 			if (fullPath) {
+				if (appendIdToMis && fullPath.toLowerCase().endsWith('.mis')) {
+					fullPath = `${fullPath.slice(0, -4)}_${mission.id}${fullPath.slice(-4)}`;
+				}
+
 				// Open up a read stream and add it to the mbpak
 				let entry = new MBPakFileEntry();
 				await entry.makeEntry(fullPath, normalizeDependency(mission, dependency));
