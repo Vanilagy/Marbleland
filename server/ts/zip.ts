@@ -18,16 +18,14 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 
 		for (let dependency of mission.dependencies) {
 			// Skip default assets
-			let normalized = mission.normalizeDependency(dependency);
+			let normalized = mission.normalizeDependency(dependency, false);
 			if (includedFiles.has(normalized)) continue;
 			if (assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
 			if (assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
 
 			let fullPath = await mission.findPath(dependency);
 			if (fullPath) {
-				if (appendIdToMis && normalized.toLowerCase().endsWith('.mis')) {
-					normalized = `${normalized.slice(0, -4)}_${mission.id}${normalized.slice(-4)}`;
-				}
+				normalized = mission.normalizeDependency(dependency, appendIdToMis); // Refine it
 
 				// Open up a read stream and add it to the zip
 				let stream = fs.createReadStream(fullPath);
@@ -111,7 +109,7 @@ export class MissionZipStream extends Readable {
 	constructor(missions: Mission[], assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean) {
 		super();
 
-		missions = missions.filter(x => x.fileSizes); // Kick the shitty ones
+		//missions = missions.filter(x => x.fileSizes); // Kick the shitty ones
 		this.missions = missions;
 		this.assuming = assuming;
 		this.appendIdToMis = appendIdToMis;
@@ -133,12 +131,12 @@ export class MissionZipStream extends Readable {
 				j++;
 
 				// Skip default assets
-				let normalized = mission.normalizeDependency(dependency);
+				let normalized = mission.normalizeDependency(dependency, false);
 				if (includedFiles.has(normalized)) continue;
 				if (this.assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
 				if (this.assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
 
-				let size = mission.fileSizes[j];
+				let size = mission.fileSizes?.[j] ?? 0;
 				totalSize += size; // Add the actual size of the file
 				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
 				totalSize += Buffer.byteLength(normalized) * 2; // Both headers contain the file name, so add its byte size twice
@@ -174,7 +172,7 @@ export class MissionZipStream extends Readable {
 
 		res.set('Content-Type', 'application/zip');
 		res.set('Content-Disposition', `attachment; filename="${fileName}"`);
-		res.set('Content-Length', this.expectedSize.toString());
+		//res.set('Content-Length', this.expectedSize.toString());
 
 		this.pipe(res);
 	}

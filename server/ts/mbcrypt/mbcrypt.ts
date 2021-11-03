@@ -80,29 +80,32 @@ export class MBPakFile {
 		let rootpath = assuming === 'gold' ? 'marble/data/' : 'platinum/data/';
 
 		/** Normalizes all dependencies related directly to the .mis file to be in the missions/marbleland directory, and leaves everything else untouched. */
-		function normalizeDependency(mission: Mission, dependency: string) {
+		function normalizeDependency(dependency: string) {
 			let withoutExtension = Util.removeExtension(mission.relativePath);
-			if (dependency.startsWith(withoutExtension)) return path.posix.join(rootpath + 'missions/marbleland', dependency.slice(dependency.lastIndexOf('/') + 1));
+			if (dependency.startsWith(withoutExtension)) {
+				let end = dependency.slice(dependency.lastIndexOf('/') + 1);
+				let extension = end.slice(end.indexOf('.'));
+				if (appendIdToMis) {
+					end = `${end.slice(0, -extension.length)}_${mission.id}${extension}`;
+				}
+
+				return path.posix.join(rootpath + 'missions/marbleland', end);
+			}
 			return rootpath + dependency;
 		}
 
 		for (let dependency of mission.dependencies) {
 			// Skip default assets
-			let normalized = mission.normalizeDependency(dependency);
+			let normalized = mission.normalizeDependency(dependency, false);
 			if (includedFiles.has(normalized)) continue;
 			if (assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
 			if (assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
 
 			let fullPath = await mission.findPath(dependency);
 			if (fullPath) {
-				let specialNormalizied = normalizeDependency(mission, dependency);
-				if (appendIdToMis && specialNormalizied.toLowerCase().endsWith('.mis')) {
-					specialNormalizied = `${specialNormalizied.slice(0, -4)}_${mission.id}${specialNormalizied.slice(-4)}`;
-				}
-
 				// Open up a read stream and add it to the mbpak
 				let entry = new MBPakFileEntry();
-				await entry.makeEntry(fullPath, specialNormalizied);
+				await entry.makeEntry(fullPath, normalizeDependency(dependency));
 				entry.encrypt(mbcryptAesKey);
 				mbpak.entries.push(entry);
 			}

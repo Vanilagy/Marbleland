@@ -421,17 +421,25 @@ export class Mission {
 	}
 
 	/** Normalizes all dependencies related directly to the .mis file to be in the missions/ directory, and leaves everything else untouched. */
-	normalizeDependency(dependency: string) {
+	normalizeDependency(dependency: string, appendIdToMis: boolean) {
 		let withoutExtension = Util.removeExtension(this.relativePath);
-		if (dependency.startsWith(withoutExtension)) return path.posix.join('missions', dependency.slice(dependency.lastIndexOf('/') + 1));
+		if (dependency.startsWith(withoutExtension)) {
+			let end = dependency.slice(dependency.lastIndexOf('/') + 1);
+			let extension = end.slice(end.indexOf('.'));
+			if (appendIdToMis) {
+				end = `${end.slice(0, -extension.length)}_${this.id}${extension}`;
+			}
+
+			return path.posix.join('missions', end);
+		}
 		return dependency;
 	}
 
-	getNormalizedDependencies(assuming: 'none' | 'gold' | 'platinumquest') {
+	getNormalizedDependencies(assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean) {
 		let result: string[] = [];
 
 		for (let dependency of this.dependencies) {
-			let normalized = this.normalizeDependency(dependency);
+			let normalized = this.normalizeDependency(dependency, appendIdToMis);
 			if (assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
 			if (assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
 
