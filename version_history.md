@@ -2,6 +2,7 @@
 
 ## 1.1.1
 - Added an additional API options to allow a level's ID to be appended to the end of its .mis file
+- Small fixes and improvements
 
 ## 1.1.0
 - Added API support for .mbpak level export
