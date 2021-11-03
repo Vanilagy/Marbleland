@@ -427,6 +427,7 @@ export class Mission {
 			let end = dependency.slice(dependency.lastIndexOf('/') + 1);
 			let extension = end.slice(end.indexOf('.'));
 			if (appendIdToMis) {
+				// Append the mission's ID to the .mis and thumbnail files
 				end = `${end.slice(0, -extension.length)}_${this.id}${extension}`;
 			}
 
