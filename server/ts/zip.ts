@@ -139,7 +139,7 @@ export class MissionZipStream extends Readable {
 				let size = mission.fileSizes?.[j] ?? 0;
 				totalSize += size; // Add the actual size of the file
 				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
-				totalSize += Buffer.byteLength(normalized) * 2; // Both headers contain the file name, so add its byte size twice
+				totalSize += Buffer.byteLength(mission.normalizeDependency(dependency, this.appendIdToMis)) * 2; // Both headers contain the file name, so add its byte size twice
 
 				includedFiles.add(normalized);
 			}
@@ -172,7 +172,7 @@ export class MissionZipStream extends Readable {
 
 		res.set('Content-Type', 'application/zip');
 		res.set('Content-Disposition', `attachment; filename="${fileName}"`);
-		//res.set('Content-Length', this.expectedSize.toString());
+		res.set('Content-Length', this.expectedSize.toString());
 
 		this.pipe(res);
 	}
