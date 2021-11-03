@@ -68,7 +68,7 @@ export const initLevelApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
-		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'), !!req.query['append-id-to-mis']);
+		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
 		let hash = crypto.createHash('sha256').update([...levelIds].join(',')).digest('hex');
 		let fileName = `levels-${hash.slice(0, 8)}.zip`;
 		stream.connectToResponse(res, fileName);
@@ -85,7 +85,7 @@ export const initLevelApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
-		let stream = new MissionZipStream([mission], assuming as ('none' | 'gold' | 'platinumquest'), !!req.query['append-id-to-mis']);
+		let stream = new MissionZipStream([mission], assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
 
 		doc.downloads = (doc.downloads ?? 0) + 1;
 		await db.missions.update({ _id: levelId }, doc);
@@ -110,7 +110,7 @@ export const initLevelApi = () => {
 			return;
 		}
 
-		let mbpak = await MBPakFile.create(mission, assuming, !!req.query['append-id-to-mis']);
+		let mbpak = await MBPakFile.create(mission, assuming, 'append-id-to-mis' in req.query);
 
 		doc.downloads = (doc.downloads ?? 0) + 1;
 		await db.missions.update({ _id: levelId }, doc);

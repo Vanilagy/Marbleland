@@ -25,8 +25,8 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 
 			let fullPath = await mission.findPath(dependency);
 			if (fullPath) {
-				if (appendIdToMis && fullPath.toLowerCase().endsWith('.mis')) {
-					fullPath = `${fullPath.slice(0, -4)}_${mission.id}${fullPath.slice(-4)}`;
+				if (appendIdToMis && normalized.toLowerCase().endsWith('.mis')) {
+					normalized = `${normalized.slice(0, -4)}_${mission.id}${normalized.slice(-4)}`;
 				}
 
 				// Open up a read stream and add it to the zip
