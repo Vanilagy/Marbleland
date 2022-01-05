@@ -59,6 +59,8 @@ export class MissionUpload {
 	 * not be included in the normalized directory.
 	*/
 	async process() {
+		this.sanitizeArchive();
+
 		let continueProcess = await this.checkMis();
 		if (!continueProcess) return; // If the mis wasn't valid, no need to even continue
 
@@ -81,6 +83,14 @@ export class MissionUpload {
 
 		if (excludedFiles.length > 0) {
 			this.warnings.add(`The .zip contains additional files that won't be submitted because they're not a dependency: ${excludedFiles.join(', ')}`);
+		}
+	}
+
+	sanitizeArchive() {
+		// Remove all macOS-related files
+		for (let filePath in this.zip.files) {
+			if (filePath.startsWith('__MACOSX/')) delete this.zip.files[filePath];
+			if (filePath.endsWith('.DS_Store')) delete this.zip.files[filePath];
 		}
 	}
 

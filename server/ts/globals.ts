@@ -103,5 +103,5 @@ const parseKeyfile = (file: string) => {
     return {
         rsakey: rsakey,
         aeskey: aeskey
-    }
-}
+    };
+};
