@@ -31,6 +31,10 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 				let stream = fs.createReadStream(fullPath);
 				zip.file(normalized, stream);
 				includedFiles.add(normalized);
+
+				console.log("Did: " + dependency);
+			} else {
+				console.log("Didn't: " + dependency);
 			}
 		}
 
