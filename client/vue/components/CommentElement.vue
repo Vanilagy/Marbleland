@@ -55,6 +55,7 @@ p {
 	margin: 0;
 	margin-top: 5px;
 	white-space: pre-wrap;
+	word-break: break-all;
 }
 
 .delete {
