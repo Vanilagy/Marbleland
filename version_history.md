@@ -2,6 +2,7 @@
 
 ## 1.1.2
 - Fixed macOS-specific .zip errors
+- Other small fixes
 
 ## 1.1.1
 - Added an additional API options to allow a level's ID to be appended to the end of its .mis file
