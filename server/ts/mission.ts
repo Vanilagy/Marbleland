@@ -648,6 +648,10 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 						doc.addedBy = duplicateDoc.addedBy;
 						doc.downloads = duplicateDoc.downloads;
 						doc.remarks = duplicateDoc.remarks;
+
+						// We wrongly incremented the ID even though it got replaced now, so set it back so we don't inflate the ID for nothing.
+						let incrementedId = keyValue.get('levelId');
+						keyValue.set('levelId', incrementedId - 1);
 					}
 
 					await db.missions.update({ _id: doc._id }, doc, { upsert: true });
