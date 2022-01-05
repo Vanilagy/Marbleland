@@ -167,6 +167,7 @@ export class MissionZipStream extends Readable {
 			
 			if (next.done) {
 				// We've streamed the entire .zip
+				console.log("it said iz done bro");
 				this.push(null);
 				return;
 			}
@@ -181,7 +182,7 @@ export class MissionZipStream extends Readable {
 
 		res.set('Content-Type', 'application/zip');
 		res.set('Content-Disposition', `attachment; filename="${fileName}"`);
-		res.set('Content-Length', this.expectedSize.toString());
+		//res.set('Content-Length', this.expectedSize.toString());
 
 		this.pipe(res);
 	}
