@@ -56,6 +56,8 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 				let mainPart = generated.slice(0, startOfCentralDirectoryOffset);
 				yield mainPart.buffer; // Push all the file entires without the central directory (will be pushed later)
 
+				console.log("did1");
+
 				let centralDirectory = generated.slice(startOfCentralDirectoryOffset, i);
 				centralDirectories.push(centralDirectory);
 				centralDirectorySizeTotal += centralDirectory.byteLength;
@@ -84,6 +86,7 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 	// Push out all the central directories
 	for (let centralDirectory of centralDirectories) {
 		yield centralDirectory.buffer;
+		console.log("did2");
 	}
 
 	// At last, we need to generate the end of central directory record
@@ -100,6 +103,8 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 	endView.setUint16(20, 0, true);
 
 	yield endBuffer;
+
+	console.log("did3");
 }
 
 /** A readable stream for efficient generation and streaming of .zip files with missions in them. */
