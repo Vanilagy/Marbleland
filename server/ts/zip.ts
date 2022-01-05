@@ -32,7 +32,7 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 				zip.file(normalized, stream);
 				includedFiles.add(normalized);
 
-				console.log("Did: " + dependency);
+				console.log("Did: " + dependency, fullPath);
 			} else {
 				console.log("Didn't: " + dependency);
 			}
