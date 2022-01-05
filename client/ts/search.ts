@@ -85,7 +85,7 @@ export abstract class Search {
 		switch (filter.sort.value) {
 			case 'name': sortingFunction = (a, b) => cmpStr(a.sortName, b.sortName); break;
 			case 'artist': sortingFunction = (a, b) => cmpStr(a.sortArtist, b.sortArtist); break;
-			case 'date': sortingFunction = (a, b) => a.info.addedAt - b.info.addedAt; break;
+			case 'date': sortingFunction = (a, b) => -(a.info.addedAt - b.info.addedAt); break;
 			case 'id': sortingFunction = (a, b) => a.info.id - b.info.id; break;
 			case 'gemCount': sortingFunction = (a, b) => a.info.gems - b.info.gems; break;
 		}

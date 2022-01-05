@@ -21,7 +21,7 @@
 			<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
 		</ul>
 	</p>
-	<footer>
+	<footer @click="showVersionHistory">
 		Marbleland v1.1.2
 	</footer>
 </template>
@@ -70,6 +70,11 @@ export default defineComponent({
 		let json = await response.json() as HomeInfo;
 
 		this.homeInfo = json;
+	},
+	methods: {
+		showVersionHistory() {
+			location.href = 'https://github.com/Vanilagy/Marbleland/blob/main/version_history.md';
+		}
 	}
 });
 </script>
@@ -110,10 +115,18 @@ h3 {
 }
 
 footer {
+	width: 110px;
+	margin: auto;
 	margin-top: 30px;
 	text-align: center;
 	font-size: 12px;
 	opacity: 0.333;
+	cursor: pointer;
+}
+
+footer:hover {
+	opacity: 1.0;
+	text-decoration: underline;
 }
 
 li {

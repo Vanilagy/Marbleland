@@ -82,7 +82,7 @@ export const createNewStore = () => {
 						},
 						sort: {
 							label: 'Sort by',
-							value: 'name',
+							value: 'date',
 							options: [
 								{ name: 'name', label: "Level name"},
 								{ name: 'artist', label: 'Level artist'},

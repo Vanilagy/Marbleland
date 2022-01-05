@@ -42,7 +42,7 @@ export default defineComponent({
 				filter: {
 					sort: {
 						label: 'Sort by',
-						value: 'name',
+						value: 'date',
 						options: [
 							{ name: 'name', label: "Pack name"},
 							{ name: 'creator', label: 'Pack creator'},
@@ -113,7 +113,7 @@ export default defineComponent({
 			switch (this.searchBarConfig.filter.sort.value) {
 				case 'name': sortingFunction = (a, b) => cmpStr(a.sortName, b.sortName); break;
 				case 'creator': sortingFunction = (a, b) => cmpStr(a.sortCreator, b.sortCreator); break;
-				case 'date': sortingFunction = (a, b) => a.info.createdAt - b.info.createdAt; break;
+				case 'date': sortingFunction = (a, b) => -(a.info.createdAt - b.info.createdAt); break;
 				case 'levelCount': sortingFunction = (a, b) => a.info.levelIds.length - b.info.levelIds.length; break;
 			}
 
