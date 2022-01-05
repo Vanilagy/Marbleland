@@ -656,7 +656,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 
 					await db.missions.update({ _id: doc._id }, doc, { upsert: true });
 	
-					console.log("Level imported successfully with id " + mission.id);
+					console.log("Level imported successfully with id " + doc._id);
 					success++;
 				}
 			}
