@@ -1,5 +1,8 @@
 # Version history
 
+## 1.1.3
+- Fixed pack thumbnails failing sometimes
+
 ## 1.1.2
 - Levels/packs are now sorted by date by default
 - Fixed macOS-specific .zip errors
