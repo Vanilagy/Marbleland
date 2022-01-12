@@ -374,7 +374,7 @@ h3 {
 
 .remarks {
 	white-space: pre-wrap;
-	word-break: break-all;
+	overflow-wrap: break-word;
 }
 
 .saveChangesButton {

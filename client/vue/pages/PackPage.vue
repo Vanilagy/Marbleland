@@ -313,7 +313,7 @@ h3 {
 
 .description {
 	white-space: pre-wrap;
-	word-break: break-all;
+	overflow-wrap: break-word;
 }
 
 .saveChangesButton {

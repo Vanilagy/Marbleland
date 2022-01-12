@@ -219,7 +219,7 @@ h1 {
 	margin: auto;
 	max-width: 500px;
 	white-space: pre-wrap;
-	word-break: break-all;
+	overflow-wrap: break-word;
 }
 
 .emptyBio {
