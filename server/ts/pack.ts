@@ -86,20 +86,31 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 		promises.push(new Promise<sharp.OverlayOptions>(async resolve => {
 			let missionDoc = await db.missions.findOne({ _id: shownLevels[i] }) as MissionDoc;
 			let mission = Mission.fromDoc(missionDoc);
+			let buffer: Buffer;
 	
 			let imagePath = mission.getImagePath();
-			if (!imagePath) return;
+			if (!imagePath) {
+				// Use a transparent image for missions with no thumbnail
+				buffer = await sharp({
+					create: {
+						width: Math.ceil(sliceWidth),
+						height: height,
+						channels: 4,
+						background: { r: 0, g: 0, b: 0, alpha: 0 }
+					}
+				}).png().toBuffer();
+			} else {
+				let rawBuffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
 	
-			let rawBuffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
-	
-			// Cut out the center part of the thumbnail in a slim strip
-			let buffer = await sharp(rawBuffer).resize({width: width, height: height, fit: 'cover'}).extract({
-				left: Math.floor((width - sliceWidth) / 2),
-				top: 0,
-				width: Math.ceil(sliceWidth),
-				height: height
-			}).png({ compressionLevel: 0 }).toBuffer();
-			
+				// Cut out the center part of the thumbnail in a slim strip
+				buffer = await sharp(rawBuffer).resize({width: width, height: height, fit: 'cover'}).extract({
+					left: Math.floor((width - sliceWidth) / 2),
+					top: 0,
+					width: Math.ceil(sliceWidth),
+					height: height
+				}).png({ compressionLevel: 0 }).toBuffer();
+			}
+
 			resolve({
 				input: buffer,
 				top: 0,
