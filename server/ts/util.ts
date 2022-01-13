@@ -97,11 +97,11 @@ export class Util {
 		return str;
 	}
 
-	static readdirCache = new Map<string, Promise<string[]>>();
+	static readdirCache = new Map<string, Promise<{ files: string[], directoryPath: string }>>();
 	/** Get a list of all entries in a directory. Uses a cache to avoid doing it twice. */
 	static readdirCached(directoryPath: string) {
 		if (this.readdirCache.has(directoryPath)) return this.readdirCache.get(directoryPath);
-		let promise = new Promise<string[]>(async resolve => {
+		let promise = new Promise<{ files: string[], directoryPath: string }>(async resolve => {
 			let exists = await fs.pathExists(directoryPath);
 			if (!exists) {
 				let parts = directoryPath.split(path.sep).map(x => x.toLowerCase());
@@ -131,13 +131,13 @@ export class Util {
 
 					currFiles = await fs.readdir(currPath);
 				}
-				
-				resolve(currFiles ?? []);
+
+				resolve({ files: currFiles ?? [], directoryPath: currPath });
 				return;
 			}
 			
 			let files = await fs.readdir(directoryPath);
-			resolve(files);
+			resolve({ files, directoryPath });
 		});
 		this.readdirCache.set(directoryPath, promise);
 		return promise;
@@ -145,7 +145,7 @@ export class Util {
 
 	/** Returns the file names of all files in a given directory that start with the given file name. */
 	static async getFullFileNames(fileName: string, directoryPath: string) {
-		let files = await this.readdirCached(directoryPath);
+		let { files } = await this.readdirCached(directoryPath);
 		let lowerCase = fileName.toLowerCase();
 		return files.filter(x => x.toLowerCase().startsWith(lowerCase));
 	}
@@ -210,8 +210,8 @@ export class Util {
 	static async findFile(fileName: string, relativePath: string, baseDirectories: string[], walkUp = true, permittedExtensions?: string[]): Promise<string> {
 		let concatted: string[] = [];
 		for (let baseDirectory of baseDirectories) {
-			let dir = await Util.readdirCached(path.join(baseDirectory, relativePath));
-			concatted.push(...dir);
+			let { files } = await Util.readdirCached(path.join(baseDirectory, relativePath));
+			concatted.push(...files);
 		}
 		let lowerCase = fileName.toLowerCase();
 
@@ -233,9 +233,9 @@ export class Util {
 		let lowerCase = Util.getFileName(relativeFilePath).toLowerCase();
 
 		for (let baseDirectory of baseDirectories) {
-			let dir = await Util.readdirCached(path.join(baseDirectory, relativeDirectory));
-			let found = dir.find(x => x.toLowerCase() === lowerCase);
-			if (found) return path.join(baseDirectory, relativeDirectory, found);
+			let { files, directoryPath } = await Util.readdirCached(path.join(baseDirectory, relativeDirectory));
+			let found = files.find(x => x.toLowerCase() === lowerCase);
+			if (found) return path.join(directoryPath, found);
 		}
 		
 		return null;
