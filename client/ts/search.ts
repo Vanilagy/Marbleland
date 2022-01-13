@@ -88,6 +88,8 @@ export abstract class Search {
 			case 'date': sortingFunction = (a, b) => -(a.info.addedAt - b.info.addedAt); break;
 			case 'id': sortingFunction = (a, b) => a.info.id - b.info.id; break;
 			case 'gemCount': sortingFunction = (a, b) => a.info.gems - b.info.gems; break;
+			case 'downloads': sortingFunction = (a, b) => -(a.info.downloads - b.info.downloads); break;
+			case 'lovedCount': sortingFunction = (a, b) => -(a.info.lovedCount - b.info.lovedCount); break;
 		}
 
 		// Bring the levels into the right order

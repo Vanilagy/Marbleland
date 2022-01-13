@@ -180,7 +180,9 @@ export const initLevelApi = () => {
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
 
-		res.send(await mission.createExtendedLevelInfo());
+		let { doc: accountDoc } = await authorize(req);
+
+		res.send(await mission.createExtendedLevelInfo(accountDoc?._id));
 	});
 
 	// Get the raw MissionInfo element from the .mis
@@ -390,5 +392,49 @@ export const initLevelApi = () => {
 
 		// Respond with a list of all comments for that level
 		res.send(await getCommentInfosForLevel(levelId));
+	});
+
+	// Mark the level as loved
+	app.patch('/api/level/:levelId/love', async (req, res) => {
+		let { doc } = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		let levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
+
+		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let lovedBy = missionDoc.lovedBy ?? [];
+
+		if (!lovedBy.includes(doc._id)) lovedBy.push(doc._id);
+
+		missionDoc.lovedBy = lovedBy;
+		await db.missions.update({ _id: levelId }, missionDoc);
+
+		res.end();
+	});
+
+	// Unmark the level as loved
+	app.patch('/api/level/:levelId/unlove', async (req, res) => {
+		let { doc } = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		let levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
+
+		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let lovedBy = missionDoc.lovedBy ?? [];
+
+		if (lovedBy.includes(doc._id)) lovedBy.splice(lovedBy.indexOf(doc._id), 1);
+
+		missionDoc.lovedBy = lovedBy;
+		await db.missions.update({ _id: levelId }, missionDoc);
+
+		res.end();
 	});
 };

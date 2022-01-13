@@ -26,8 +26,11 @@
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete pack" @click="deletePack" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }" class="basicIcon">
 				</div>
-				<download-button :id="packInfo.id" mode="pack" @download="packInfo.downloads++">Download pack</download-button>
-				<p class="additionalInfo">Downloads: {{ packInfo.downloads }}</p>
+				<div class="buttonContainer">
+					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="packInfo.id" mode="pack" @download="packInfo.downloads++">Download pack</download-button>
+					<love-button style="flex: 0 1 auto" :levelOrPackInfo="packInfo"></love-button>
+				</div>
+				<p class="additionalInfo">Downloads: {{ packInfo.downloads }}<br>Loves: {{ packInfo.lovedCount }}</p>
 			</div>
 		</div>
 		<h3>Included levels ({{ packInfo.levels.length }})</h3>
@@ -46,6 +49,7 @@ import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import InfoBanner from '../components/InfoBanner.vue';
 import Loader from '../components/Loader.vue';
+import LoveButton from '../components/LoveButton.vue';
 import { LevelPanelActions } from '../components/LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
 import { Head } from '@vueuse/head';
@@ -89,7 +93,7 @@ export default defineComponent({
 			return;
 		}
 
-		this.packInfo = await getExtendedPackInfo(doc);
+		this.packInfo = await getExtendedPackInfo(doc, this.$store.state.loggedInAccount?.id);
 		this.$store.state.packPreload = this.packInfo;
 	},
 	unmounted() {
@@ -148,6 +152,9 @@ export default defineComponent({
 		},
 		origin(): string {
 			return ORIGIN;
+		},
+		isLoggedIn(): boolean {
+			return !!this.$store.state.loggedInAccount
 		}
 	},
 	methods: {
@@ -235,11 +242,15 @@ export default defineComponent({
 		ButtonWithIcon,
 		InfoBanner,
 		Loader,
-		Head
+		Head,
+		LoveButton
 	},
 	watch: {
 		hasOwnershipPermissions() {
 			if (!this.hasOwnershipPermissions) this.editing = false;
+		},
+		isLoggedIn() {
+			if (this.packInfo) this.packInfo.lovedByYou = false;
 		}
 	}
 });
@@ -330,5 +341,11 @@ h3 {
 .notFound {
 	text-align: center;
 	margin-top: 50px;
+}
+
+.buttonContainer {
+	display: flex;
+	width: 100%;
+	margin-top: 10px;
 }
 </style>

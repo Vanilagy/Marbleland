@@ -47,7 +47,9 @@ export default defineComponent({
 							{ name: 'name', label: "Pack name"},
 							{ name: 'creator', label: 'Pack creator'},
 							{ name: 'date', label: 'Date created'},
-							{ name: 'levelCount', label: 'Level count'}
+							{ name: 'levelCount', label: 'Level count'},
+							{ name: 'downloads', label: 'Downloads'},
+							{ name: 'lovedCount', label: 'loves'}
 						]
 					}
 				},
@@ -115,6 +117,8 @@ export default defineComponent({
 				case 'creator': sortingFunction = (a, b) => cmpStr(a.sortCreator, b.sortCreator); break;
 				case 'date': sortingFunction = (a, b) => -(a.info.createdAt - b.info.createdAt); break;
 				case 'levelCount': sortingFunction = (a, b) => a.info.levelIds.length - b.info.levelIds.length; break;
+				case 'downloads': sortingFunction = (a, b) => -(a.info.downloads - b.info.downloads); break;
+				case 'lovedCount': sortingFunction = (a, b) => -(a.info.lovedCount - b.info.lovedCount); break;
 			}
 
 			// Bring the packs into the right order

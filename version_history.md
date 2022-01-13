@@ -1,5 +1,9 @@
 # Version history
 
+## 1.2.0
+- Added ability to mark levels and packs as loved
+- Added ability to sort levels and packs by downloads and loves
+
 ## 1.1.3
 - Fixed pack thumbnails failing sometimes
 

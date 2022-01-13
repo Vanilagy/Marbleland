@@ -15,7 +15,8 @@ export interface PackDoc {
 	createdBy: number,
 	/** List of level IDs contained in this pack. */
 	levels: number[],
-	downloads: number
+	downloads: number,
+	lovedBy?: number[]
 }
 
 export const getPackInfo = async (doc: PackDoc): Promise<PackInfo> => {
@@ -26,11 +27,13 @@ export const getPackInfo = async (doc: PackDoc): Promise<PackInfo> => {
 		name: doc.name,
 		createdBy: await getProfileInfo(accountDoc),
 		createdAt: doc.createdAt,
-		levelIds: doc.levels
+		levelIds: doc.levels,
+		downloads: doc.downloads ?? 0,
+		lovedCount: doc.lovedBy?.length ?? 0
 	};
 };
 
-export const getExtendedPackInfo = async (doc: PackDoc): Promise<ExtendedPackInfo> => {
+export const getExtendedPackInfo = async (doc: PackDoc, requesterId?: number): Promise<ExtendedPackInfo> => {
 	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
 	let levelInfos: LevelInfo[] = [];
 
@@ -49,7 +52,9 @@ export const getExtendedPackInfo = async (doc: PackDoc): Promise<ExtendedPackInf
 		createdBy: await getProfileInfo(accountDoc),
 		createdAt: doc.createdAt,
 		levels: levelInfos,
-		downloads: doc.downloads ?? 0
+		downloads: doc.downloads ?? 0,
+		lovedCount: doc.lovedBy?.length ?? 0,
+		lovedByYou: doc.lovedBy?.includes(requesterId) ?? false
 	};
 };
 

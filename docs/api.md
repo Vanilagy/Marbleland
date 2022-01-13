@@ -153,6 +153,12 @@ Returns a list of packs a given level appears in as an array of [PackInfo](#pack
 }
 ```
 
+### `PATCH` /api/level/{level-id}/love
+**Requires [authentication](#authentication).** Marks a level as loved.
+
+### `PATCH` /api/level/{level-id}/unlove
+**Requires [authentication](#authentication).** Unmarks a level as loved.
+
 ## Comment
 ### `DELETE` /api/comment/{comment-id}
 **Requires [authentication](#authentication).** Deletes a previously written comment. Returns the full list of comments (after deletion) for the comment's level in the form of an array of [CommentInfo](#commentinfo).
@@ -304,6 +310,12 @@ number[] // An array of level IDs to include in the pack
 ### `DELETE` /api/pack/{pack-id}/delete
 **Requires [authentication](#authentication).** Edits a given pack from the database.
 
+### `PATCH` /api/pack/{pack-id}/love
+**Requires [authentication](#authentication).** Marks a pack as loved.
+
+### `PATCH` /api/pack/{pack-id}/unlove
+**Requires [authentication](#authentication).** Unmarks a pack as loved.
+
 ## Home
 ### `GET` /api/home/info
 Returns the necessary data for the Home page in the form of [HomeInfo](#homeinfo).
@@ -337,7 +349,10 @@ Contains metadata about a level.
 	awesomeScore: number,
 
 	gems: number,
-	hasEasterEgg: boolean
+	hasEasterEgg: boolean,
+
+	downloads: number,
+	lovedCount: number
 }
 ```
 
@@ -350,7 +365,8 @@ LevelInfo & {
 	packs: PackInfo[],
 	comments: CommentInfo[],
 	downloads: number,
-	missesDependencies: boolean
+	missesDependencies: boolean,
+	lovedByYou: boolean // Indicates if the logged-in user has loved the level
 }
 ```
 
@@ -362,7 +378,9 @@ Contains metadata about a pack.
 	name: string,
 	createdBy: ProfileInfo,
 	createdAt: number,
-	levelIds: number[]
+	levelIds: number[],
+	downloads: number,
+	lovedCount: number
 }
 ```
 
@@ -376,7 +394,9 @@ Contains metadata about a pack.
 	createdBy: ProfileInfo,
 	createdAt: number,
 	levels: LevelInfo[],
-	downloads: number
+	downloads: number,
+	lovedCount: number,
+	lovedByYou: boolean // Indicates if the logged-in user has loved the level
 }
 ```
 

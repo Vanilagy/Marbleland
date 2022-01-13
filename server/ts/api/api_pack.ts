@@ -60,7 +60,9 @@ export const initPackApi = () => {
 			return;
 		}
 
-		let packInfo = await getExtendedPackInfo(doc);
+		let { doc: accountDoc } = await authorize(req);
+
+		let packInfo = await getExtendedPackInfo(doc, accountDoc?._id);
 		res.send(packInfo);
 	});
 
@@ -219,6 +221,52 @@ export const initPackApi = () => {
 		try {
 			await fs.unlink(getPackThumbnailPath(packDoc)); // Delete the pack thumbnail too
 		} catch {}
+
+		res.end();
+	});
+
+	// Mark the pack as loved
+	app.patch('/api/pack/:packId/love', async (req, res) => {
+		let { doc } = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		if (!packDoc) {
+			res.status(400).end();
+			return;
+		}
+		let lovedBy = packDoc.lovedBy ?? [];
+
+		if (!lovedBy.includes(doc._id)) lovedBy.push(doc._id);
+
+		packDoc.lovedBy = lovedBy;
+		await db.packs.update({ _id: packDoc._id }, packDoc);
+
+		res.end();
+	});
+
+	// Unmark the pack as loved
+	app.patch('/api/pack/:packId/unlove', async (req, res) => {
+		let { doc } = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		if (!packDoc) {
+			res.status(400).end();
+			return;
+		}
+		let lovedBy = packDoc.lovedBy ?? [];
+
+		if (lovedBy.includes(doc._id)) lovedBy.splice(lovedBy.indexOf(doc._id), 1);
+
+		packDoc.lovedBy = lovedBy;
+		await db.packs.update({ _id: packDoc._id }, packDoc);
 
 		res.end();
 	});

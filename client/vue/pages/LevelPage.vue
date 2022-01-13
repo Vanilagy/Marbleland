@@ -6,6 +6,7 @@
 		<meta name="og:description" :content="levelInfo.desc">
 		<meta name="og:image" :content="origin + `/api/level/${levelInfo.id}/image`">
 		<meta name="twitter:card" content="summary_large_image">
+		<link rel="preload" href="/assets/svg/favorite_black_24dp.svg" as="image">
 	</Head>
 	<loader v-if="!levelInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This level doesn't exist or has been deleted. :(</p>
@@ -14,8 +15,11 @@
 		<div class="top-part">
 			<aside>
 				<img v-if="!imageHidden" :src="imageSource" class="thumbnail" @error="imageHidden = true">
-				<download-button style="margin-top: 10px" :id="levelInfo.id" mode="level" @download="levelInfo.downloads++">Download level</download-button>
-				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Added on {{ formattedDate }}<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span></p>
+				<div class="buttonContainer">
+					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" mode="level" @download="levelInfo.downloads++">Download level</download-button>
+					<love-button style="flex: 0 1 auto" :levelOrPackInfo="levelInfo"></love-button>
+				</div>
+				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Loves: {{ levelInfo.lovedCount }}<br>Added on {{ formattedDate }}<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span></p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
 			<div style="flex: 1 1 auto; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
@@ -62,6 +66,7 @@ import PackAdder from '../components/PackAdder.vue';
 import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import CommentElement from '../components/CommentElement.vue';
+import LoveButton from '../components/LoveButton.vue';
 import Loader from '../components/Loader.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
@@ -83,7 +88,8 @@ export default defineComponent({
 		ButtonWithIcon,
 		CommentElement,
 		Loader,
-		Head
+		Head,
+		LoveButton
 	},
 	data() {
 		return {
@@ -127,7 +133,7 @@ export default defineComponent({
 		}
 		
 		let mission = Mission.fromDoc(doc);
-		this.levelInfo = await mission.createExtendedLevelInfo();
+		this.levelInfo = await mission.createExtendedLevelInfo(this.$store.state.loggedInAccount?.id);
 
 		this.$store.state.levelPreload = this.levelInfo;
 	},
@@ -185,6 +191,9 @@ export default defineComponent({
 		},
 		origin(): string {
 			return ORIGIN;
+		},
+		isLoggedIn(): boolean {
+			return !!this.$store.state.loggedInAccount
 		}
 	},
 	methods: {
@@ -275,6 +284,11 @@ export default defineComponent({
 
 			// Reload all of the comments
 			this.levelInfo.comments = json;
+		}
+	},
+	watch: {
+		isLoggedIn() {
+			if (this.levelInfo) this.levelInfo.lovedByYou = false;
 		}
 	}
 });
@@ -394,5 +408,11 @@ h3 {
 .notFound {
 	text-align: center;
 	margin-top: 50px;
+}
+
+.buttonContainer {
+	display: flex;
+	width: 100%;
+	margin-top: 10px;
 }
 </style>

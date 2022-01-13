@@ -1,6 +1,6 @@
 <template>
 	<div class="mainButton notSelectable">
-		<img :src="icon" style="margin-right: 10px;" class="basicIcon">
+		<img ref="icon" :src="icon" :style="{ 'margin-right': noMargin? '' : '10px' }" class="basicIcon">
 		<span><slot></slot></span>
 	</div>
 </template>
@@ -9,7 +9,8 @@
 import { defineComponent, PropType } from 'vue';
 export default defineComponent({
 	props: {
-		icon: String as PropType<string>
+		icon: String as PropType<string>,
+		noMargin: Boolean as PropType<boolean>
 	},
 	emits: ['clicked']
 });

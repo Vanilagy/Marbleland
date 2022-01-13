@@ -36,7 +36,10 @@ export interface LevelInfo {
 	awesomeScore: number,
 
 	gems: number,
-	hasEasterEgg: boolean
+	hasEasterEgg: boolean,
+
+	downloads: number,
+	lovedCount: number
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */
@@ -45,8 +48,8 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	remarks: string,
 	packs: PackInfo[],
 	comments: CommentInfo[],
-	downloads: number,
-	missesDependencies: boolean
+	missesDependencies: boolean,
+	lovedByYou: boolean
 }
 
 /** Contains metadata about a profile. */
@@ -81,7 +84,9 @@ export interface PackInfo {
 	name: string,
 	createdBy: ProfileInfo,
 	createdAt: number,
-	levelIds: number[]
+	levelIds: number[],
+	downloads: number,
+	lovedCount: number
 }
 
 /** Contains metadata about a pack, as well as additional data to display on the Pack page. */
@@ -92,7 +97,9 @@ export interface ExtendedPackInfo {
 	createdBy: ProfileInfo,
 	createdAt: number,
 	levels: LevelInfo[],
-	downloads: number
+	downloads: number,
+	lovedCount: number,
+	lovedByYou: boolean
 }
 
 /** Describes a comment. */

@@ -36,7 +36,8 @@ export interface MissionDoc {
 	remarks?: string,
 	downloads: number,
 	missesDependencies: boolean,
-	preferPrevThumbnail: boolean
+	preferPrevThumbnail: boolean,
+	lovedBy?: number[]
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -62,6 +63,8 @@ export class Mission {
 	downloads: number = 0;
 	missesDependencies = false;
 	preferPrevThumbnail = false;
+	/** List of account IDs that love this mission. */
+	lovedBy: number[];
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -93,6 +96,7 @@ export class Mission {
 		mission.downloads = doc.downloads;
 		mission.missesDependencies = doc.missesDependencies;
 		mission.preferPrevThumbnail = doc.preferPrevThumbnail;
+		mission.lovedBy = doc.lovedBy ?? [];
 
 		return mission;
 	}
@@ -496,11 +500,14 @@ export class Mission {
 			awesomeScore: this.info.awesomescore? MisParser.parseNumber(this.info.awesomescore) : undefined,
 
 			gems: this.gems,
-			hasEasterEgg: this.hasEasterEgg
+			hasEasterEgg: this.hasEasterEgg,
+
+			downloads: this.downloads ?? 0,
+			lovedCount: this.lovedBy.length
 		};
 	}
 
-	async createExtendedLevelInfo(): Promise<ExtendedLevelInfo> {
+	async createExtendedLevelInfo(requesterId?: number): Promise<ExtendedLevelInfo> {
 		let levelInfo = this.createLevelInfo();
 		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
 
@@ -511,13 +518,16 @@ export class Mission {
 			packInfos.push(await getPackInfo(packDoc));
 		}
 
+		let lovedByYou = this.lovedBy.includes(requesterId);
+
 		return Object.assign(levelInfo, {
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
 			remarks: this.remarks,
 			packs: packInfos,
 			comments: await getCommentInfosForLevel(this.id),
 			downloads: this.downloads ?? 0,
-			missesDependencies: this.missesDependencies
+			missesDependencies: this.missesDependencies,
+			lovedByYou
 		});
 	}
 

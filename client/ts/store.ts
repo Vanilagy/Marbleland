@@ -89,6 +89,8 @@ export const createNewStore = () => {
 								{ name: 'date', label: 'Date added'},
 								{ name: 'id', label: 'Level ID'},
 								{ name: 'gemCount', label: 'Gem count'},
+								{ name: 'downloads', label: 'Downloads'},
+								{ name: 'lovedCount', label: 'Loves'}
 							]
 						}
 					},
