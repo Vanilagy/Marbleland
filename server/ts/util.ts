@@ -107,6 +107,12 @@ export class Util {
 				console.log("kicking")
 				console.log(directoryPath)
 				let parts = directoryPath.split(path.sep).map(x => x.toLowerCase());
+				if (!parts[0]) {
+					parts.shift();
+					parts[0] = path.sep + parts[0];
+				}
+				console.log(parts)
+				
 				let currFiles: string[];
 				let currPath = '';
 
