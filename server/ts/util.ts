@@ -105,6 +105,7 @@ export class Util {
 			let exists = await fs.pathExists(directoryPath);
 			if (!exists) {
 				console.log("kicking")
+				console.log(directoryPath)
 				let parts = directoryPath.split(path.sep).map(x => x.toLowerCase());
 				let currFiles: string[];
 				let currPath = '';
