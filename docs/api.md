@@ -396,7 +396,7 @@ Contains metadata about a pack.
 	levels: LevelInfo[],
 	downloads: number,
 	lovedCount: number,
-	lovedByYou: boolean // Indicates if the logged-in user has loved the level
+	lovedByYou: boolean // Indicates if the logged-in user has loved the pack
 }
 ```
 
