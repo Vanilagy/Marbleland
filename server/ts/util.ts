@@ -104,7 +104,29 @@ export class Util {
 		let promise = new Promise<string[]>(async resolve => {
 			let exists = await fs.pathExists(directoryPath);
 			if (!exists) {
-				resolve([]);
+				let parts = directoryPath.split(path.sep).map(x => x.toLowerCase());
+				let currFiles: string[];
+				let currPath = '';
+
+				// Wack thing, see if we can find the directory by doing a manual case-insensitive lookup. Linux moment
+				for (let part of parts) {
+					if (currFiles) part = currFiles.find(x => x.toLowerCase() === part);
+					if (!part) {
+						currFiles = [];
+						break;
+					}
+
+					currPath = path.join(currPath, part);
+					let exists = await fs.pathExists(currPath);
+					if (!exists) {
+						currFiles = [];
+						break;
+					}
+
+					currFiles = await fs.readdir(currPath);
+				}
+
+				resolve(currFiles ?? []);
 				return;
 			}
 			
