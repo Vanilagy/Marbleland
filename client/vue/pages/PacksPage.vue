@@ -49,7 +49,7 @@ export default defineComponent({
 							{ name: 'date', label: 'Date created'},
 							{ name: 'levelCount', label: 'Level count'},
 							{ name: 'downloads', label: 'Downloads'},
-							{ name: 'lovedCount', label: 'loves'}
+							{ name: 'lovedCount', label: 'Loves'}
 						]
 					}
 				},
