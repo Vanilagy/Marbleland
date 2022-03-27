@@ -303,6 +303,8 @@ export class Mission {
 					let relativePath = path.posix.join('sound/music', element.text);
 					let fullPath = await this.findPath(relativePath);
 					if (fullPath) this.dependencies.add(relativePath);
+
+					console.log(element.text, fullPath)
 				}
 			}
 		}
