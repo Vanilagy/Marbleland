@@ -12,7 +12,7 @@
 	<info-banner v-if="packInfo"></info-banner>
 	<div v-if="packInfo" class="outer" :class="{ disabled: deleting }">
 		<div style="display: flex; flex-wrap: wrap;">
-			<div style="flex: 1 1 auto; min-width: 300px; max-width: 700px;">
+			<div style="flex: 1 1 0px; min-width: 300px; max-width: 700px;">
 				<h1 v-if="!editing">{{ packInfo.name }}</h1>
 				<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="$store.state.packNameMaxLength">
 				<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
@@ -284,7 +284,7 @@ h3 {
 	width: 300px;
 }
 
-@media (max-width: 629px) {
+@media (max-width: 646px) {
 	.topRight {
 		width: 100%;
 		margin-top: 10px;
@@ -318,7 +318,8 @@ h3 {
 }
 
 .nameInput, .descriptionInput {
-	width: 500px;
+	width: 100%;
+	max-width: 500px;
 	margin-bottom: 10px;
 }
 

@@ -1,5 +1,8 @@
 # Version history
 
+## 1.2.3
+- Fixed some styling issues
+
 ## 1.2.2
 - Added support for MusicTriggers
 - Bumped up .zip size limit

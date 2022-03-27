@@ -5,7 +5,7 @@
 		<home-action v-for="action of actions" :key="action.name" :icon="action.icon" :name="action.name" :description="action.description" :path="action.path"></home-action>		
 	</div>
 	<h3>Latest levels</h3>
-	<panel-list :defaultCount="8" :entries="homeInfo && homeInfo.latestLevels" noEntriesNotice="There are no latest levels." mode="level"></panel-list>
+	<panel-list :defaultCount="12" :entries="homeInfo && homeInfo.latestLevels" noEntriesNotice="There are no latest levels." mode="level"></panel-list>
 	<h1>Level installation guide</h1>
 	<p>
 		Every Marble Blast game has a "data" folder that contains all the levels, images, sounds and so on - this is also where you'll have to install custom levels. Levels downloaded from Marbleland come in a folder structure compatible with that of Marble Blast's "data" folder. Extract the downloaded .zip and drag all of its contents into your game's data folder (merging the two folders). If it asks you to replace any files, replace them.<br><br>
@@ -22,7 +22,7 @@
 		</ul>
 	</p>
 	<footer @click="showVersionHistory">
-		Marbleland v1.2.2
+		Marbleland v1.2.3
 	</footer>
 </template>
 

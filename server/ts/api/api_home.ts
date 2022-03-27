@@ -9,7 +9,7 @@ export const initHomeApi = () => {
 		// Get a list of the newest levels
 		let missionDocs = await db.missions.find({}) as MissionDoc[];
 		missionDocs.sort((a, b) => b.addedAt - a.addedAt);
-		missionDocs = missionDocs.slice(0, 8);
+		missionDocs = missionDocs.slice(0, 12); // 12 because 12 = lcm(1, 2, 3, 4) so it looks good on all screen sizes
 
 		let levelInfos: LevelInfo[] = [];
 		for (let missionDoc of missionDocs) {

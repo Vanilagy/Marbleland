@@ -118,6 +118,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 
 	// Add all of their packs
 	let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+	packDocs.sort((a, b) => b.createdAt - a.createdAt); // Show newest ones first
 	let createdPacks: PackInfo[] = [];
 
 	for (let doc of packDocs) {

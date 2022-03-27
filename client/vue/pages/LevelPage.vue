@@ -22,7 +22,7 @@
 				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Loves: {{ levelInfo.lovedCount }}<br>Added on {{ formattedDate }}<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span></p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
-			<div style="flex: 1 1 auto; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
+			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
@@ -305,7 +305,7 @@ aside {
 	margin-right: 40px;
 }
 
-@media (max-width: 669px) {
+@media (max-width: 686px) {
 	aside {
 		width: 100%;
 		margin-right: 0px;
