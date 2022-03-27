@@ -31,7 +31,7 @@
 	</p>
 	<h3>Additional notes</h3>
 	<p>
-		The hard size cap for the .zips you upload is 15 MB (we think this will be more than enough). All of this goes without saying that we still ask you to use the level upload system responsibly and for Marble Blast-related content only.
+		The hard size cap for the .zips you upload is 30 MB (we think this will be more than enough). All of this goes without saying that we still ask you to use the level upload system responsibly and for Marble Blast-related content only.
 	</p>
 </template>
 

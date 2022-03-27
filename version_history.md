@@ -1,5 +1,9 @@
 # Version history
 
+## 1.2.2
+- Added support for MusicTriggers
+- Bumped up .zip size limit
+
 ## 1.2.1
 - Fixed incorrect dependency resolution in some cases
 - Fixed URL recognition

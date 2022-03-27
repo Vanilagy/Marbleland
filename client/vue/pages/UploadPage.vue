@@ -78,7 +78,10 @@ export default defineComponent({
 				return;
 			}
 
-			console.log(file.size);
+			if (file.size > 30e6) {
+				alert("Your .zip is too large (max 30 MB).");
+				return;
+			}
 
 			let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
 			request.open('POST', '/api/level/upload', true);
