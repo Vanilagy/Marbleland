@@ -78,6 +78,8 @@ export default defineComponent({
 				return;
 			}
 
+			console.log(file.size);
+
 			let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
 			request.open('POST', '/api/level/upload', true);
 			request.setRequestHeader('Content-Type', 'application/zip');

@@ -196,10 +196,9 @@ export class MissionUpload {
 			} else if (element._type === MissionElementType.TSStatic) {
 				this.shapeDependencies.add(element.shapename);
 			} else if (element._type === MissionElementType.Trigger) {
+				// Check for music dependencies caused by MusicTriggers
 				if (element.datablock?.toLowerCase() === 'musictrigger') {
 					await this.registerDependency(path.posix.join('sound/music', element.text), 'extension-agnostic', this.misFilePath);
-
-					console.log("Did", element.text);
 				}
 			}
 		}

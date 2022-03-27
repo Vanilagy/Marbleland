@@ -304,8 +304,6 @@ export class Mission {
 					let relativePath = await this.findFile(element.text, 'sound/music', false);
 					if (relativePath) this.dependencies.add(relativePath);
 					else this.missesDependencies = true;
-
-					console.log(element.text, relativePath)
 				}
 			}
 		}
