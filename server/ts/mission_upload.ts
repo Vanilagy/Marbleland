@@ -195,6 +195,12 @@ export class MissionUpload {
 				this.skyDependencies.add(element.materiallist);
 			} else if (element._type === MissionElementType.TSStatic) {
 				this.shapeDependencies.add(element.shapename);
+			} else if (element._type === MissionElementType.Trigger) {
+				if (element.datablock?.toLowerCase() === 'musictrigger') {
+					await this.registerDependency(path.posix.join('sound/music', element.text), 'extension-agnostic', this.misFilePath);
+
+					console.log("Did", element.text);
+				}
 			}
 		}
 	}
