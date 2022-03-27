@@ -296,15 +296,16 @@ export class Mission {
 					let relativePath = path.posix.join('sound/music', element.music);
 					let fullPath = await this.findPath(relativePath);
 					if (fullPath) this.dependencies.add(relativePath);
+					else this.missesDependencies = true;
 				}
 			} else if (element._type === MissionElementType.Trigger) {
 				if (element.datablock?.toLowerCase() === 'musictrigger') {
 					// Also add this music as a dependency
-					let relativePath = path.posix.join('sound/music', element.text);
-					let fullPath = await this.findPath(relativePath);
-					if (fullPath) this.dependencies.add(relativePath);
+					let relativePath = await this.findFile(element.text, 'sound/music', false);
+					if (relativePath) this.dependencies.add(relativePath);
+					else this.missesDependencies = true;
 
-					console.log(element.text, fullPath)
+					console.log(element.text, relativePath)
 				}
 			}
 		}
