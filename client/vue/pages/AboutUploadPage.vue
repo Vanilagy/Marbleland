@@ -4,24 +4,27 @@
 		<meta name="og:title" content="About level uploading">
 	</Head>
 	<h1>About level uploading</h1>
-	<h3>Overview</h3>
+	<h3>How to upload levels</h3>
 	<p>
-		Marbleland allows its users to upload their own levels. It is important to understand how this process works to make sure you'll be able to upload your own levels without any complications.
+		Marbleland allows you to upload a single level or multiple at once (batch upload). You'll need to upload a .zip archive that contains everything custom you made for your level that isn't already included in the base game (PlatinumQuest). More specifically, it needs to have the following files: For each level, please include the level itself (in form of a .mis mission file), an image thumbnail for it and all the required custom interiors (.difs) you made for it. Should you have used custom textures, skies, shapes or sounds, you'll need to include those as well. You can throw all these files into a .zip archive without any required directory structure - Marbleland will figure it out automatically.
+	</p>
+	<h3>Understanding the process</h3>
+	<p>
+		It can be important to understand how the upload process works to make sure you'll be able to upload your own levels without any complications.
 	</p>
 	<p>
 		There are two main problems level uploads pose: Firstly, people structure their level folders differently and Marbleland doesn't want to impose any hard restrictions on how a .zip must look like, yet it still has to be able to figure out what files go where. Secondly, it has to make sure that only levels (and nothing else) are uploaded to the site, because it isn't meant to be a generic file hosting service. Marbleland therefore employs the following algorithm for making sense of the .zips you upload:
 	</p>
 	<p>
-		As a first step, the .zip you upload is "flattened" on the server. This means that the entire directory structure is removed and you're left with a single root directory containing all of the files. Then, starting from the .mis file, Marbleland scans your level for all necessary dependencies (for example, your .dif files) and stores them. Note that due to this process, files that aren't a requirement of your level (such as a README) won't be included in the final level bundle - Marbleland only stores exactly what is needed for your level. At the very end of the process all of your level's assets are placed into a <i>normalized folder structure</i> - that is, one that can easily be merged with the PQ data folder to complete installation.
+		As a first step, the .zip you upload is "flattened" on the server. This means that the entire directory structure is removed and you're left with a single root directory containing all of the files. Then, starting from every .mis file, Marbleland scans your levels for all necessary dependencies (for example, your .dif files) and stores them. Note that due to this process, files that aren't a requirement of your level (such as a README) won't be included in the final level bundle - Marbleland only stores exactly what is needed for your level. At the very end of the process, all of your levels' assets are placed into <i>normalized folder structures</i> - that is, one that can easily be merged with the PQ data folder to complete installation.
 	</p>
 	<h3>Potential upload errors</h3>
 	<p>Sometimes, the .zip you uploaded might still have problems and Marbleland will tell you what it didn't like. Here's an explanation of a few of these:</p>
 	<ul>
-		<li><b>"The archive must contain exactly one .mis file":</b> You can only include a single .mis file in your uploaded .zip. If you want to upload multiple levels, you'll need to upload multiple .zips.</li>
 		<li><b>"Duplicate: This mission has already been uploaded":</b> An identical .mis file to the one you uploaded is already in the level database. We want to make sure Marbleland stays as free of duplicates as we can.</li>
 		<li><b>"The level is missing an image thumbnail":</b> All levels uploaded must contain a thumbnail to accompany it.</li>
 		<li><b>"The dependency X could not be uniquely resolved to a file in the archive":</b> Remember that "flattening" step from earlier? Because of this step, file names are the only differentiating factor between files and sometimes, this can lead to Marbleland being unsure about which files belong to what. Assume your level includes an interior that uses the texture "wood", but your .zip file includes both "wood.jpg" and "wood.png". Marbleland can't guess which one you meant and therefore complains about it.</li>
-		<li><b>"Missing dependency: X is required by Y but couldn't be found":</b> This simply means that your level requires assets that you forgot to include in your .zip. Say your .mis file uses the interior "MyLevel.dif", but you didn't include that .dif with your .zip - then you're missing a dependency.</li>
+		<li><b>"Missing dependency: X is required by Y but couldn't be found":</b> This simply means that one of your levels requires assets that you forgot to include in your .zip. Say your .mis file uses the interior "MyLevel.dif", but you didn't include that .dif with your .zip - then you're missing a dependency.</li>
 	</ul>
 	<h3>Controlling level classification</h3>
 	<p>

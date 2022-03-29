@@ -81,12 +81,14 @@ h1 {
 }
 
 input {
-	width: 500px;
+	width: 100%;
+	max-width: 500px;
 	margin: auto;
 }
 
 .description {
-	width: 500px;
+	width: 100%;
+	max-width: 500px;
 	height: 100px;
 	margin: auto;
 	margin-top: 10px;

@@ -1,10 +1,10 @@
 <template>
 	<Head>
-		<title>Upload level - Marbleland</title>
-		<meta name="og:title" content="Upload level">
+		<title>Upload levels - Marbleland</title>
+		<meta name="og:title" content="Upload levels">
 	</Head>
 	<template v-if="$store.state.loggedInAccount">
-		<h1>Upload a level</h1>
+		<h1>Upload levels</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
 		<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
@@ -14,17 +14,39 @@
 		</div>
 		<progress-bar class="progressBar" :loaded="uploadLoaded" :total="uploadTotal" :state="uploadState" v-if="uploading" :class="{ disabled: successResponse }"></progress-bar>
 		<div v-if="problems.length > 0" class="problemContainer">
-			<h3>There are problems with your level that prevent it from being uploaded:</h3>
+			<h3>There are problems with your levels that prevent them from being uploaded:</h3>
 			<p v-for="problem of problems" :key="problem">- {{ problem }}</p>
 		</div>
 		<div v-else-if="successResponse" class="successContainer" :class="{ disabled: submitting }">
+			<hr>
+
 			<div v-if="successResponse.warnings.length > 0" style="margin-bottom: 30px;">
-				<h3>Please consider the following before submitting the level:</h3>
+				<h3>Please consider the following before submitting:</h3>
 				<p v-for="warning of successResponse.warnings" :key="warning" class="warning">- {{ warning }}</p>
 			</div>
-			<h3>Your level has been processed successfully! If you want to, add a few additional remarks describing the level and its creation before submitting it.</h3>
-			<textarea class="remarks basicTextarea" placeholder="Additional remarks" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks"></textarea>
-			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit">Submit level</button-with-icon>
+			<div class="levelSelector">
+				<p v-show="successResponse.missions.length > 1">{{ currentIndex + 1 }} / {{ successResponse.missions.length }}</p>
+				<p>{{ successResponse.missions[currentIndex].name }}</p>
+				<p>{{ successResponse.missions[currentIndex].misFilePath }}</p>
+				<img :src="`/api/level/upload-image?uploadId=${encodeURIComponent(successResponse.uploadId)}&missionId=${currentIndex}`">
+				<img src="/assets/svg/chevron_left_black_24dp.svg" class="basicIcon" title="Cycle to previous level" v-if="successResponse.missions.length > 1" @click="currentIndex = (currentIndex - 1 + successResponse.missions.length) % successResponse.missions.length">
+				<img src="/assets/svg/chevron_right_black_24dp.svg" class="basicIcon" title="Cycle to next level" v-if="successResponse.missions.length > 1" @click="currentIndex = (currentIndex + 1) % successResponse.missions.length">
+			</div>
+			<h3>If you want to, add a few additional remarks describing this level ({{ successResponse.missions[currentIndex].name }}) and its creation before submitting it:</h3>
+			<textarea class="remarks basicTextarea" :placeholder="`Additional remarks on ${successResponse.missions[currentIndex].name}`" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
+
+			<hr>
+
+			<h3>Optionally, choose the packs you want to add the uploaded {{ successResponse.missions.length > 1 ? 'levels' : 'level' }} to:</h3>
+			<panel-list mode="pack" :entries="successResponse.packs" :defaultCount="4" noEntriesNotice="" :selectedPacks="selectedPacks" v-if="successResponse.packs.length > 0"></panel-list>
+
+			<input type="checkbox" id="createPackCheckbox" class="basicCheckbox" v-model="createNewPack"><label for="createPackCheckbox" class="notSelectable">Create new pack</label>
+			<input type="text" placeholder="Pack name" :maxlength="$store.state.packNameMaxLength" v-model.trim="newPackName" class="basicTextInput newPackName" v-if="createNewPack">
+			<textarea class="basicTextarea newPackDescription" placeholder="Pack description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="newPackDescription" v-if="createNewPack"></textarea>
+
+			<hr>
+
+			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit" :class="{ disabled: createNewPack && !(newPackName && newPackDescription) }">{{ successResponse.missions.length > 1? `Submit all ${successResponse.missions.length} levels` : "Submit level" }}</button-with-icon>
 		</div>
 	</template>
 	<p v-else class="notSignedIn">You need to be signed in to upload a level.</p>
@@ -34,12 +56,15 @@
 import { defineComponent } from 'vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
+import PanelList from '../components/PanelList.vue';
 import { Head } from '@vueuse/head';
+import { PackInfo } from '../../../shared/types';
 
 export default defineComponent({
 	components: {
 		ButtonWithIcon,
 		ProgressBar,
+		PanelList,
 		Head
 	},
 	data() {
@@ -52,9 +77,19 @@ export default defineComponent({
 			problems: [] as string[],
 			successResponse: null as {
 				uploadId: string,
+				missions: {
+					misFilePath: string,
+					name: string
+				}[],
+				packs: PackInfo[],
 				warnings: string[]
 			},
-			remarks: '',
+			currentIndex: 0,
+			remarks: [] as string[],
+			selectedPacks: [] as number[],
+			createNewPack: false,
+			newPackName: "",
+			newPackDescription: "",
 			submitting: false,
 			dragEntered: false
 		};
@@ -97,6 +132,11 @@ export default defineComponent({
 					status: 'error' | 'success',
 					problems: string[],
 					uploadId: string,
+					missions: {
+						misFilePath: string,
+						name: string
+					}[],
+					packs: PackInfo[],
 					warnings: string[]
 				};
 
@@ -109,6 +149,7 @@ export default defineComponent({
 					// The upload was successful
 					this.successResponse = json;
 					this.uploadState = 'positive';
+					this.remarks = Array(json.missions.length).fill('');
 				}
 			};
 
@@ -124,6 +165,8 @@ export default defineComponent({
 		},
 		/** Submits the already uploaded level. */
 		async submit() {
+			if (this.successResponse.missions.length > 1 && !confirm(`Please confirm the submission of these ${this.successResponse.missions.length} levels.`)) return;
+
 			this.submitting = true;
 
 			// Tell the server to submit the upload
@@ -134,17 +177,41 @@ export default defineComponent({
 				},
 				body: JSON.stringify({
 					uploadId: this.successResponse.uploadId,
-					remarks: this.remarks
+					remarks: this.remarks,
+					addToPacks: this.selectedPacks,
+					newPack: this.createNewPack? {
+						name: this.newPackName,
+						description: this.newPackDescription
+					} : null
 				})
 			});
 
 			if (response.ok) {
-				// The level has been submitted successfully, navigate to its page
+				// The levels have been submitted successfully
 				let json = await response.json() as {
-					levelId: number
+					levelIds: number[],
+					newPackId?: number
 				};
-				this.$store.state.nextInfoBannerMessage = "Level submitted successfully!";
-				this.$router.push({ name: 'Level', params: { id: json.levelId } });
+				this.$store.state.nextInfoBannerMessage = (json.levelIds.length > 1)?
+					`All ${json.levelIds.length} levels submitted successfully!`
+					: "Level submitted successfully!";
+
+				// Navigate either to the level page or the profile page depending on the amount of uploaded levels
+				if (json.levelIds.length > 1) this.$router.push({ name: 'Profile', params: { id: this.$store.state.loggedInAccount.id } });
+				else this.$router.push({ name: 'Level', params: { id: json.levelIds[0] } });
+
+				// Update pack stuff
+
+				if (json.newPackId !== null) this.$store.state.ownPacks.push({
+					id: json.newPackId,
+					name: this.newPackName,
+					levelIds: json.levelIds
+				});
+				 
+				for (let pack of this.$store.state.ownPacks) {
+					if (!this.selectedPacks.includes(pack.id)) continue;
+					pack.levelIds.push(...json.levelIds);
+				}
 			} else {
 				alert("There was an error submitting your level. This is either because of a bug or because you waited too long to submit after initially uploading your .zip. If you want to try again, refresh this page.");
 			}
@@ -260,5 +327,98 @@ h3 {
 .dropArea > p {
 	margin: 0;
 	margin-top: 5px;
+}
+
+.levelSelector {
+	text-align: center;
+	position: relative;
+	margin-bottom: 20px;
+}
+
+.levelSelector > p:nth-of-type(1) {
+	margin: 0;
+	font-weight: normal;
+	font-size: 12px;
+}
+
+.levelSelector > p:nth-of-type(2) {
+	margin: 0;
+	font-weight: normal;
+	font-size: 32px;
+	margin-bottom: -5px;
+}
+
+.levelSelector > p:nth-of-type(3) {
+	margin: 0;
+	font-weight: normal;
+	font-size: 18px;
+	margin-bottom: 10px;
+}
+
+.levelSelector > img:nth-of-type(1) {
+	width: min(300px, calc(100% - 96px));
+	height: 200px;
+	object-fit: cover;
+	border-radius: 5px;
+	overflow: hidden;
+	display: block;
+	margin: auto;
+}
+
+.levelSelector > img:nth-of-type(2) {
+	position: absolute;
+	top: 50%;
+	left: 0px;
+	width: 48px;
+	height: 48px;
+	transform: translateY(-50%);
+}
+
+.levelSelector > img:nth-of-type(3) {
+	position: absolute;
+	top: 50%;
+	right: 0px;
+	width: 48px;
+	height: 48px;
+	transform: translateY(-50%);
+}
+
+.levelSelector > img:nth-of-type(2), .levelSelector > img:nth-of-type(3) {
+	opacity: 0.5;
+	cursor: pointer;
+}
+
+.levelSelector > img:nth-of-type(2):hover, .levelSelector > img:nth-of-type(3):hover {
+	opacity: 0.75;
+}
+
+hr {
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+input[type="checkbox"] {
+	margin-top: 10px;
+}
+
+input[type="checkbox"] + label {
+	display: inline-block;
+	vertical-align: top;
+	margin-top: 10px;
+	line-height: 28px;
+	padding-left: 10px;
+}
+
+.newPackName {
+	width: 100%;
+	max-width: 500px;
+	margin-top: 10px;
+}
+
+.newPackDescription {
+	width: 100%;
+	max-width: 500px;
+	height: 100px;
+	margin-top: 10px;
 }
 </style>

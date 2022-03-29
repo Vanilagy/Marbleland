@@ -145,6 +145,24 @@ export const initLevelApi = () => {
 		await compressAndSendImage(path.join(mission.baseDirectory, imagePath), req, res, { width: 640, height: 480 });
 	});
 
+	// Get the preview image of a level
+	app.get('/api/level/:levelId/prev-image', async (req, res) => {
+		let levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
+
+		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let mission = Mission.fromDoc(doc);
+
+		let imagePath = mission.getPrevImagePath();
+		if (!imagePath) {
+			res.status(404).send("This level is missing a preview image.");
+			return;
+		}
+
+		res.removeHeader('Cache-Control');
+		await compressAndSendImage(path.join(mission.baseDirectory, imagePath), req, res, { width: 2000, height: 1400 });
+	});
+
 	// Get a list of all files a level depends on
 	app.get('/api/level/:levelId/dependencies', async (req, res) => {
 		let levelId = await verifyLevelId(req, res);
@@ -213,7 +231,7 @@ export const initLevelApi = () => {
 
 	// Upload a level archive. This doesn't yet submit it, but causes the processing/verification step.
 	app.post('/api/level/upload', async (req, res) => {
-		let doc = await authorize(req);
+		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
@@ -242,6 +260,9 @@ export const initLevelApi = () => {
 				warnings.push(...upload.warnings);
 			} catch (e) {
 				problems.push("An error occurred during processing.");
+
+				console.error("Upload processing error:");
+				console.error(e);
 			}
 		}
 
@@ -254,9 +275,23 @@ export const initLevelApi = () => {
 			// Because uploading is not the same as submitting, we simply remember the mission upload in memory for now. Upon submission, we'll actually write it to disk.
 			ongoingUploads.set(upload.id, upload);
 
+			// Also send all of the uploader's packs
+			let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+			packDocs.sort((a, b) => b.createdAt - a.createdAt); // Show newest ones first
+			let packs: PackInfo[] = [];
+
+			for (let doc of packDocs) {
+				packs.push(await getPackInfo(doc));
+			}
+
 			res.send({
 				status: 'success',
 				uploadId: upload.id,
+				missions: upload.groups.map(x => ({
+					misFilePath: x.misFilePath,
+					name: x.missionInfo.name
+				})),
+				packs: packs,
 				warnings: warnings
 			});
 		}
@@ -276,18 +311,46 @@ export const initLevelApi = () => {
 			return;
 		}
 
-		if (typeof req.body.remarks !== 'string') {
+		if (!Array.isArray(req.body.remarks) && !(req.body.remarks as string[]).every(x => typeof x === 'string')) {
 			res.status(400).end();
 			return;
 		}
 
 		// Since the upload ID is random, we assume here that whoever holds the upload ID is also authorized to submit it.
 
-		let missionDoc = await upload.submit(doc._id, req.body.remarks);
+		let { docs, newPackId } = await upload.submit(doc, req.body);
 
 		res.send({
-			levelId: missionDoc._id
+			levelIds: docs.map(x => x._id),
+			newPackId
 		});
+	});
+
+	// Meaning upload (noun) image. Is used to get an image preview of a level currently pending submission but not yet submitted.
+	app.get('/api/level/upload-image', async (req, res) => {
+		let { doc } = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		let upload = ongoingUploads.get(req.query.uploadId as string);
+		if (!upload) {
+			res.status(400).end();
+			return;
+		}
+
+		let missionId = Number(req.query.missionId);
+		let group = upload.groups[missionId];
+		if (!group) {
+			res.status(400).end();
+			return;
+		}
+
+		let buffer = await group.thumbnailFile.async('nodebuffer');
+
+		res.removeHeader('Cache-Control');
+		await compressAndSendImage(group.thumbnailFile.name, req, res, { width: 640, height: 480 }, buffer);
 	});
 
 	// Edit a previously submitted level, currently only the remarks

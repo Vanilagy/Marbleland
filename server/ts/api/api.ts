@@ -7,6 +7,7 @@ import { initCommentApi } from './api_comment';
 import { initAccountApi } from './api_account';
 import { initPackApi } from './api_pack';
 import { initHomeApi } from './api_home';
+import { Util } from '../util';
 
 /** Sets up all Express handlers for the API. */
 export const initApi = () => {
@@ -32,12 +33,18 @@ export const initApi = () => {
 	initHomeApi();
 };
 
-export const compressAndSendImage = async (imagePath: string, req: express.Request, res: express.Response, defaultDimensions: {width: number, height: number}) => {
-	let buffer = await fs.readFile(imagePath);
+export const compressAndSendImage = async (imagePath: string, req: express.Request, res: express.Response, defaultDimensions: {width: number, height: number}, bufferOverride?: Buffer) => {
+	let buffer = bufferOverride ?? await fs.readFile(imagePath);
+
+	// Convert the image to PNG if it's in a niche format
+	if (['.dds', '.bmp'].some(x => imagePath.toLowerCase().endsWith(x))) {
+		buffer = await Util.nicheFormatToPng(buffer);
+		imagePath = imagePath.slice(0, -4) + '.png';
+	}
 
 	if ('original' in req.query) {
 		// Transmit the uncompressed, original image
-		res.set('Content-Type', imagePath.endsWith('.png')? 'image/png' : 'image/jpeg');
+		res.set('Content-Type', imagePath.toLowerCase().endsWith('.png')? 'image/png' : 'image/jpeg');
 		res.send(buffer);
 		return;
 	}
@@ -57,7 +64,7 @@ export const compressAndSendImage = async (imagePath: string, req: express.Reque
 			return;
 		}
 
-		let resized = await sharp(buffer).resize({width, height, fit: 'cover'}).jpeg({quality: 60}).toBuffer();
+		let resized = await sharp(buffer).resize({ width, height, fit: 'cover' }).jpeg({ quality: 60 }).toBuffer();
 		res.set('Content-Type', 'image/jpeg');
 		res.send(resized);
 

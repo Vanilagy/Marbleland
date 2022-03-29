@@ -139,10 +139,10 @@ export class Mission {
 		let thumbnail = [...this.dependencies].find(x => potentialNames.includes(x.toLowerCase()) && !x.includes('.dds'));
 		if (thumbnail) {
 			let buffer = await fs.readFile(path.join(this.baseDirectory, thumbnail));
-			let metadata = await sharp(buffer).metadata();
+			let dimensions = await Util.getImageDimensions(buffer);
 
 			// If the regular thumbnail looks too crappy, fall back to the .prev
-			if (Math.max(metadata.width, metadata.height) < 128) {
+			if (Math.max(dimensions.width, dimensions.height) < 128) {
 				this.preferPrevThumbnail = true;
 			}
 		}
@@ -535,7 +535,8 @@ export class Mission {
 			comments: await getCommentInfosForLevel(this.id),
 			downloads: this.downloads ?? 0,
 			missesDependencies: this.missesDependencies,
-			lovedByYou
+			lovedByYou,
+			hasPrevImage: this.getPrevImagePath() !== null
 		});
 	}
 
@@ -550,7 +551,23 @@ export class Mission {
 		let dependencyArray = [...this.dependencies];
 
 		for (let potentialName of potentialNames) {
-			let dependency = dependencyArray.find(x => potentialName.includes(x.toLowerCase()) && !x.includes('.dds')); // Exclude dds files for now, until we can read them (aka probably never)
+			let dependency = dependencyArray.find(x => potentialName.includes(x.toLowerCase()));
+			if (dependency) return dependency;
+		}
+		return null;
+	}
+
+	/** Get the path to the preview image of this mission, if available. */
+	getPrevImagePath() {
+		let startsWith = Util.removeExtension(this.relativePath);
+		let potentialStarts = [startsWith + '.prev'];
+		// Create a list of potential candidates for the prev image file name
+		let potentialNames = potentialStarts.map(start => IMAGE_EXTENSIONS.map(extension => (start + extension).toLowerCase())).flat();
+
+		let dependencyArray = [...this.dependencies];
+
+		for (let potentialName of potentialNames) {
+			let dependency = dependencyArray.find(x => potentialName.includes(x.toLowerCase()));
 			if (dependency) return dependency;
 		}
 		return null;

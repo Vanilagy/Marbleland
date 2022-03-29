@@ -1,5 +1,11 @@
 # Version history
 
+## 1.3.0
+- Added support for batch level upload
+- Added more functionality to level upload, such as adding to packs
+- Added a large preview image to level pages should a preview image (.prev.png / .prev.jpg) be present
+- Added thumbnail image support for .dds and .bmp files
+
 ## 1.2.3
 - Fixed some styling issues
 

@@ -1,10 +1,11 @@
 import sharp from "sharp";
 import { ExtendedPackInfo, LevelInfo, PackInfo } from "../../shared/types";
 import { AccountDoc, getProfileInfo } from "./account";
-import { db } from "./globals";
+import { db, keyValue } from "./globals";
 import { Mission, MissionDoc } from "./mission";
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { Util } from "./util";
 
 /** Representation of a pack in the database. */
 export interface PackDoc {
@@ -18,6 +19,29 @@ export interface PackDoc {
 	downloads: number,
 	lovedBy?: number[]
 }
+
+/** Creates a new pack with given name and description. */
+export const createPack = async (accountDoc: AccountDoc, name: string, description: string, insert = true) => {
+	if (typeof name !== 'string' || typeof description !== 'string') {
+		throw new Error("Bad data.");
+	}
+
+	let id = keyValue.get('packId');
+	keyValue.set('packId', id + 1);
+
+	let packDoc: PackDoc = {
+		_id: id,
+		name: name,
+		description: description,
+		createdAt: Date.now(),
+		createdBy: accountDoc._id,
+		levels: [],
+		downloads: 0
+	};
+	if (insert) await db.packs.insert(packDoc);
+
+	return packDoc;
+};
 
 export const getPackInfo = async (doc: PackDoc): Promise<PackInfo> => {
 	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
@@ -106,6 +130,11 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 				}).png().toBuffer();
 			} else {
 				let rawBuffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
+				
+				// Check if the image has a niche format and needs conversion first
+				if (['.dds', '.bmp'].some(x => imagePath.toLowerCase().endsWith(x))) {
+					rawBuffer = await Util.nicheFormatToPng(rawBuffer);
+				}
 	
 				// Cut out the center part of the thumbnail in a slim strip
 				buffer = await sharp(rawBuffer).resize({width: width, height: height, fit: 'cover'}).extract({

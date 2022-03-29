@@ -72,6 +72,17 @@ original | `boolean` | If set, the original, uncompressed image thumbnail will b
 width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
 height | `number` | *See `width`.*
 
+### `GET` /api/level/{level-id}/prev-image
+Get the (usually large) preview image for a given level. Note that not every level has one.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+original | `boolean` | If set, the original, uncompressed preview image will be returned. Takes precedence over `width` and `height`.
+width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
+height | `number` | *See `width`.*
+
 ### `GET` /api/level/{level-id}/dependencies
 Returns a list of files (assets) a given level depends on as an array of `string`. Essentially returns the file paths of the .zip.
 
@@ -107,10 +118,25 @@ Returns a list of packs a given level appears in as an array of [PackInfo](#pack
 } | {
 	// On successful upload
 	status: 'success',
-	uploadId: number, // The random ID of this upload. Needs to be remembered for submission.
+	uploadId: string, // The random ID of this upload. Needs to be remembered for submission.
+	missions: { // List of missions detected in the .zip.
+		misFilePath: string,
+		name: string
+	}[],
+	packs: PackInfo[], // The packs of the uploader. These are needed for displaying them during the upload process.
 	warnings: string[] // A list of warnings about the uploaded archive
 }
 ```
+
+### `GET` /api/level/upload-image
+**Requires [authentication](#authentication).** For a given mission upload process, gets the image thumbnail for one of the uploaded missions.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+uploadId | `string` | The ID of the ongoing upload.
+missionId | `number` | The index of the mission whose image thumbnail should be retrieved.
 
 ### `POST` /api/level/submit
 **Requires [authentication](#authentication).** Submits a previously uploaded level, that is, adds it to the database and makes it accessible.
@@ -118,15 +144,21 @@ Returns a list of packs a given level appears in as an array of [PackInfo](#pack
 **Request body (`Content-Type: application/json`):**
 ```typescript
 {
-	uploadId: number,
-	remarks: string // Additional remarks to display on the level's page
+	uploadId: string,
+	remarks: string[], // Additional remarks for each uploaded level to display on that level's page
+	addToPacks: number[], // The IDs of the packs that all uploaded levels should be added to
+	newPack?: { // Info about a brand new pack that will be created and that the new levels will be added to immediately
+		name: string,
+		description: string
+	}
 }
 ```
 
 **Response body:**
 ```typescript
 {
-	levelId: number // The ID of the submitted level
+	levelIds: number, // The IDs of the submitted levels
+	newPackId?: number // Should a new pack have been created, this will be the ID for that pack
 }
 ```
 
@@ -366,7 +398,8 @@ LevelInfo & {
 	comments: CommentInfo[],
 	downloads: number,
 	missesDependencies: boolean,
-	lovedByYou: boolean // Indicates if the logged-in user has loved the level
+	lovedByYou: boolean, // Indicates if the logged-in user has loved the level
+	hasPrevImage: boolean
 }
 ```
 

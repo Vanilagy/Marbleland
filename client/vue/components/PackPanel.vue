@@ -1,7 +1,7 @@
 <template>
 	<div class="packPanelWrapper">
-		<div class="panel notSelectable" @click="clicked">
-			<a :href="`/pack/${packInfo.id}`" @click.prevent=""><img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage"></a>
+		<div class="panel notSelectable" @click="clicked" :style="{ outline: selectedPacks?.includes(packInfo.id)? '5px solid #64b8e9' : '' }">
+			<a :href="selectedPacks? undefined : `/pack/${packInfo.id}`" @click.prevent=""><img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage"></a>
 			<div class="bottom">
 				<div class="name">{{packInfo.name}}</div>
 				<div class="creator">
@@ -10,7 +10,7 @@
 				</div>
 				<div class="levelCount">{{ packInfo.levelIds.length }} levels</div>
 			</div>
-			<div class="actions" :style="actionsStyle">
+			<div class="actions" :style="actionsStyle" v-if="!selectedPacks">
 				<img src="/assets/svg/download_black_24dp.svg" title="Download pack" @click.stop="download" class="basicIcon">
 			</div>
 		</div>
@@ -25,12 +25,14 @@ import { Util } from '../../ts/util';
 
 export default defineComponent({
 	props: {
-		packInfo: Object as PropType<PackInfo>
+		packInfo: Object as PropType<PackInfo>,
+		selectedPacks: Array as PropType<number[]>
 	},
 	data() {
 		return {
 			imageShown: true,
-			imageVersion: 0
+			imageVersion: 0,
+			selected: false
 		};
 	},
 	computed: {
@@ -52,6 +54,17 @@ export default defineComponent({
 	},
 	methods: {
 		clicked(): void {
+			if (this.selectedPacks) {
+				// Toggle the presence of this pack in the list
+				if (this.selectedPacks.includes(this.packInfo.id)) {
+					this.selectedPacks.splice(this.selectedPacks.indexOf(this.packInfo.id), 1);
+				} else {
+					this.selectedPacks.push(this.packInfo.id);
+				}
+
+				return;
+			}
+
 			this.$router.push({ name: 'Pack', params: { id: this.packInfo.id } });
 		},
 		imageLoadError() {

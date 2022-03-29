@@ -10,7 +10,7 @@
 					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :actions="passedLevelPanelActions" class="entryPanel"></level-panel>
 				</template>
 				<template v-else>
-					<pack-panel v-for="info of shownEntries" :key="info.id" :packInfo="info" class="entryPanel"></pack-panel>
+					<pack-panel v-for="info of shownEntries" :key="info.id" :packInfo="info" class="entryPanel" :selectedPacks="selectedPacks"></pack-panel>
 				</template>
 			</template>
 			<p v-else class="noEntriesNotice">{{ noEntriesNotice }}</p>
@@ -35,7 +35,8 @@ export default defineComponent({
 		/** Object of additional actions to pass down to the individual level panels */
 		levelPanelActions: Object as PropType<LevelPanelActions>,
 		showTotal: Boolean as PropType<boolean>,
-		noShrink: Boolean as PropType<boolean>
+		noShrink: Boolean as PropType<boolean>,
+		selectedPacks: Array as PropType<number[]>
 	},
 	data() {
 		return {

@@ -1,9 +1,9 @@
 import * as fs from 'fs-extra';
 import { PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
-import { keyValue, db } from "../globals";
+import { db } from "../globals";
 import { MissionDoc, Mission } from "../mission";
-import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPackThumbnailPath } from "../pack";
+import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPackThumbnailPath, createPack } from "../pack";
 import { app } from "../server";
 import { compressAndSendImage } from "./api";
 import { Util } from "../util";
@@ -30,26 +30,9 @@ export const initPackApi = () => {
 			return;
 		}
 
-		if (typeof req.body.name !== 'string' || typeof req.body.description !== 'string') {
-			res.status(401).end();
-			return;
-		}
+		let packDoc = await createPack(doc, req.body.name, req.body.description);
 
-		let id = keyValue.get('packId');
-		keyValue.set('packId', id + 1);
-
-		let packDoc: PackDoc = {
-			_id: id,
-			name: req.body.name,
-			description: req.body.description,
-			createdAt: Date.now(),
-			createdBy: doc._id,
-			levels: [],
-			downloads: 0
-		};
-		await db.packs.insert(packDoc);
-
-		res.send({ packId: id });
+		res.send({ packId: packDoc._id });
 	});
 
 	// Get extended pack info for a given pack

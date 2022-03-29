@@ -44,17 +44,6 @@ export default defineComponent({
 });
 </script>
 
-<style scoped>
-hr {
-	border: none;
-	height: 1px;
-	width: 100%;
-	background: var(--background-2);
-	margin: 0;
-	margin-bottom: 10px;
-}
-</style>
-
 <style>
 :root {
 	--background-color: white;
@@ -75,6 +64,15 @@ hr {
 	--panel-skeleton-animation-background: rgb(40, 40, 40);
 }
 
+hr {
+	border: none;
+	height: 1px;
+	width: 100%;
+	background: var(--background-2);
+	margin: 0;
+	margin-bottom: 10px;
+}
+
 .basicIcon {
 	opacity: 0.75;
 }
@@ -93,7 +91,7 @@ body, html {
 
 body {
 	margin: 0px 15px;
-	margin-bottom: 10px;
+	margin-bottom: 20px;
 }
 
 * {
@@ -176,5 +174,49 @@ a:hover {
 
 a:visited {
 	color: #00a1ff;
+}
+
+.basicCheckbox {
+	width: 28px;
+	height: 28px;
+	appearance: none;
+	background: var(--background-1);
+	border-radius: 5px;
+	border: 2px solid transparent;
+	margin: 0;
+	cursor: pointer;
+	vertical-align: top;
+}
+
+.basicCheckbox + label {
+	cursor: pointer;
+}
+
+.basicCheckbox:hover {
+	border: 2px solid var(--background-2);
+}
+
+.basicCheckbox:active {
+	background: var(--background-2);
+}
+
+.basicCheckbox:focus {
+	outline: none;
+}
+
+.basicCheckbox:checked::after {
+	content: "";
+	/* webpackIgnore: true */
+	background-image: url("/assets/svg/check_black_24dp.svg");
+	background-size: 24px 24px;
+	width: 24px;
+	height: 24px;
+	display: block;
+	opacity: 0.75;
+}
+
+:root.dark .basicCheckbox:checked::after {
+	opacity: 1;
+	filter: invert(1);
 }
 </style>

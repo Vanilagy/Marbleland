@@ -1,3 +1,5 @@
+import { ImageMagick } from '@imagemagick/magick-wasm';
+import { MagickFormat } from '@imagemagick/magick-wasm/magick-format';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Config } from './config';
@@ -267,6 +269,28 @@ export class Util {
 	static uppercaseFirstLetter(str: string) {
 		if (!str) return str;
 		return str[0].toUpperCase() + str.slice(1);
+	}
+
+	/** Convert any image format (even niche stuff like BMP and DDS) to a PNG image buffer. */
+	static nicheFormatToPng(nicheBuffer: Buffer) {
+		return new Promise<Buffer>(resolve => {
+			ImageMagick.read(nicheBuffer, image => {
+				image.write(data => {
+					resolve(Buffer.from(data));
+				}, MagickFormat.Png);
+			});
+		});
+	}
+
+	static getImageDimensions(buffer: Buffer) {
+		return new Promise<{ width: number, height: number }>(resolve => {
+			ImageMagick.read(buffer, image => {
+				resolve({
+					width: image.width,
+					height: image.height
+				});
+			});
+		});
 	}
 }
 

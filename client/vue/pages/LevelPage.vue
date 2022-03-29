@@ -41,6 +41,7 @@
 				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" @click="submitChanges">Save changes</button-with-icon>
 			</div>
 		</div>
+		<img v-if="levelInfo.hasPrevImage" :src="`/api/level/${levelInfo.id}/prev-image`" class="previewImage">
 		<template v-if="levelInfo.packs.length">
 			<h3>Appears in</h3>
 			<panel-list mode="pack" :entries="levelInfo.packs" :defaultCount="4" noEntriesNotice="This level doesn't appear in any packs."></panel-list>
@@ -319,6 +320,16 @@ aside {
 	border-radius: 5px;
 	overflow: hidden;
 	display: block;
+}
+
+.previewImage {
+	display: block;
+	width: 100%;
+	height: 200px;
+	object-fit: cover;
+	border-radius: 5px;
+	margin-top: 20px;
+	overflow: hidden;
 }
 
 .additionalInfo {
