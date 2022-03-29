@@ -12,7 +12,7 @@ import { Util } from '../util';
 /** Sets up all Express handlers for the API. */
 export const initApi = () => {
 	app.use(express.raw({ // Refers to binary data uploads, in our case mainly zips, whose size we want to limit.
-		limit: '30mb',
+		limit: '100mb',
 		type: ['application/octet-stream', 'application/zip']
 	}));
 	app.use(express.json()); // The default size limits for these are sane enough
