@@ -107,7 +107,7 @@ module.exports = env => [{
 	plugins: [
 		new VueLoaderPlugin(),
 		new MiniCssExtractPlugin({
-			filename: 'css/style.css'
+			filename: 'css/style_[contenthash].css'
 		}),
 		new webpack.DefinePlugin({
 			'process.env': {}

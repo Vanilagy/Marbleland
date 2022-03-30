@@ -20,7 +20,9 @@ export const startHTTPServer = (port: number) => {
 	app.get('*', async (req, res, next) => {
 		if (!req.url.includes('.')) {
 			let html = await generateHTML(req, res);
+			
 			res.set('Content-Type', 'text/html');
+			res.set('Cache-Control', 'no-cache, no-store');
 			res.send(html);
 		} else {
 			next();
