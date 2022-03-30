@@ -320,6 +320,7 @@ aside {
 	border-radius: 5px;
 	overflow: hidden;
 	display: block;
+	background: var(--background-1);
 }
 
 .previewImage {
@@ -330,6 +331,7 @@ aside {
 	border-radius: 5px;
 	margin-top: 20px;
 	overflow: hidden;
+	background: var(--background-1);
 }
 
 .additionalInfo {
