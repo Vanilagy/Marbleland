@@ -85,6 +85,7 @@ header {
 	padding: 20px 0px;
 	position: relative;
 	max-width: 1000px;
+	width: calc(100% - 30px);
 }
 
 .homeIcon {
