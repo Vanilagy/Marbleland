@@ -35,7 +35,7 @@ export default defineComponent({
 				icon: '/assets/svg/code_black_24dp.svg',
 				label: 'API'
 			}],
-			showShadow: false,
+			showShadow: true,
 			interval: null
 		};
 	},
@@ -55,6 +55,7 @@ export default defineComponent({
 		ProfileIcon
 	},
 	mounted() {
+		return; // For now. Can reenable if we want to
 		this.interval = setInterval(() => {
 			this.showShadow = document.documentElement.scrollTop !== 0;
 		}, 1000 / 30);
