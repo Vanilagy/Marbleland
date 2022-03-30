@@ -11,7 +11,10 @@ export const app = express();
 
 export const startHTTPServer = (port: number) => {
 	app.use(express.static(path.join(__dirname, '../dist'), {
-		index: false
+		index: false,
+		setHeaders(res) {
+			res.set('Cache-Control', 'public, max-age=604800');
+		}
 	}));
 
 	app.get('*', async (req, res, next) => {
