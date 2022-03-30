@@ -7,7 +7,7 @@ import { Config } from './config';
 import hxDif from '../lib/hxDif';
 import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission, MissionDoc } from './mission';
 import { Util } from './util';
-import { DtsParser } from './io/dts_parser';
+import { DtsFile, DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
@@ -312,7 +312,14 @@ export class MissionUpload {
 
 			// Read in the .dif
 			let arrayBuffer = await found.async('arraybuffer');
-			let dif = hxDif.Dif.LoadFromArrayBuffer(arrayBuffer);
+			let dif: hxDif.Dif;
+
+			try {
+				dif = hxDif.Dif.LoadFromArrayBuffer(arrayBuffer);
+			} catch (e) {
+				this.problems.add(`Interior file ${dependency} failed to parse and is likely invalid.`);
+				continue;
+			}
 
 			// Go over all materials and add them as dependencies
 			for (let interior of dif.interiors.concat(dif.subObjects)) {
@@ -358,7 +365,14 @@ export class MissionUpload {
 
 			// Read in the .dts
 			let buffer = await found.async('arraybuffer');
-			let dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
+			let dtsFile: DtsFile;
+
+			try {
+				dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
+			} catch (e) {
+				this.problems.add(`Shape file ${dependency} failed to parse and is likely invalid.`);
+				continue;
+			}
 
 			// Go over all materials and register them as dependencies
 			for (let matName of dtsFile.matNames) {

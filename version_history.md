@@ -1,5 +1,8 @@
 # Version history
 
+## 1.3.1
+- Fixed some upload-related issues
+
 ## 1.3.0
 - Added support for batch level upload
 - Added more functionality to level upload, such as adding to packs
