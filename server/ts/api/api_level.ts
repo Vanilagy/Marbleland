@@ -141,7 +141,7 @@ export const initLevelApi = () => {
 			return;
 		}
 
-		res.set('Cache-Control', 'public, max-age=604800');
+		res.removeHeader('Cache-Control');
 		await compressAndSendImage(path.join(mission.baseDirectory, imagePath), req, res, { width: 640, height: 480 });
 	});
 
