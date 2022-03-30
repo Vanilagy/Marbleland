@@ -120,7 +120,7 @@ img {
 #center {
 	margin: auto;
 	max-width: 1000px;
-	padding-top: 97px;
+	padding-top: 107px;
 }
 
 .disabled {

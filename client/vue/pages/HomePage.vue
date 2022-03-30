@@ -82,7 +82,7 @@ export default defineComponent({
 <style scoped>
 h1 {
 	text-align: center;
-	margin: 30px 0px;
+	margin: 20px 0px;
 	margin-bottom: 0px;
 }
 
