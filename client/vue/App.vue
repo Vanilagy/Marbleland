@@ -9,9 +9,8 @@
 		<meta name="og:description" content="Marbleland is a custom level sharing platform for Marble Blast on which you can find, download, upload and share levels and level packs.">
 		<meta name="og:image" :content="origin + '/assets/img/favicon.png'">
 	</Head>
+	<navigation-bar></navigation-bar>
 	<div id="center">
-		<navigation-bar></navigation-bar>
-		<hr>
 		<router-view v-slot="{ Component }">
 			<!-- Keep these two alive to keep search state. Needs a bit of hackery due to an SSR bug. -->
 			<keep-alive v-if="isBrowser" include="search,packs">
@@ -82,11 +81,14 @@ hr {
 	filter: invert(1);
 }
 
+html {
+	background: var(--background-color);
+}
+
 body, html {
 	margin: 0;
 	font-family: 'Nunito Sans', sans-serif;
 	color: var(--text-color);
-	background: var(--background-color);
 }
 
 body {
@@ -118,6 +120,7 @@ img {
 #center {
 	margin: auto;
 	max-width: 1000px;
+	padding-top: 97px;
 }
 
 .disabled {

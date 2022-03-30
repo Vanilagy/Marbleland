@@ -1,12 +1,14 @@
 <template>
-	<header>
-		<img src="/assets/img/favicon.png" class="homeIcon" title="Home" @click="$router.push('/')">
-		<div v-for="target of targets" :key="target.path" class="targetContainer" :title="target.label" :class="{ selected: currentPath === target.path }" @click="navigate(target.path)">
-			<a :href="target.path" @click.prevent=""><img :src="target.icon" class="basicIcon"></a>
-			<div class="underline"></div>
-		</div>
-		<profile-icon class="profileIcon"></profile-icon>
-	</header>
+	<div class="wrapper" :style="{ 'box-shadow': showShadow? '' : 'none' }">
+		<header>
+			<img src="/assets/img/favicon.png" class="homeIcon" title="Home" @click="$router.push('/')">
+			<div v-for="target of targets" :key="target.path" class="targetContainer" :title="target.label" :class="{ selected: currentPath === target.path }" @click="navigate(target.path)">
+				<a :href="target.path" @click.prevent=""><img :src="target.icon" class="basicIcon"></a>
+				<div class="underline"></div>
+			</div>
+			<profile-icon class="profileIcon"></profile-icon>
+		</header>
+	</div>
 </template>
 
 <script lang="ts">
@@ -32,7 +34,9 @@ export default defineComponent({
 				path: 'https://github.com/Vanilagy/Marbleland/blob/main/docs/api.md',
 				icon: '/assets/svg/code_black_24dp.svg',
 				label: 'API'
-			}]
+			}],
+			showShadow: false,
+			interval: null
 		};
 	},
 	computed: {
@@ -49,16 +53,37 @@ export default defineComponent({
 	},
 	components: {
 		ProfileIcon
+	},
+	mounted() {
+		this.interval = setInterval(() => {
+			this.showShadow = document.documentElement.scrollTop !== 0;
+		}, 1000 / 30);
+	},
+	unmounted() {
+		clearInterval(this.interval);
 	}
 });
 </script>
 
 <style scoped>
+.wrapper {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	background: var(--background-color);
+	z-index: 10000;
+	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.25);
+	transition: box-shadow 0.15s;
+}
+
 header {
 	display: flex;
 	align-items: center;
-	margin: 20px 0px;
+	margin: auto;
+	padding: 20px 0px;
 	position: relative;
+	max-width: 1000px;
 }
 
 .homeIcon {
@@ -76,6 +101,7 @@ header {
 .profileIcon {
 	position: absolute;
 	top: 7px;
+	margin-top: 20px;
 	right: 0;
 }
 

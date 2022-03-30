@@ -1,5 +1,8 @@
 # Version history
 
+## 1.3.2
+- Changed header design
+
 ## 1.3.1
 - Fixed some upload-related issues
 
