@@ -113,8 +113,8 @@ export default defineComponent({
 				return;
 			}
 
-			if (file.size > 30e6) {
-				alert("Your .zip is too large (max 30 MB).");
+			if (file.size > 100e6) {
+				alert("Your .zip is too large (max 100 MB).");
 				return;
 			}
 
