@@ -1,6 +1,6 @@
 # API Documentation
 
-All of Marbleland's functionality can be accessed programatically through an API which is documented here. A few notes on the format: If in JSON form, response and request body types are specified using the **TypeScript type syntax**. All query parameters are always optional.
+All of Marbleland's functionality can be accessed programatically through an API which is documented here. A few notes on the format: If in JSON form, response and request body types are specified using the **TypeScript type syntax**. All query parameters not marked with a * are optional.
 
 - [Authentication](#authentication)
 - [API endpoints](#api-endpoints)
