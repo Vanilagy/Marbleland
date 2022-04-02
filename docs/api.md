@@ -1,6 +1,6 @@
 # API Documentation
 
-All of Marbleland's functionality can be accessed programatically through an API which is documented here. A few notes on the format: If in JSON form, response and request body types are specified using the **TypeScript type syntax**. All query parameters not marked with a * are optional.
+All of Marbleland's functionality can be accessed programatically through an API which is documented here. A few notes on the format: If in JSON form, response and request body types are specified using the **TypeScript type syntax**. All query parameters not marked with an * are optional.
 
 - [Authentication](#authentication)
 - [API endpoints](#api-endpoints)
@@ -135,8 +135,8 @@ Returns a list of packs a given level appears in as an array of [PackInfo](#pack
 
 Name | Type | Meaning
 --- | --- | ---
-uploadId | `string` | The ID of the ongoing upload.
-missionId | `number` | The index of the mission whose image thumbnail should be retrieved.
+uploadId* | `string` | The ID of the ongoing upload.
+missionId* | `number` | The index of the mission whose image thumbnail should be retrieved.
 
 ### `POST` /api/level/submit
 **Requires [authentication](#authentication).** Submits a previously uploaded level, that is, adds it to the database and makes it accessible.
