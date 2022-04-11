@@ -277,6 +277,7 @@ export class Util {
 			ImageMagick.read(nicheBuffer, image => {
 				image.write(data => {
 					resolve(Buffer.from(data));
+					image.dispose();
 				}, MagickFormat.Png);
 			});
 		});
@@ -289,6 +290,7 @@ export class Util {
 					width: image.width,
 					height: image.height
 				});
+				image.dispose();
 			});
 		});
 	}
