@@ -1,5 +1,8 @@
 # Version history
 
+## 1.3.3
+- Fixed ImageMagick memory leaks
+
 ## 1.3.2
 - Changed header design
 

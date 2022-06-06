@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as minimist from 'minimist';
 import { LevelInfo, Modification } from "../../shared/types";
 import { MisParser, MissionElementSimGroup, MissionElementType } from "./io/mis_parser";
+import { initializeImageMagick } from "@imagemagick/magick-wasm";
 
 interface CLAEntry {
 	addTime: string,
@@ -33,6 +34,8 @@ const init = async () => {
 	fs.ensureDirSync(path.join(__dirname, 'storage/avatars'));
 	fs.ensureDirSync(path.join(__dirname, 'storage/pack_thumbnails'));
 	await initGlobals();
+
+	await initializeImageMagick();
 	
 	let argv = minimist(process.argv.slice(2));
 

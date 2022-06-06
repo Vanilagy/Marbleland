@@ -14,7 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@imagemagick/magick-wasm": "^0.0.10",
+    "@imagemagick/magick-wasm": "0.0.12",
     "@types/bcryptjs": "2.4.2",
     "@types/connect-history-api-fallback": "1.3.4",
     "@types/express": "4.17.11",
