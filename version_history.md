@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.1
+- Fixed lost data upon level editing
+
 ## 1.4.0
 - Added the ability to edit non-gameplay MissionInfo fields of uploaded levels
 - Fixed some .mis parser quirks

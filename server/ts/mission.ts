@@ -33,12 +33,12 @@ export interface MissionDoc {
 	hasEasterEgg: boolean,
 	misHash: string,
 	addedAt: number,
-	addedBy?: number,
-	remarks?: string,
+	addedBy: number,
+	remarks: string,
 	downloads: number,
 	missesDependencies: boolean,
 	preferPrevThumbnail: boolean,
-	lovedBy?: number[],
+	lovedBy: number[],
 	editedAt: number
 }
 
@@ -59,7 +59,7 @@ export class Mission {
 	/** Remember the paths that have already been visited to avoid exploring already known parts of the dependency tree again. */
 	visitedPaths = new Set<string>();
 	id: number;
-	addedAt: number;
+	addedAt = Date.now();
 	addedBy: number;
 	remarks: string;
 	downloads: number = 0;
@@ -404,11 +404,14 @@ export class Mission {
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg,
 			misHash: this.misHash,
-			addedAt: Date.now(),
+			addedAt: this.addedAt,
+			addedBy: this.addedBy,
+			remarks: this.remarks,
 			downloads: this.downloads,
 			missesDependencies: this.missesDependencies,
 			preferPrevThumbnail: this.preferPrevThumbnail,
-			editedAt: this.editedAt
+			editedAt: this.editedAt,
+			lovedBy: this.lovedBy
 		};
 	}
 
