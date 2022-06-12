@@ -12,7 +12,7 @@ export default defineComponent({
 	props: {
 		loaded: Number as PropType<number>,
 		total: Number as PropType<number>,
-		state: String as PropType<'neutral' | 'negative' | 'position'>
+		state: String as PropType<'neutral' | 'negative' | 'positive'>
 	},
 	computed: {
 		/** Computes the width of the progress bar */

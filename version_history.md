@@ -1,5 +1,10 @@
 # Version history
 
+## 1.4.0
+- Added the ability to edit non-gameplay MissionInfo fields of uploaded levels
+- Fixed some .mis parser quirks
+- Made some small cosmetic changes
+
 ## 1.3.3
 - Fixed ImageMagick memory leaks
 

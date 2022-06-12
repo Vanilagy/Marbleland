@@ -62,21 +62,21 @@ export interface MissionElementScriptObject extends MissionElementBase {
 	music: string,
 	gametype: string,
 
-	score: any,
-	score0: any,
-	score1: any,
-	goldscore: any,
-	goldscore0: any,
-	goldscore1: any,
-	platinumscore: any,
-	platinumscore0: any,
-	platinumscore1: any,
-	ultimatescore: any,
-	ultimatescore0: any,
-	ultimatescore1: any,
-	awesomescore: any
-	awesomescore0: any
-	awesomescore1: any
+	score: string,
+	score0: string,
+	score1: string,
+	goldscore: string,
+	goldscore0: string,
+	goldscore1: string,
+	platinumscore: string,
+	platinumscore0: string,
+	platinumscore1: string,
+	ultimatescore: string,
+	ultimatescore0: string,
+	ultimatescore1: string,
+	awesomescore: string
+	awesomescore0: string
+	awesomescore1: string
 }
 
 export interface MissionElementMissionArea extends MissionElementBase {
@@ -241,7 +241,6 @@ export interface MissionElementParticleEmitterNode extends MissionElementBase {
 
 type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode;
 
-//const elementHeadRegEx = /new (\w+)\((\w*)\) *{/g;
 const elementHeadRegEx = /new\s+(\w+)\((.*?)\)\s*{/g;
 const blockCommentRegEx = /\/\*(.|\n)*?\*\//g;
 const lineCommentRegEx = /\/\/.*/g;
@@ -434,18 +433,9 @@ export class MisParser {
 			if (parts.length !== 2) continue;
 			let key = parts[0];
 			key = key.toLowerCase(); // TorqueScript is case-insensitive here
+			key = key.replace(/\[(\d+)\]/, '$1'); // "Array indices" are fake!!1
 
-			if (key.endsWith(']')) {
-				// The key is specifying array data, so handle that case.
-				let openingIndex = key.indexOf('[');
-				let arrayName = key.slice(0, openingIndex);
-				let array = (obj[arrayName] ?? (obj[arrayName] = [])) as string[]; // Create a new array or use the existing one
-
-				let index = Number(key.slice(openingIndex + 1, -1));
-				array[index] = this.resolveExpression(parts[1]);
-			} else {
-				obj[key] = this.resolveExpression(parts[1]);
-			}
+			obj[key] = this.resolveExpression(parts[1]);
 		}
 
 		this.index = endingBraceIndex + 2;

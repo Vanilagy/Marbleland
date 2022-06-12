@@ -12,14 +12,20 @@
 	<p class="notFound" v-if="notFound">This level doesn't exist or has been deleted. :(</p>
 	<template v-if="levelInfo" :class="{ disabled: deleting }">
 		<info-banner></info-banner>
-		<div class="top-part">
+		<div class="top-part" ref="topPart">
 			<aside>
 				<img v-if="!imageHidden" :src="imageSource" class="thumbnail" @error="imageHidden = true">
 				<div class="buttonContainer">
 					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" mode="level" @download="levelInfo.downloads++">Download level</download-button>
 					<love-button style="flex: 0 1 auto" :levelOrPackInfo="levelInfo"></love-button>
 				</div>
-				<p class="additionalInfo">Downloads: {{ levelInfo.downloads }}<br>Loves: {{ levelInfo.lovedCount }}<br>Added on {{ formattedDate }}<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span></p>
+				<p class="additionalInfo">
+					Downloads: {{ levelInfo.downloads }}<br>
+					Loves: {{ levelInfo.lovedCount }}<br>
+					Added {{ formatDate(levelInfo.addedAt) }}
+					<template v-if="levelInfo.editedAt"><br>Edited {{ formatDate(levelInfo.editedAt) }}</template>
+					<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span>
+				</p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
@@ -29,16 +35,31 @@
 					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
-				<h1>{{ levelInfo.name }}</h1>
-				<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
-				<h3 v-if="levelInfo.desc">Description</h3>
-				<p class="regularParagraph" v-html="description"></p>
-				<h3>Details</h3>
-				<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
-				<h3 v-if="levelInfo.remarks || editing">Remarks</h3>
-				<p class="regularParagraph remarks" v-if="!editing && levelInfo.remarks" v-html="remarks"></p>
-				<textarea v-if="editing" class="basicTextarea remarksInput" v-model.trim="levelInfo.remarks" :maxlength="$store.state.levelRemarksMaxLength"></textarea>
-				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" @click="submitChanges">Save changes</button-with-icon>
+				<template v-if="!editing">
+					<h1>{{ levelInfo.name }}</h1>
+					<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
+					<h3 v-if="levelInfo.desc">Description</h3>
+					<p class="regularParagraph" v-html="description"></p>
+					<h3>Details</h3>
+					<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
+					<h3 v-if="levelInfo.remarks">Remarks</h3>
+					<p class="regularParagraph remarks" v-if="levelInfo.remarks" v-html="remarks"></p>
+				</template>
+				<div v-show="editing" :class="{ disabled: submittingEdit }">
+					<h1>Edit metadata</h1>
+
+					<h3>Mission info</h3>
+					<div ref="editor" class="missionInfoEditor"></div>
+					<p class="missionInfoProblems">{{ missionInfoCodeProblems }}</p>
+
+					<h3>Remarks</h3>
+					<textarea class="basicTextarea" v-model.trim="editedRemarks" :maxlength="$store.state.levelRemarksMaxLength"></textarea>
+
+					<div class="editingButtons">
+						<button-with-icon icon="/assets/svg/check_black_24dp.svg" @click="submitChanges" :class="{ disabled: missionInfoCodeProblems }">Save changes</button-with-icon>
+						<button-with-icon icon="/assets/svg/close_black_24dp.svg" @click="cancelEditing">Cancel</button-with-icon>
+					</div>
+				</div>
 			</div>
 		</div>
 		<img v-if="levelInfo.hasPrevImage" :src="`/api/level/${levelInfo.id}/prev-image`" class="previewImage">
@@ -75,9 +96,13 @@ import { emitter } from '../../ts/emitter';
 import { Head } from '@vueuse/head';
 import { db } from '../../../server/ts/globals';
 import { MissionDoc, Mission } from '../../../server/ts/mission';
-import { ORIGIN } from '../../../shared/constants';
+import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS } from '../../../shared/constants';
+import { CodeJar } from "codejar";
+import { guessGameType, guessModification } from "../../../shared/classification";
 
 const COUNT_DOWN_MODES = ['collection', 'elimination', 'gemMadness', 'ghosts', 'hunt', 'king', 'mega', 'party', 'props', 'seek', 'snowball', 'snowballsOnly', 'spooky', 'steal', 'tag', 'training'];
+
+const MISSION_INFO_REGEX = /((?:[a-zA-Z]|\$|_)(?:\w|\d|\$|_)*)( *= *)("((?:[^"\\\n]|\\.)*)")( *;)/g;
 
 export default defineComponent({
 	components: {
@@ -96,12 +121,18 @@ export default defineComponent({
 		return {
 			levelInfo: null as ExtendedLevelInfo,
 			editing: false,
+			submittingEdit: false,
 			/** Is true when we're currently waiting for the server to delete this level. */
 			deleting: false,
 			commentInput: '',
 			sendingComment: false,
 			notFound: false,
-			imageHidden: false
+			imageHidden: false,
+			editedRemarks: '',
+			editedMissionInfo: null as Record<string, string>,
+			missionInfoCode: '',
+			editor: null as CodeJar,
+			missionInfoCodeProblems: ''
 		};
 	},
 	async mounted() {
@@ -125,6 +156,32 @@ export default defineComponent({
 		// Incase the level search doesn't include this level yet, make it refresh
 		Search.checkForRefresh(this.levelInfo.id);
 		emitter.on('packUpdate', this.updatePacks);
+
+		this.setMissionInfoCode();
+		this.editedRemarks = this.levelInfo.remarks;
+
+		// Do nextTick because the ref will only be there once the DOM populates
+		this.$nextTick(() => {
+			if (!(this.$refs as any).editor) return;
+
+			// Create the small code editor for MissionInfo
+			let jar = CodeJar((this.$refs as any).editor, editor => {
+				let code = editor.textContent;
+
+				// Perform primitive syntax highlighting
+				MISSION_INFO_REGEX.lastIndex = 0;
+				let highlightedHtml = code.replace(MISSION_INFO_REGEX, `<span style="color: #4d9fd1;">$1</span>$2<span style="color: #ff8d00;">$3</span>$5`);
+
+				editor.innerHTML = highlightedHtml;
+			});
+
+			this.editor = jar;
+			jar.updateCode(this.missionInfoCode);
+			jar.onUpdate(code => this.onMissionInfoCodeChange(code));
+		});
+	},
+	beforeUnmount() {
+		this.editor?.destroy();
 	},
 	async serverPrefetch() {
 		let doc = await db.missions.findOne({ _id: Number(this.$route.params.id) }) as MissionDoc;
@@ -172,9 +229,6 @@ export default defineComponent({
 
 			return result;
 		},
-		formattedDate(): string {
-			return Util.formatDate(new Date(this.levelInfo.addedAt));
-		},
 		hasOwnershipPermissions(): boolean {
 			return !!this.$store.state.loggedInAccount && (this.levelInfo.addedBy?.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount.isModerator);
 		},
@@ -214,19 +268,49 @@ export default defineComponent({
 			
 			this.levelInfo.packs = json;
 		},
-		submitChanges() {
-			this.editing = false;
+		async submitChanges() {
+			this.submittingEdit = true;
 
-			// Submit the changes to the server
-			fetch(`/api/level/${this.levelInfo.id}/edit`, {
+			// Submit the changes to the server and wait for the response
+			let response = await fetch(`/api/level/${this.levelInfo.id}/edit`, {
 				method: 'PATCH',
 				body: JSON.stringify({
-					remarks: this.levelInfo.remarks
+					missionInfo: this.editedMissionInfo,
+					remarks: this.editedRemarks ?? null
 				}),
 				headers: {
 					'Content-Type': 'application/json'
 				}
 			});
+
+			this.submittingEdit = false;
+
+			if (response.ok) {				
+				let json = await response.json() as ExtendedLevelInfo;
+
+				this.editedMissionInfo = null;
+				this.editing = false;
+				this.levelInfo = json; // Update level info
+
+				// Show a small animation
+				let element = this.$refs.topPart as HTMLDivElement;;
+				element.style.animation = 'none';
+				element.clientWidth; // Force layout
+				element.style.animation = '0.5s ease-out edit-succeed';
+
+				document.documentElement.scrollTop = 0;
+			} else {
+				alert("Level edit failed. Consult an admin for details.");;
+			}
+		},
+		cancelEditing() {
+			this.editing = false;
+
+			this.editedRemarks = this.levelInfo.remarks;
+			this.missionInfoCodeProblems = '';
+			this.setMissionInfoCode(); // Reset this boy
+			this.editor.updateCode(this.missionInfoCode);
+
 		},
 		async deleteLevel() {
 			if (!confirm("Are you sure you want to delete this level? This will also remove it from all packs that currently contain it.")) return;
@@ -285,6 +369,70 @@ export default defineComponent({
 
 			// Reload all of the comments
 			this.levelInfo.comments = json;
+		},
+		/** Generates the code that represents the MissionInfo object. */
+		setMissionInfoCode() {
+			this.missionInfoCode = '';
+
+			for (let key of Object.keys(this.levelInfo.missionInfo).sort()) {
+				this.missionInfoCode += `${key} = ${JSON.stringify('' + this.levelInfo.missionInfo[key])};\n`;
+			}
+		},
+		/** Verify and process the modified MissionInfo code. */
+		onMissionInfoCodeChange(code: string) {
+			MISSION_INFO_REGEX.lastIndex = 0;
+
+			// We first check if the code is syntactically correct by seeing if there are any non-whitespace residuals when we strip out all regex matches:
+			let withoutMatches = code.replace(MISSION_INFO_REGEX, '');
+			if (withoutMatches.trim()) {
+				this.missionInfoCodeProblems = `MissionInfo code has syntactical errors. It must follow the following pattern: key1 = "value1"; key2 = "value2"; ...`;
+				return;
+			}
+
+			this.missionInfoCodeProblems = '';
+
+			// Parse the code into an object
+			let obj: Record<string, string> = {};
+			MISSION_INFO_REGEX.lastIndex = 0;
+			let match: RegExpExecArray;
+			while ((match = MISSION_INFO_REGEX.exec(code)) !== null) {
+				obj[match[1].toLowerCase()] = match[4];
+			}
+
+			let problems: string[] = [];
+			if (!obj.name) problems.push(`MissionInfo is missing "name".`);
+			if (!obj.artist) problems.push(`MissionInfo is missing "artist".`);
+
+			// Check for changed immutable properties
+			for (let key of new Set([...Object.keys(obj), ...Object.keys(this.levelInfo.missionInfo)])) {
+				if (obj[key] !== this.levelInfo.missionInfo[key] && !MUTABLE_MISSION_INFO_FIELDS.includes(key)) {
+					problems.push(`Property "${key}" is not allowed to change. (was: ${this.levelInfo.missionInfo[key]})`); // Yes this can print "undefined" and it's actually intended!
+				}
+			}
+
+			// Test if the mission gets classified differently than before with the new MissionInfo (not allowed!)
+			let fakeRelativePath = this.levelInfo.gameType === 'multi' ? 'multiplayer/' : '';
+			let gameType = guessGameType(obj as any, fakeRelativePath, this.levelInfo.dependencies);
+			let modification = guessModification(obj as any, this.levelInfo.hasEasterEgg, this.levelInfo.dependencies);
+
+			if (gameType !== this.levelInfo.gameType)
+				problems.push(`The changes to MissionInfo would reclassify this level to have a different game type, which is disallowed.`);
+			if (modification !== this.levelInfo.modification)
+				problems.push(`The changes to MissionInfo would reclassify this level to have a different modification, which is disallowed.`);
+
+			// Display all the problems
+			if (problems.length > 0) {
+				this.missionInfoCodeProblems = "There are problems with your changes to MissionInfo:\n\n" + problems.map(x => '- ' + x).join('\n');
+			}
+
+			this.editedMissionInfo = obj;
+		},
+		formatDate(time: number) {
+			let date = new Date(time);
+			let hours = ('00' + date.getHours()).slice(-2);
+			let minutes = ('00' + date.getMinutes()).slice(-2);
+
+			return `on ${Util.formatDate(date)} at ${hours}:${minutes}`;
 		}
 	},
 	watch: {
@@ -299,6 +447,10 @@ export default defineComponent({
 .top-part {
 	display: flex;
 	flex-wrap: wrap-reverse;
+}
+
+.top-part textarea {
+	width: 100%;
 }
 
 aside {
@@ -393,19 +545,23 @@ h3 {
 	z-index: 1;
 }
 
-.remarksInput {
-	width: 100%;
-	height: 200px;
-	margin-bottom: 10px;
-}
-
 .remarks {
 	white-space: pre-wrap;
 	overflow-wrap: break-word;
 }
 
-.saveChangesButton {
+.editingButtons {
+	display: flex;
+	margin-top: 20px;
+}
+
+.editingButtons > div {
 	width: 200px;
+	margin-right: 10px;
+}
+
+.editingButtons > div:nth-child(2) {
+	width: 120px;
 }
 
 .commentBox {
@@ -427,5 +583,32 @@ h3 {
 	display: flex;
 	width: 100%;
 	margin-top: 10px;
+}
+
+.missionInfoEditor {
+	padding: 10px;
+	font-family: monospace;
+	background: var(--background-1);
+	border-radius: 10px;
+	font-size: 14px;
+	width: 100%;
+	box-sizing: border-box;
+	max-height: 310px;
+}
+
+.missionInfoProblems {
+	margin: 0;
+	margin-top: 5px;
+	font-size: 13px;
+	color: crimson;
+	font-weight: bold;
+	white-space: pre-wrap;
+}
+</style>
+
+<style>
+@keyframes edit-succeed {
+	0% { transform: scale(1.1); }
+	100% { transform: scale(1.0); }
 }
 </style>

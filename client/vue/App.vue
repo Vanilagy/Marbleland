@@ -51,6 +51,8 @@ export default defineComponent({
 	--background-2: rgb(220, 220, 220);
 	--level-panel-bottom-background: rgba(240, 240, 240, 0.9);
 	--panel-skeleton-animation-background: rgb(250, 250, 250);
+
+	scroll-behavior: smooth;
 }
 
 :root.dark {

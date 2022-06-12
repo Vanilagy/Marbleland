@@ -353,10 +353,10 @@ export const initLevelApi = () => {
 		await compressAndSendImage(group.thumbnailFile.name, req, res, { width: 640, height: 480 }, buffer);
 	});
 
-	// Edit a previously submitted level, currently only the remarks
+	// Edit a previously submitted level (mission info and remarks)
 	app.patch('/api/level/:levelId/edit', async (req, res) => {
-		let { doc } = await authorize(req);
-		if (!doc) {
+		let { doc: accountDoc } = await authorize(req);
+		if (!accountDoc) {
 			res.status(401).send("401\nInvalid token.");
 			return;
 		}
@@ -364,8 +364,18 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
+		let json = req.body as {
+			missionInfo: Record<string, string>,
+			remarks: string
+		};
+
 		// Check if the types are correct
-		if (req.body.remarks !== null && typeof req.body.remarks !== 'string') {
+
+		if (json.remarks !== null && typeof json.remarks !== 'string') {
+			res.status(400).end();
+			return;
+		}
+		if (json.missionInfo !== null && Object.values(json.missionInfo).some(x => typeof x !== 'string')) {
 			res.status(400).end();
 			return;
 		}
@@ -373,15 +383,29 @@ export const initLevelApi = () => {
 		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 
 		// Make sure the person editing has permission to do so
-		if (missionDoc.addedBy !== doc._id && !doc.moderator) {
+		if (missionDoc.addedBy !== accountDoc._id && !accountDoc.moderator) {
 			res.status(403).end();
 			return;
 		}
 
+		if (json.missionInfo) {
+			let mission = Mission.fromDoc(missionDoc);
+			let applied = mission.applyMissionInfoChanges(json.missionInfo);
+
+			if (!applied) {
+				res.status(403).end();
+				return;
+			}
+
+			missionDoc = mission.createDoc();
+		}
+
 		missionDoc.remarks = req.body.remarks;
+		missionDoc.editedAt = Date.now();
 		await db.missions.update({ _id: levelId }, missionDoc);
 
-		res.end();
+		let mission = Mission.fromDoc(missionDoc);
+		res.send(await mission.createExtendedLevelInfo(accountDoc._id));
 	});
 
 	// Delete a previous submitted level

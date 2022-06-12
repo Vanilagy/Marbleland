@@ -8,7 +8,7 @@
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
 		<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
-		<div v-if="!uploading" class="dropArea" @drop.prevent="dropFile" @dragover.prevent="" @dragenter="dragEntered = true" @dragleave="dragEntered = false" :style="{ 'border-color': dragEntered? 'var(--text-color)' : '' }">
+		<div v-if="!uploading" class="dropArea" @drop.prevent="dropFile" @dragover.prevent="" @dragenter="dragEntered = true" @dragleave="dragEntered = false" :style="{ 'borderColor': dragEntered? 'var(--text-color)' : '' }">
 			<img src="/assets/svg/download_black_24dp.svg" class="basicIcon">
 			<p>Or drop .zip here</p>
 		</div>
@@ -73,7 +73,7 @@ export default defineComponent({
 			uploadLoaded: 0,
 			uploadTotal: 1,
 			/** The state of the progress bar */
-			uploadState: 'neutral',
+			uploadState: 'neutral' as 'neutral' | 'negative' | 'positive',
 			problems: [] as string[],
 			successResponse: null as {
 				uploadId: string,

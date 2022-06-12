@@ -11,7 +11,8 @@ import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
-import sharp from 'sharp';
+import { MUTABLE_MISSION_INFO_FIELDS } from '../../shared/constants';
+import { guessGameType, guessModification } from '../../shared/classification';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.dds'];
@@ -37,7 +38,8 @@ export interface MissionDoc {
 	downloads: number,
 	missesDependencies: boolean,
 	preferPrevThumbnail: boolean,
-	lovedBy?: number[]
+	lovedBy?: number[],
+	editedAt: number
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -65,6 +67,7 @@ export class Mission {
 	preferPrevThumbnail = false;
 	/** List of account IDs that love this mission. */
 	lovedBy: number[];
+	editedAt: number = null;
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -97,6 +100,7 @@ export class Mission {
 		mission.missesDependencies = doc.missesDependencies;
 		mission.preferPrevThumbnail = doc.preferPrevThumbnail;
 		mission.lovedBy = doc.lovedBy ?? [];
+		mission.editedAt = doc.editedAt ?? null;
 
 		return mission;
 	}
@@ -153,84 +157,8 @@ export class Mission {
 	}
 
 	classify() {
-		this.gameType = this.guessGameType();
-		this.modification = this.guessModification();
-	}
-
-	/** Try to guess the game type of this mission. */
-	guessGameType() {
-		let i = this.info;
-
-		if (i.gametype) return (i.gametype.toLowerCase() === 'singleplayer')? GameType.SinglePlayer : GameType.Multiplayer; // Explicitly set in the .mis
-		if (this.relativePath.startsWith('multiplayer/')) return GameType.Multiplayer;
-
-		// "Telltale" multiplayer stuff
-		if (Array.isArray(i.score) || i.score0 || i.score1 ||
-			Array.isArray(i.goldscore) || i.goldscore0 || i.goldscore1 ||
-			Array.isArray(i.platinumscore) || i.platinumscore0 || i.platinumscore1 ||
-			Array.isArray(i.ultimatescore) || i.ultimatescore0 || i.ultimatescore1 ||
-			Array.isArray(i.awesomescore) || i.awesomescore0 || i.awesomescore1)
-			return GameType.Multiplayer;
-
-		for (let dependency of this.dependencies) {
-			if (dependency.startsWith('multiplayer/interiors')) return GameType.Multiplayer;
-		}
-
-		return GameType.SinglePlayer;
-	}
-
-	/** Try to guess the modification (game) this mission was made for / is compatible with. */
-	guessModification() {
-		const index = {
-			[Modification.Gold]: 0,
-			[Modification.Platinum]: 1,
-			[Modification.Fubar]: 1,
-			[Modification.Ultra]: 1,
-			[Modification.PlatinumQuest]: 2
-		};
-		const stringMap = {
-			"gold": Modification.Gold,
-			"platinum": Modification.Platinum,
-			"fubar": Modification.Fubar,
-			"ultra": Modification.Ultra,
-			"platinumquest": Modification.PlatinumQuest
-		};
-
-		let i = this.info;
-
-		if (i.game && !i.game.toLowerCase().startsWith('custom')) return stringMap[i.game.toLowerCase() as keyof typeof stringMap];
-		if (i.modification) return stringMap[i.modification.toLowerCase() as keyof typeof stringMap];
-
-		let result = Modification.Gold;
-
-		const pickHigher = (mod: Modification) => {
-			if (index[mod] > index[result]) result = mod;
-		};
-
-		if (i.platinumtime) pickHigher(Modification.PlatinumQuest); // Added in PQ
-		if (i.awesometime) pickHigher(Modification.PlatinumQuest);
-		if (i.awesomescore) pickHigher(Modification.PlatinumQuest);
-		if (Array.isArray(i.awesomescore)) pickHigher(Modification.PlatinumQuest);
-
-		if (i.ultimatetime) pickHigher(Modification.Platinum);
-		if (i.ultimatescore) pickHigher(Modification.Platinum);
-		if (Array.isArray(i.score)) pickHigher(Modification.Platinum);
-		if (Array.isArray(i.platinumscore)) pickHigher(Modification.Platinum);
-		if (Array.isArray(i.ultimatescore)) pickHigher(Modification.Platinum);
-		if (this.hasEasterEgg) pickHigher(Modification.Platinum);
-
-		for (let dependency of this.dependencies) {
-			if (dependency.startsWith('pq_')) pickHigher(Modification.PlatinumQuest);
-			if (dependency.startsWith('interiors_pq')) pickHigher(Modification.PlatinumQuest);
-			if (dependency.startsWith('lbinteriors_pq')) pickHigher(Modification.PlatinumQuest);
-			if (dependency.startsWith('mbp_')) pickHigher(Modification.Platinum);
-			if (dependency.startsWith('interiors_mbp')) pickHigher(Modification.Platinum);
-			if (dependency.startsWith('lbinteriors_mbp')) pickHigher(Modification.Platinum);
-			if (dependency.startsWith('fubargame')) pickHigher(Modification.Fubar);
-			if (dependency.startsWith('mbu_')) pickHigher(Modification.Ultra);
-		}
-
-		return result;
+		this.gameType = guessGameType(this.info, this.relativePath, [...this.dependencies]);
+		this.modification = guessModification(this.info, this.hasEasterEgg, [...this.dependencies]);
 	}
 
 	/** Scans a sim group for metadata collection. */
@@ -479,7 +407,8 @@ export class Mission {
 			addedAt: Date.now(),
 			downloads: this.downloads,
 			missesDependencies: this.missesDependencies,
-			preferPrevThumbnail: this.preferPrevThumbnail
+			preferPrevThumbnail: this.preferPrevThumbnail,
+			editedAt: this.editedAt
 		};
 	}
 
@@ -494,6 +423,7 @@ export class Mission {
 			desc: this.info.desc,
 			addedAt: this.addedAt,
 			gameMode: this.info.gamemode,
+			editedAt: this.editedAt,
 
 			qualifyingTime: this.info.time? MisParser.parseNumber(this.info.time) : undefined,
 			goldTime: this.info.goldtime? MisParser.parseNumber(this.info.goldtime) : undefined,
@@ -501,11 +431,11 @@ export class Mission {
 			ultimateTime: this.info.ultimatetime? MisParser.parseNumber(this.info.ultimatetime) : undefined,
 			awesomeTime: this.info.awesometime? MisParser.parseNumber(this.info.awesometime) : undefined,
 
-			qualifyingScore: this.info.score? MisParser.parseNumber(this.info.score) : undefined,
-			goldScore: this.info.goldscore? MisParser.parseNumber(this.info.goldscore) : undefined,
-			platinumScore: this.info.platinumscore? MisParser.parseNumber(this.info.platinumscore) : undefined,
-			ultimateScore: this.info.ultimatescore? MisParser.parseNumber(this.info.ultimatescore) : undefined,
-			awesomeScore: this.info.awesomescore? MisParser.parseNumber(this.info.awesomescore) : undefined,
+			qualifyingScore: (this.info.score || this.info.score0)? MisParser.parseNumber(this.info.score || this.info.score0) : undefined,
+			goldScore: (this.info.goldscore || this.info.goldscore0)? MisParser.parseNumber(this.info.goldscore || this.info.goldscore0) : undefined,
+			platinumScore: (this.info.platinumscore || this.info.platinumscore0)? MisParser.parseNumber(this.info.platinumscore || this.info.platinumscore0) : undefined,
+			ultimateScore: (this.info.ultimatescore || this.info.ultimatescore0)? MisParser.parseNumber(this.info.ultimatescore || this.info.ultimatescore0) : undefined,
+			awesomeScore: (this.info.awesomescore || this.info.awesomescore0)? MisParser.parseNumber(this.info.awesomescore || this.info.awesomescore0) : undefined,
 
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg,
@@ -536,7 +466,9 @@ export class Mission {
 			downloads: this.downloads ?? 0,
 			missesDependencies: this.missesDependencies,
 			lovedByYou,
-			hasPrevImage: this.getPrevImagePath() !== null
+			hasPrevImage: this.getPrevImagePath() !== null,
+			missionInfo: this.info as any,
+			dependencies: this.getNormalizedDependencies('none', false)
 		});
 	}
 
@@ -576,6 +508,64 @@ export class Mission {
 	/** Returns the mission file's name (without the path). */
 	getBaseName() {
 		return Util.getFileName(this.relativePath);
+	}
+
+	/** Verifies changes to MissionInfo and, if valid, applies them and writes the new .mis to disk. */
+	async applyMissionInfoChanges(newMissionInfo: Record<string, string>) {
+		if (!newMissionInfo.name) return false;
+		if (!newMissionInfo.artist) return false;
+
+		// Check for changed immutable properties
+		for (let key of new Set([...Object.keys(newMissionInfo), ...Object.keys(this.info)])) {
+			if (newMissionInfo[key] !== this.info[key as keyof MissionElementScriptObject] && !MUTABLE_MISSION_INFO_FIELDS.includes(key)) {
+				return false;
+			}
+		}
+
+		let oldInfo = this.info;
+		this.info = newMissionInfo as any;
+
+		// Check if classification changed (not allowed!)
+		let gameType = guessGameType(this.info, this.relativePath, [...this.dependencies]);
+		let modification = guessModification(this.info, this.hasEasterEgg, [...this.dependencies]);
+
+		if (gameType !== this.gameType || modification !== this.modification) {
+			this.info = oldInfo;
+			return false;
+		}
+
+		// Get the .mis file text and figure out where the MissionInfo element is
+		let missionText = (await fs.readFile(path.join(this.baseDirectory, this.relativePath))).toString();
+		let missionInfoStartMatch = /new\s+ScriptObject\(\s*MissionInfo\s*\)\s*{/i.exec(missionText);
+		if (!missionInfoStartMatch) {
+			return false;
+		}
+
+		// Create a new MissionInfo text and insert it into the old mission text
+		let endIndex = Util.indexOfIgnoreStringLiterals(missionText, '};', missionInfoStartMatch.index + missionInfoStartMatch[0].length) + '};'.length;
+		let newMissionInfoDeclaration = 'new ScriptObject(MissionInfo) {\n' + Object.entries(newMissionInfo).map(([key, value]) => `    ${key} = "${value}";\n`).join('') + '};';
+		missionText = missionText.slice(0, missionInfoStartMatch.index) + newMissionInfoDeclaration + missionText.slice(endIndex);
+
+		// Check if we can still parse the mission. If we can't, assume the text transformation was invalid.
+		try {
+			new MisParser(missionText).parse();
+		} catch (e) {
+			return false;
+		}
+
+		// Update the mission hash
+		let misHash = crypto.createHash('sha256').update(missionText).digest('base64');
+		this.misHash = misHash;
+
+		// Write the new .mis to disk
+		await fs.writeFile(path.join(this.baseDirectory, this.relativePath), missionText);
+		await this.storeFileSizes();
+
+		// Update the database
+		let doc = this.createDoc();
+		await db.missions.update({ _id: doc._id }, doc);
+
+		return true;
 	}
 }
 
@@ -684,6 +674,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 						doc.downloads = duplicateDoc.downloads;
 						doc.remarks = duplicateDoc.remarks;
 						doc.lovedBy = duplicateDoc.lovedBy;
+						doc.editedAt = duplicateDoc.editedAt;
 
 						// We wrongly incremented the ID even though it got replaced now, so set it back so we don't inflate the ID for nothing.
 						let incrementedId = keyValue.get('levelId');

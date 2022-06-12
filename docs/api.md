@@ -163,14 +163,18 @@ missionId* | `number` | The index of the mission whose image thumbnail should be
 ```
 
 ### `PATCH` /api/level/{level-id}/edit
-**Requires [authentication](#authentication).** Edit the metadata of a previously submitted level. Right now, only the level's remarks can be edited.
+**Requires [authentication](#authentication).** Edit the metadata of a previously submitted level. Right now, the level's MissionInfo and remarks can be edited.
 
 **Request body (`Content-Type: application/json`):**
 ```typescript
 {
-	remarks: string
+	missionInfo: Record<string, string> | null, // The new MissionInfo fields. Only certain fields are allowed to be changed, check shared/constants.ts.
+	remarks: string | null
 }
 ```
+
+**Response body:**
+The extended information for the given level in the form of [ExtendedLevelInfo](#extendedlevelinfo) after it was edited.
 
 ### `DELETE` /api/level/{level-id}/delete
 **Requires [authentication](#authentication).** Deletes a previously submitted level from the database.
@@ -367,6 +371,7 @@ Contains metadata about a level.
 	desc: string,
 	addedAt: number,
 	gameMode: string,
+	editedAt: number, // Timestamp of when the level was last edited, null if it hasn't been edited.
 
 	qualifyingTime: number,
 	goldTime: number,
@@ -399,7 +404,9 @@ LevelInfo & {
 	downloads: number,
 	missesDependencies: boolean,
 	lovedByYou: boolean, // Indicates if the logged-in user has loved the level
-	hasPrevImage: boolean
+	hasPrevImage: boolean,
+	missionInfo: Record<string, string>, // All the properties of the .mis file's MissionInfo element
+	dependencies: string[] // The list of files (assets) the given level depends on
 }
 ```
 

@@ -18,7 +18,16 @@ module.exports = env => [{
 		extensions: ['.ts', '.js']
 	},
 	target: 'node',
-	externals: [nodeExternals()],
+	externals: [
+		({ context, request }, callback) => {
+			// Ignore CodeJar on the server
+			if (/codejar/i.test(request)) {
+				return callback(null, 'null');
+			}
+			callback();
+		},
+		nodeExternals()
+	],
 	module: {
 		rules: [
 			{

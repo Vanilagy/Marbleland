@@ -22,6 +22,7 @@ export interface LevelInfo {
 	desc: string,
 	addedAt: number,
 	gameMode: string,
+	editedAt: number,
 
 	qualifyingTime: number,
 	goldTime: number,
@@ -49,7 +50,10 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	packs: PackInfo[],
 	comments: CommentInfo[],
 	missesDependencies: boolean,
-	lovedByYou: boolean
+	lovedByYou: boolean,
+	hasPrevImage: boolean,
+	missionInfo: Record<string, string>,
+	dependencies: string[]
 }
 
 /** Contains metadata about a profile. */
