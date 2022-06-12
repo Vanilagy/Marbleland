@@ -390,7 +390,7 @@ export const initLevelApi = () => {
 
 		if (json.missionInfo) {
 			let mission = Mission.fromDoc(missionDoc);
-			let applied = mission.applyMissionInfoChanges(json.missionInfo);
+			let applied = await mission.applyMissionInfoChanges(json.missionInfo);
 
 			if (!applied) {
 				res.status(403).end();
