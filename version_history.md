@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.2
+- Refined MissionInfo editing
+
 ## 1.4.1
 - Fixed lost data upon level editing
 

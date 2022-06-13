@@ -525,7 +525,7 @@ export class Mission {
 			}
 		}
 
-		let oldInfo = this.info;
+		let oldMissionInfo = this.info;
 		this.info = newMissionInfo as any;
 
 		// Check if classification changed (not allowed!)
@@ -533,7 +533,7 @@ export class Mission {
 		let modification = guessModification(this.info, this.hasEasterEgg, [...this.dependencies]);
 
 		if (gameType !== this.gameType || modification !== this.modification) {
-			this.info = oldInfo;
+			this.info = oldMissionInfo;
 			return false;
 		}
 
@@ -546,7 +546,8 @@ export class Mission {
 
 		// Create a new MissionInfo text and insert it into the old mission text
 		let endIndex = Util.indexOfIgnoreStringLiterals(missionText, '};', missionInfoStartMatch.index + missionInfoStartMatch[0].length) + '};'.length;
-		let newMissionInfoDeclaration = 'new ScriptObject(MissionInfo) {\n' + Object.entries(newMissionInfo).map(([key, value]) => `    ${key} = "${value}";\n`).join('') + '};';
+		let missionInfoDeclaration = missionText.slice(missionInfoStartMatch.index, endIndex);
+		let newMissionInfoDeclaration = this.modifyMissionInfoDeclarationText(missionInfoDeclaration, newMissionInfo, oldMissionInfo as any);
 		missionText = missionText.slice(0, missionInfoStartMatch.index) + newMissionInfoDeclaration + missionText.slice(endIndex);
 
 		// Check if we can still parse the mission. If we can't, assume the text transformation was invalid.
@@ -569,6 +570,67 @@ export class Mission {
 		await db.missions.update({ _id: doc._id }, doc);
 
 		return true;
+	}
+
+	modifyMissionInfoDeclarationText(text: string, newMissionInfo: Record<string, string>, oldMissionInfo: Record<string, string>) {
+		// This regular expression reads out property declarations in the form of "key = value;" and all its variations, while capturing key and value.
+		const propertyDeclarationRegex = /((?:[a-zA-Z]|\$|_)(?:\w|\d|\$|_|\[|\])*)\s*=\s*((?:[^"]|(?:"(?:[^"\\]|\\.)*"))*?);/;
+		const propertyDeclarationRegexG = /((?:[a-zA-Z]|\$|_)(?:\w|\d|\$|_|\[|\])*)\s*=\s*((?:[^"]|(?:"(?:[^"\\]|\\.)*"))*?);/g; // 😂 One-character change 👍
+
+		for (let key of new Set([...Object.keys(newMissionInfo), ...Object.keys(oldMissionInfo)])) {
+			if (newMissionInfo[key] === oldMissionInfo[key as keyof MissionElementScriptObject])
+				continue; // The property didn't change, no need to edit the text!
+
+			const getDeclarationOfKey = (key: string) => {
+				let match: RegExpExecArray;
+				propertyDeclarationRegexG.lastIndex = 0;
+
+				while ((match = propertyDeclarationRegexG.exec(text)) !== null) {
+					let key2 = match[1];
+					if (key2 === key) return match;
+				}
+
+				return null;
+			};
+			const getLastDeclaration = () => {
+				let match: RegExpExecArray;
+				let prevMatch: RegExpExecArray = null;
+				propertyDeclarationRegexG.lastIndex = 0;
+
+				while ((match = propertyDeclarationRegexG.exec(text)) !== null) {
+					prevMatch = match;
+				}
+
+				return prevMatch;
+			};
+
+			if (key in newMissionInfo && key in oldMissionInfo) {
+				let declaration = getDeclarationOfKey(key);
+				if (!declaration) continue;
+
+				// An existing property changed, replace the declaration.
+				text = text.slice(0, declaration.index) + text.slice(declaration.index).replace(
+					propertyDeclarationRegex,
+					`${key} = "${newMissionInfo[key]}";`
+				);
+			} else if (key in newMissionInfo) {
+				let lastDeclaration = getLastDeclaration();
+				if (!lastDeclaration) continue;
+
+				// A new property was added, add a declaration.
+				text = text.slice(0, lastDeclaration.index + lastDeclaration[0].length) +
+					`\n\t${key} = "${newMissionInfo[key]}";` +
+					text.slice(lastDeclaration.index + lastDeclaration[0].length);
+			} else {
+				let declaration = getDeclarationOfKey(key);
+				if (!declaration) continue;
+
+				// An existing property was removed, remove the old declaration.
+				text = text.slice(0, declaration.index) + text.slice(declaration.index + declaration[0].length);
+			}
+		}
+
+		return text;
 	}
 }
 

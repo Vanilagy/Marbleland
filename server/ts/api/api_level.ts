@@ -393,7 +393,7 @@ export const initLevelApi = () => {
 			let applied = await mission.applyMissionInfoChanges(json.missionInfo);
 
 			if (!applied) {
-				res.status(403).end();
+				res.status(400).end();
 				return;
 			}
 
