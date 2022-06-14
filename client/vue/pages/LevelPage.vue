@@ -209,7 +209,7 @@ export default defineComponent({
 			result["Modification"] = this.prettyModification(this.levelInfo.modification);
 			result["Game type"] = this.levelInfo.gameType === 'single'? 'Singleplayer' : 'Multiplayer';
 			if (this.levelInfo.gameMode && this.levelInfo.gameMode !== 'null')
-				result["Game mode"] = this.levelInfo.gameMode.split(' ').map(x => Util.splitWords(x).join(' ')).join(', ');
+				result["Game mode"] = this.levelInfo.gameMode.split(' ').filter(x => x !== 'null').map(x => Util.splitWords(x).join(' ')).join(', ');
 			result["Gem count"] = this.levelInfo.gems;
 			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg? 'Yes' : 'No';
 

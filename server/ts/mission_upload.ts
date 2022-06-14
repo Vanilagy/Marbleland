@@ -270,7 +270,7 @@ export class MissionUpload {
 					group.normalizedDirectory.set(path.posix.join(relativeDirectory, fileName2), this.zip.files[name]);
 				} else {
 					// The dependency was found more than once and we aren't sure which one is meant, so abort.
-					this.problems.add(`The dependency ${dependency} could not be uniquely resolved to a file in the archive.`);
+					this.problems.add(`The dependency ${dependency}, required by ${requiredBy}, could not be uniquely resolved to a file in the archive.`);
 					return;
 				}
 			}

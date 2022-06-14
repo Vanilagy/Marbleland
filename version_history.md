@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.3
+- Improved game type stuff
+
 ## 1.4.2
 - Refined MissionInfo editing
 
