@@ -587,7 +587,7 @@ export class Mission {
 
 				while ((match = propertyDeclarationRegexG.exec(text)) !== null) {
 					let key2 = match[1];
-					if (key2 === key) return match;
+					if (key2.toLowerCase() === key) return match;
 				}
 
 				return null;
