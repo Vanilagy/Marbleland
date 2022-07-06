@@ -9,7 +9,7 @@ export class Util {
 		let minutes = Math.floor(abs / 60);
 		let string = Util.leftPadZeroes(minutes.toString(), 2) + ':' + Util.leftPadZeroes(Math.floor(abs % 60).toString(), 2) + '.' + Util.leftPadZeroes(Math.floor(abs * 10**decimalDigits % 10**decimalDigits).toString(), decimalDigits);
 		if (seconds < 0) string = '-' + string;
-		
+
 		return string;
 	}
 

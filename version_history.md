@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.5
+- Fixed a game mode-related search bug
+
 ## 1.4.4
 - Fixed a MissionInfo editing bug
 

@@ -69,7 +69,7 @@ export abstract class Search {
 			if (filter.gameMode.value !== 'all') {
 				if (filter.gameMode.value === 'null' && !info.gameMode) break outer;
 				if (filter.gameMode.value === 'null' && info.gameMode !== 'null') return false;
-				if (!info.gameMode?.includes(filter.gameMode.value)) return false;
+				if (!info.gameMode?.toLowerCase().includes(filter.gameMode.value)) return false;
 			}
 
 			return true;
