@@ -7,7 +7,7 @@ import { Config } from "./config";
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
 export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
 
-export let config: { port: number, dataPQ: string };
+export let config: { port: number, dataPQ: string, backupRepositoryPath: string, backupRepositoryRemote: string, backupPeriod: number };
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {
 	missions: Datastore,

@@ -8,6 +8,7 @@ import * as minimist from 'minimist';
 import { LevelInfo, Modification } from "../../shared/types";
 import { MisParser, MissionElementSimGroup, MissionElementType } from "./io/mis_parser";
 import { initializeImageMagick } from "@imagemagick/magick-wasm";
+import { initBackup } from "./backup";
 
 interface CLAEntry {
 	addTime: string,
@@ -102,6 +103,7 @@ const init = async () => {
 		// Usual path, boot up the API and HTTP server.
 		initApi();
 		startHTTPServer(config.port);
+		if (config.backupRepositoryPath) initBackup();
 	}
 };
 init();

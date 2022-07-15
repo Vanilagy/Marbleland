@@ -1,4 +1,7 @@
 {
 	"port": 8080,
-	"dataPQ": "data/data_pq"
+	"dataPQ": "data/data_pq",
+	"backupRepositoryPath": null,
+	"backupRepositoryRemote": null,
+	"backupPeriod": 86400
 }
