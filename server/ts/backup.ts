@@ -96,9 +96,14 @@ const doBackup = async () => {
 				return arr;
 			}, ['']);
 
+			let promises = commands.map(x => execShellCommand(`git add ${x}`, config.backupRepositoryPath));
+			await Promise.all(promises);
+
+			/*
 			for (let command of commands) {
 				await execShellCommand(`git add ${command}`, config.backupRepositoryPath);
 			}
+			*/
 
 			// let promises = toAdd.map(x => execShellCommand(`git add "${x}"`, config.backupRepositoryPath));
 			// await Promise.allSettled(promises);
