@@ -1,5 +1,5 @@
 import { db, config } from "./globals";
-import fs, { stat } from 'fs-extra';
+import fs from 'fs-extra';
 import path from 'path';
 import childProcess from 'child_process';
 import { MissionDoc } from "./mission";
@@ -7,12 +7,12 @@ import { PackDoc } from "./pack";
 
 export const initBackup = () => {
 	setInterval(doBackup, config.backupPeriod * 1000);
-	doBackup();
+	setTimeout(doBackup, 2000); // Chill a lil' before starting it
 };
 
 /** Backs up the most vital data (levels and some databases) to a remote git repository. This step may very well take many minutes to complete. That's what one's gotta do for the greater good, I guess.*/
 const doBackup = async () => {
-	console.info("Starting repository backup...");
+	console.info("Starting repository backup routine...");
 
 	try {
 		// Create a new, empty repository if necessary
@@ -23,6 +23,7 @@ const doBackup = async () => {
 		console.info("Writing...");
 
 		try {
+			// Check if rsync exists
 			await execShellCommand('rsync --version', config.backupRepositoryPath);
 
 			console.log("Copying using rsync...");
@@ -60,13 +61,16 @@ const doBackup = async () => {
 		
 		console.info("Write done.");
 
+		// We need to split the changes into multiple commits because there is often a limit on how large a single push can be.
 		const maxAllowedIterations = 64;
 		for (let i = 0; i < maxAllowedIterations; i++) {
+			// See which files have changed
 			let output = await execShellCommand('git status --porcelain -u', config.backupRepositoryPath);
 			let lines = output.split('\n').map(x => x.trim()).filter(Boolean);
 			let toAdd: string[] = [];
 			let totalBytes = 0;
 	
+			// Collect a list of files to add to the repository while staying below a max size limit
 			for (let line of lines) {
 				try {
 					let filePath = line.slice(3);
@@ -86,13 +90,7 @@ const doBackup = async () => {
 				break;
 			};
 
-			//console.log(toAdd);
-	
-			// Stage all changed or added files
-			//await execShellCommand(`git add ${toAdd.map(x => '"' + x + '"').join(' ')}`, config.backupRepositoryPath);
-			//await execShellCommand(toAdd.map(x => `git add "${x}"`).join(' && '), config.backupRepositoryPath);
-			//console.info(`Added ${toAdd.length} files to backup repository.`);
-
+			// Since shell commands have a length limit, split the 'git add'ing into multiple commands
 			let commands = toAdd.reduce((arr, file) => {
 				let last = arr[arr.length - 1];
 				if (last.length > 4000) {
@@ -106,9 +104,6 @@ const doBackup = async () => {
 				return arr;
 			}, ['']);
 
-			// let promises = commands.map(x => execShellCommand(`git add ${x}`, config.backupRepositoryPath));
-			// await Promise.all(promises);
-
 			console.info(`Adding ${toAdd} files to repository...`);
 
 			for (let command of commands) {
@@ -116,23 +111,6 @@ const doBackup = async () => {
 			}
 
 			console.info("Added.");
-
-			// let promises = toAdd.map(x => execShellCommand(`git add "${x}"`, config.backupRepositoryPath));
-			// await Promise.allSettled(promises);
-			/*
-			for (let [index, file] of toAdd.entries()) {
-				let promises: Promise<string>[] = [];
-				for 
-				try {
-					await execShellCommand(`git add "${file}"`, config.backupRepositoryPath);
-					console.log(index);
-				} catch (e) {
-					console.log(file);
-					console.error(e);
-					return;
-				}
-			}
-			*/
 	
 			// This boy can fail when there are no changes. We want that, empty commits are weird.
 			try {

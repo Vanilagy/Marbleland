@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.6
+- Added automated git backups
+
 ## 1.4.5
 - Fixed a game mode-related search bug
 
