@@ -141,7 +141,7 @@ const doBackup = async () => {
 
 const execShellCommand = (cmd: string, cwd: string) => {
 	return new Promise<string>((resolve, reject) => {
-		childProcess.exec(cmd, { cwd }, (error, stdout, stderr) => {
+		childProcess.exec(cmd, { cwd, maxBuffer: 1024**3 }, (error, stdout, stderr) => {
 			if (error) reject(error);
 			resolve(stdout? stdout : stderr);
 		});
