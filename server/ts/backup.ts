@@ -20,7 +20,7 @@ const doBackup = async () => {
 			await execShellCommand('git init', config.backupRepositoryPath);
 		}
 
-		console.info("Copying...");
+		console.info("Writing...");
 
 		try {
 			await execShellCommand('rsync --version', config.backupRepositoryPath);
@@ -35,7 +35,6 @@ const doBackup = async () => {
 			// Copy over all the levels
 			await fs.copy(path.join(__dirname, 'storage/levels'), path.join(config.backupRepositoryPath, 'levels'));
 		}
-		
 
 		// Prepare all the mission docs
 		let missionDocs = await db.missions.find({}) as (MissionDoc & { lovedCount: number })[];
@@ -59,7 +58,7 @@ const doBackup = async () => {
 		});
 		await fs.writeFile(path.join(config.backupRepositoryPath, 'packs.json'), JSON.stringify(packDocs, null, 4));
 		
-		console.info("Copy done.");
+		console.info("Write done.");
 
 		const maxAllowedIterations = 64;
 		for (let i = 0; i < maxAllowedIterations; i++) {
@@ -83,9 +82,11 @@ const doBackup = async () => {
 				}
 			}
 
-			if (toAdd.length === 0) break;
+			if (toAdd.length === 0) {
+				console.info("No files left to add.");
+				break;
+			};
 
-			console.log(toAdd.length);
 			//console.log(toAdd);
 	
 			// Stage all changed or added files
@@ -109,9 +110,13 @@ const doBackup = async () => {
 			// let promises = commands.map(x => execShellCommand(`git add ${x}`, config.backupRepositoryPath));
 			// await Promise.all(promises);
 
+			console.info("Adding to repository...");
+
 			for (let command of commands) {
 				await execShellCommand(`git add ${command}`, config.backupRepositoryPath);
 			}
+
+			console.info("Added.");
 
 			// let promises = toAdd.map(x => execShellCommand(`git add "${x}"`, config.backupRepositoryPath));
 			// await Promise.allSettled(promises);
@@ -129,9 +134,6 @@ const doBackup = async () => {
 				}
 			}
 			*/
-			console.log("no way")
-
-			break;
 	
 			// This boy can fail when there are no changes. We want that, empty commits are weird.
 			try {
