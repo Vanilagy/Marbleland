@@ -66,7 +66,7 @@ const doBackup = async () => {
 		for (let i = 0; i < maxAllowedIterations; i++) {
 			// See which files have changed
 			let output = await execShellCommand('git status --porcelain -u', config.backupRepositoryPath);
-			let lines = output.split('\n').map(x => x.trim()).filter(Boolean);
+			let lines = output.split('\n').map(x => x.trimEnd()).filter(Boolean);
 			let toAdd: string[] = [];
 			let totalBytes = 0;
 	
@@ -104,7 +104,7 @@ const doBackup = async () => {
 				return arr;
 			}, ['']);
 
-			console.info(`Adding ${toAdd} files to repository...`);
+			console.info(`Adding ${toAdd.length} files to repository...`);
 
 			for (let command of commands) {
 				await execShellCommand(`git add ${command}`, config.backupRepositoryPath);
