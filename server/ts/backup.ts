@@ -23,7 +23,7 @@ const doBackup = async () => {
 		console.info("Copying...");
 
 		try {
-			await execShellCommand('rsync', config.backupRepositoryPath);
+			await execShellCommand('rsync --version', config.backupRepositoryPath);
 
 			console.log("Copying using rsync...");
 
