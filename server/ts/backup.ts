@@ -22,10 +22,20 @@ const doBackup = async () => {
 
 		console.info("Copying...");
 
-		// Delete the old level backup
-		await fs.remove(path.join(config.backupRepositoryPath, 'levels'));
-		// Copy over all the levels
-		await fs.copy(path.join(__dirname, 'storage/levels'), path.join(config.backupRepositoryPath, 'levels'));
+		try {
+			await execShellCommand('rsync', config.backupRepositoryPath);
+
+			console.log("Copying using rsync...");
+
+			await execShellCommand(`rsync -avu --delete "${path.join(__dirname, 'storage/levels')}/" "${path.join(config.backupRepositoryPath, 'levels')}"`, config.backupRepositoryPath);
+		} catch (e) {
+			console.log("Copying manually...");
+			// Delete the old level backup
+			await fs.remove(path.join(config.backupRepositoryPath, 'levels'));
+			// Copy over all the levels
+			await fs.copy(path.join(__dirname, 'storage/levels'), path.join(config.backupRepositoryPath, 'levels'));
+		}
+		
 
 		// Prepare all the mission docs
 		let missionDocs = await db.missions.find({}) as (MissionDoc & { lovedCount: number })[];
@@ -96,14 +106,12 @@ const doBackup = async () => {
 				return arr;
 			}, ['']);
 
-			let promises = commands.map(x => execShellCommand(`git add ${x}`, config.backupRepositoryPath));
-			await Promise.all(promises);
+			// let promises = commands.map(x => execShellCommand(`git add ${x}`, config.backupRepositoryPath));
+			// await Promise.all(promises);
 
-			/*
 			for (let command of commands) {
 				await execShellCommand(`git add ${command}`, config.backupRepositoryPath);
 			}
-			*/
 
 			// let promises = toAdd.map(x => execShellCommand(`git add "${x}"`, config.backupRepositoryPath));
 			// await Promise.allSettled(promises);
