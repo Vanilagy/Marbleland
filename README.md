@@ -46,7 +46,7 @@ Marbleland provies a way to automatically and periodically back up all level and
 
 To set this up, you can configure a few values in `server/data/config.json`:
 
-- `backupRepositoryPath` specifies the path to the repository you want the backup to be placed into. If `null` (default), backups are turned off. 
+- `backupRepositoryPath` specifies the path to the local repository you want the backup to be placed into. If `null` (default), backups are turned off. 
 - `backupRepositoryRemote` specifies the URI of the remote repository which will be used when pushing. You need to make sure you are authorized to push by either including authentication with the URI or configuring your SSH keys. 
 - `backupPeriod` specifies the number of seconds between periodic backups. 
 - `backupPushSizeLimit` specifies the maximum size of a push to the remote (often, that size is limited).
