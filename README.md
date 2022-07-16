@@ -50,3 +50,5 @@ To set this up, you can configure a few values in `server/data/config.json`:
 - `backupRepositoryRemote` specifies the URI of the remote repository which will be used when pushing. You need to make sure you are authorized to push by either including authentication with the URI or configuring your SSH keys. 
 - `backupPeriod` specifies the number of seconds between periodic backups. 
 - `backupPushSizeLimit` specifies the maximum size of a push to the remote (often, that size is limited).
+
+The public backups for https://marbleland.vani.ga/ can be found [here](https://github.com/Vanilagy/MarblelandBackups/).
