@@ -63,9 +63,9 @@ const doBackup = async () => {
 				try {
 					let filePath = line.slice(3);
 					let stats = await fs.stat(path.join(config.backupRepositoryPath, filePath));
-					let newTotalBytes = totalBytes + stats.size;
+					totalBytes += stats.size;
 	
-					if (newTotalBytes <= allowed) toAdd.push(filePath);
+					if (totalBytes <= allowed) toAdd.push(filePath);
 					else break;
 				} catch (e) {
 					// Probably shouldn't reach this but lez be safe
