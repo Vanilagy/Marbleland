@@ -7,7 +7,14 @@ import { Config } from "./config";
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
 export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
 
-export let config: { port: number, dataPQ: string, backupRepositoryPath: string, backupRepositoryRemote: string, backupPeriod: number };
+export let config: {
+	port: number,
+	dataPQ: string,
+	backupRepositoryPath: string,
+	backupRepositoryRemote: string,
+	backupPeriod: number,
+	backupPushSizeLimit: number
+};
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {
 	missions: Datastore,
@@ -26,7 +33,20 @@ export let mbcryptAesKey: Buffer;
 export const initGlobals = async () => {
 	let configExists = fs.existsSync(path.join(__dirname, 'data/config.json'));
 	if (!configExists) fs.copyFileSync(path.join(__dirname, 'data/default_config.json'), path.join(__dirname, 'data/config.json'));
+
 	config = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/config.json')).toString());
+
+	// Copy over all new properties in default config that haven't been added to config
+	let defaultConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/default_config.json')).toString());
+	let changed = false;
+	for (let key in defaultConfig) {
+		if (config[key as keyof typeof config] === undefined) {
+			(config as any)[key] = defaultConfig[key];
+			changed = true;
+		}
+	}
+	if (changed) fs.writeFileSync(path.join(__dirname, 'data/config.json'), JSON.stringify(config, null, 4));
+
 	Config.init();
 
 	if (fs.existsSync(path.join(__dirname, 'data/key.txt'))) {

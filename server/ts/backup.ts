@@ -66,7 +66,6 @@ const doBackup = async () => {
 			let lines = output.split('\n').map(x => x.trim()).filter(Boolean);
 			let toAdd: string[] = [];
 			let totalBytes = 0;
-			const allowed = 2**31; // 2 GB
 	
 			for (let line of lines) {
 				try {
@@ -74,7 +73,7 @@ const doBackup = async () => {
 					let stats = await fs.stat(path.join(config.backupRepositoryPath, filePath));
 					totalBytes += stats.size;
 	
-					if (totalBytes <= allowed) toAdd.push(filePath);
+					if (totalBytes <= config.backupPushSizeLimit) toAdd.push(filePath);
 					else break;
 				} catch (e) {
 					// Probably shouldn't reach this but lez be safe
@@ -110,7 +109,7 @@ const doBackup = async () => {
 			// let promises = commands.map(x => execShellCommand(`git add ${x}`, config.backupRepositoryPath));
 			// await Promise.all(promises);
 
-			console.info("Adding to repository...");
+			console.info(`Adding ${toAdd} files to repository...`);
 
 			for (let command of commands) {
 				await execShellCommand(`git add ${command}`, config.backupRepositoryPath);

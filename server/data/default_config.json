@@ -3,5 +3,6 @@
 	"dataPQ": "data/data_pq",
 	"backupRepositoryPath": null,
 	"backupRepositoryRemote": null,
-	"backupPeriod": 86400
+	"backupPeriod": 86400,
+	"backupPushSizeLimit": 2147483648
 }
