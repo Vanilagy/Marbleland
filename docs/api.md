@@ -389,7 +389,9 @@ Contains metadata about a level.
 	hasEasterEgg: boolean,
 
 	downloads: number,
-	lovedCount: number
+	lovedCount: number,
+
+	hasCustomCode: boolean
 }
 ```
 

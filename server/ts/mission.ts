@@ -13,6 +13,7 @@ import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
 import { MUTABLE_MISSION_INFO_FIELDS } from '../../shared/constants';
 import { guessGameType, guessModification } from '../../shared/classification';
+import { MissionVerifier } from './verifier';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.dds'];
@@ -39,7 +40,8 @@ export interface MissionDoc {
 	missesDependencies: boolean,
 	preferPrevThumbnail: boolean,
 	lovedBy: number[],
-	editedAt: number
+	editedAt: number,
+	hasCustomCode: boolean,
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -68,6 +70,7 @@ export class Mission {
 	/** List of account IDs that love this mission. */
 	lovedBy: number[];
 	editedAt: number = null;
+	hasCustomCode: boolean = false;
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -101,6 +104,7 @@ export class Mission {
 		mission.preferPrevThumbnail = doc.preferPrevThumbnail;
 		mission.lovedBy = doc.lovedBy ?? [];
 		mission.editedAt = doc.editedAt ?? null;
+		mission.hasCustomCode = doc.hasCustomCode ?? false;
 
 		return mission;
 	}
@@ -112,6 +116,7 @@ export class Mission {
 		await this.storeFileSizes();
 		this.scanSimGroup(this.mis.root);
 		this.classify();
+		this.hasCustomCode = await MissionVerifier.verify(this);
 	}
 
 	async parseMission() {
@@ -411,7 +416,8 @@ export class Mission {
 			missesDependencies: this.missesDependencies,
 			preferPrevThumbnail: this.preferPrevThumbnail,
 			editedAt: this.editedAt,
-			lovedBy: this.lovedBy
+			lovedBy: this.lovedBy,
+			hasCustomCode: this.hasCustomCode,
 		};
 	}
 
@@ -444,7 +450,9 @@ export class Mission {
 			hasEasterEgg: this.hasEasterEgg,
 
 			downloads: this.downloads ?? 0,
-			lovedCount: this.lovedBy.length
+			lovedCount: this.lovedBy.length,
+
+			hasCustomCode: this.hasCustomCode ?? false,
 		};
 	}
 
