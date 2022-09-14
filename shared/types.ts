@@ -40,7 +40,9 @@ export interface LevelInfo {
 	hasEasterEgg: boolean,
 
 	downloads: number,
-	lovedCount: number
+	lovedCount: number,
+	
+	hasCustomCode: boolean,
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */
