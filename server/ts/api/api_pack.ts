@@ -5,9 +5,10 @@ import { db } from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPackThumbnailPath, createPack } from "../pack";
 import { app } from "../server";
-import { compressAndSendImage } from "./api";
+import { compressAndSendImage, executeWithIpTimeout, ipTimeouts } from "./api";
 import { Util } from "../util";
 import { MissionZipStream } from "../zip";
+import { incrementLevelDownloads } from './api_level';
 
 export const initPackApi = () => {
 	// Get a list of all packs
@@ -76,16 +77,17 @@ export const initPackApi = () => {
 		// Don't wait for this to finish because it can take quite a while
 		(async () => {
 			for (let doc of missionDocs) {
-				doc.downloads = (doc.downloads ?? 0) + 1;
-				await db.missions.update({ _id: doc._id }, doc);
+				await incrementLevelDownloads(doc, req);
 			}
 		})();
 
 		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
 
-		// Increment the download count for the entire pack
-		doc.downloads = (doc.downloads ?? 0) + 1;
-		await db.packs.update({ _id: doc._id }, doc);
+		// Increment the download count for the entire pack, with possible IP timeout
+		await executeWithIpTimeout(req, 'pack' + doc._id, async () => {
+			doc.downloads = (doc.downloads ?? 0) + 1;
+			await db.packs.update({ _id: doc._id }, doc);
+		});
 
 		let fileName = Util.removeSpecialChars(doc.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
 		stream.connectToResponse(res, `${fileName}-pack-${doc._id}.zip`);
@@ -130,6 +132,7 @@ export const initPackApi = () => {
 
 		// Update the thumbnail because levels have likely changed
 		await createPackThumbnail(packDoc);
+		clearIpTimeouts(packDoc._id);
 	});
 
 	// Get the image thumbnail for a pack
@@ -177,6 +180,8 @@ export const initPackApi = () => {
 		await db.packs.update({ _id: packDoc._id }, packDoc);
 
 		res.end();
+
+		clearIpTimeouts(packDoc._id);
 	});
 
 	// Delete a pack
@@ -253,4 +258,11 @@ export const initPackApi = () => {
 
 		res.end();
 	});
+};
+
+const clearIpTimeouts = (packId: number) => {
+	// Clear IP timeouts because of an edit
+	for (let [key] of ipTimeouts) {
+		if (key.endsWith('pack' + packId)) ipTimeouts.delete(key);
+	}
 };

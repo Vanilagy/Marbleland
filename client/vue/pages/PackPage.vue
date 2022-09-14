@@ -27,7 +27,7 @@
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit pack" @click="editing = true" :class="{ disabled: editing }" class="basicIcon">
 				</div>
 				<div class="buttonContainer">
-					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="packInfo.id" mode="pack" @download="packInfo.downloads++">Download pack</download-button>
+					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="packInfo.id" mode="pack" @download="incrementDownloads">Download pack</download-button>
 					<love-button style="flex: 0 1 auto" :levelOrPackInfo="packInfo"></love-button>
 				</div>
 				<p class="additionalInfo">Downloads: {{ packInfo.downloads }}<br>Loves: {{ packInfo.lovedCount }}</p>
@@ -63,7 +63,8 @@ export default defineComponent({
 			packInfo: null as ExtendedPackInfo,
 			editing: false,
 			deleting: false,
-			notFound: false
+			notFound: false,
+			hasDownloaded: false
 		};
 	},
 	async mounted() {
@@ -128,6 +129,8 @@ export default defineComponent({
 						}
 					});
 
+					self.hasDownloaded = false;
+
 					emitter.emit('packUpdate', {
 						id: self.packInfo.id,
 						levelIds: self.packInfo.levels.map(x => x.id)
@@ -183,6 +186,8 @@ export default defineComponent({
 					'Content-Type': 'application/json'
 				}
 			});
+			
+			this.hasDownloaded = false;
 
 			emitter.emit('packView', -1); // Hack: Pretend that we're viewing a pack with an ID that for sure won't exist, forcing the pack list to re-fetch
 		},
@@ -229,10 +234,19 @@ export default defineComponent({
 				}
 			});
 
+			this.hasDownloaded = false;
+
 			emitter.emit('packUpdate', {
 				id: this.packInfo.id,
 				levelIds: this.packInfo.levels.map(x => x.id)
 			});
+		},
+		incrementDownloads() {
+			if (this.hasDownloaded) return;
+
+			// Note that the count might not always be 100% matching due to IP timeouts on the server
+			this.packInfo.downloads++;
+			this.hasDownloaded = true;
 		}
 	},
 	components: {

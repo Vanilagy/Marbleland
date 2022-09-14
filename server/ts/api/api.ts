@@ -76,3 +76,17 @@ export const compressAndSendImage = async (imagePath: string, req: express.Reque
 	res.set('Content-Type', imagePath.endsWith('.png')? 'image/png' : 'image/jpeg');
 	res.send(resized);
 };
+
+export const ipTimeouts = new Map<string, number>();
+/* Executes a callback only if the requester's IP hasn't done an action with the same ID in the last 24 hours. Prevents spamming of stuff. */
+export const executeWithIpTimeout = async (req: express.Request, id: string, callback: () => Promise<void>) => {
+	let key = `${req.ip} ${id}`;
+	let lastExecution = ipTimeouts.get(key);
+	let now = Date.now();
+	let valid = !lastExecution || (now - lastExecution) >= 24*60*60*1000;
+
+	if (!valid) return;
+
+	ipTimeouts.set(key, now);
+	await callback();
+};

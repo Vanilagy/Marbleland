@@ -11,7 +11,7 @@ import { MissionDoc, Mission } from "../mission";
 import { MissionUpload, ongoingUploads } from "../mission_upload";
 import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
 import { app } from "../server";
-import { compressAndSendImage } from "./api";
+import { compressAndSendImage, executeWithIpTimeout, ipTimeouts } from "./api";
 import { Util } from '../util';
 import { MissionZipStream } from '../zip';
 import { MBPakFile } from '../mbcrypt/mbcrypt';
@@ -60,8 +60,7 @@ export const initLevelApi = () => {
 		// Don't wait for this to finish because it can take quite a while
 		(async () => {
 			for (let doc of missionDocs) {
-				doc.downloads = (doc.downloads ?? 0) + 1;
-				await db.missions.update({ _id: doc._id }, doc);
+				await incrementLevelDownloads(doc, req);
 			}
 		})();
 
@@ -87,10 +86,7 @@ export const initLevelApi = () => {
 
 		let stream = new MissionZipStream([mission], assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
 
-		console.log(req.ip);
-
-		doc.downloads = (doc.downloads ?? 0) + 1;
-		await db.missions.update({ _id: levelId }, doc);
+		await incrementLevelDownloads(doc, req);
 
 		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
 		stream.connectToResponse(res, `${fileName}-${doc._id}.zip`);
@@ -114,8 +110,7 @@ export const initLevelApi = () => {
 
 		let mbpak = await MBPakFile.create(mission, assuming, 'append-id-to-mis' in req.query);
 
-		doc.downloads = (doc.downloads ?? 0) + 1;
-		await db.missions.update({ _id: levelId }, doc);
+		await incrementLevelDownloads(doc, req);
 
 		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
 
@@ -406,6 +401,11 @@ export const initLevelApi = () => {
 		missionDoc.editedAt = Date.now();
 		await db.missions.update({ _id: levelId }, missionDoc);
 
+		// Clear IP timeouts because of the edit
+		for (let [key] of ipTimeouts) {
+			if (key.endsWith('level' + levelId)) ipTimeouts.delete(key);
+		}
+
 		let mission = Mission.fromDoc(missionDoc);
 		res.send(await mission.createExtendedLevelInfo(accountDoc._id));
 	});
@@ -525,5 +525,13 @@ export const initLevelApi = () => {
 		await db.missions.update({ _id: levelId }, missionDoc);
 
 		res.end();
+	});
+};
+
+export const incrementLevelDownloads = (doc: MissionDoc, req: express.Request) => {
+	// Increment download count but prevent spamming
+	return executeWithIpTimeout(req, 'level' + doc._id, async () => {
+		doc.downloads = (doc.downloads ?? 0) + 1;
+		await db.missions.update({ _id: doc._id }, doc);
 	});
 };

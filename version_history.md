@@ -1,5 +1,9 @@
 # Version history
 
+## 1.4.7
+- Added labels to levels that utilize custom code in their .mis file
+- Added download spam protection
+
 ## 1.4.6
 - Added automated git backups
 

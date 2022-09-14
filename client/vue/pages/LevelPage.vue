@@ -16,7 +16,7 @@
 			<aside>
 				<img v-if="!imageHidden" :src="imageSource" class="thumbnail" @error="imageHidden = true">
 				<div class="buttonContainer">
-					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" mode="level" @download="levelInfo.downloads++">Download level</download-button>
+					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" mode="level" @download="incrementDownloads">Download level</download-button>
 					<love-button style="flex: 0 1 auto" :levelOrPackInfo="levelInfo"></love-button>
 				</div>
 				<p class="additionalInfo">
@@ -133,7 +133,8 @@ export default defineComponent({
 			editedMissionInfo: null as Record<string, string>,
 			missionInfoCode: '',
 			editor: null as CodeJar,
-			missionInfoCodeProblems: ''
+			missionInfoCodeProblems: '',
+			hasDownloaded: false
 		};
 	},
 	async mounted() {
@@ -292,6 +293,7 @@ export default defineComponent({
 				this.editedMissionInfo = null;
 				this.editing = false;
 				this.levelInfo = json; // Update level info
+				this.hasDownloaded = false; // Allow the download count to increase again
 
 				// Show a small animation
 				let element = this.$refs.topPart as HTMLDivElement;;
@@ -311,7 +313,6 @@ export default defineComponent({
 			this.missionInfoCodeProblems = '';
 			this.setMissionInfoCode(); // Reset this boy
 			this.editor.updateCode(this.missionInfoCode);
-
 		},
 		async deleteLevel() {
 			if (!confirm("Are you sure you want to delete this level? This will also remove it from all packs that currently contain it.")) return;
@@ -434,6 +435,13 @@ export default defineComponent({
 			let minutes = ('00' + date.getMinutes()).slice(-2);
 
 			return `on ${Util.formatDate(date)} at ${hours}:${minutes}`;
+		},
+		incrementDownloads() {
+			if (this.hasDownloaded) return;
+
+			// Note that the count might not always be 100% matching due to IP timeouts on the server
+			this.levelInfo.downloads++;
+			this.hasDownloaded = true;
 		}
 	},
 	watch: {
