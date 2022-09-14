@@ -10,6 +10,8 @@ import { authorize, getSignInInfo, setTokenCookie } from './account';
 export const app = express();
 
 export const startHTTPServer = (port: number) => {
+	app.set('trust proxy', true);
+
 	app.use(express.static(path.join(__dirname, '../dist'), {
 		index: false,
 		setHeaders(res) {

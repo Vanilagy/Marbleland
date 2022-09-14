@@ -116,7 +116,7 @@ class VerifierListener implements IASTVisitor {
 }
 
 export class MissionVerifier {
-    public static async verify(mission: Mission) {
+    public static async verifyNoCustomCode(mission: Mission) {
         let missionText = (await fs.readFile(path.join(mission.baseDirectory, mission.relativePath))).toString();
 
         try {

@@ -87,6 +87,8 @@ export const initLevelApi = () => {
 
 		let stream = new MissionZipStream([mission], assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
 
+		console.log(req.ip);
+
 		doc.downloads = (doc.downloads ?? 0) + 1;
 		await db.missions.update({ _id: levelId }, doc);
 

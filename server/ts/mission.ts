@@ -116,7 +116,7 @@ export class Mission {
 		await this.storeFileSizes();
 		this.scanSimGroup(this.mis.root);
 		this.classify();
-		this.hasCustomCode = await MissionVerifier.verify(this);
+		this.hasCustomCode = !(await MissionVerifier.verifyNoCustomCode(this));
 	}
 
 	async parseMission() {
