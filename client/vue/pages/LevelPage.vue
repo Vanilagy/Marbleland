@@ -25,6 +25,7 @@
 					Added {{ formatDate(levelInfo.addedAt) }}
 					<template v-if="levelInfo.editedAt"><br>Edited {{ formatDate(levelInfo.editedAt) }}</template>
 					<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span>
+					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
@@ -211,7 +212,8 @@ export default defineComponent({
 			if (this.levelInfo.gameMode && this.levelInfo.gameMode !== 'null')
 				result["Game mode"] = this.levelInfo.gameMode.split(' ').filter(x => x !== 'null').map(x => Util.splitWords(x).join(' ')).join(', ');
 			result["Gem count"] = this.levelInfo.gems;
-			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg? 'Yes' : 'No';
+			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg ? 'Yes' : 'No';
+			result["Has Custom Code"] = this.levelInfo.hasCustomCode ? 'Yes' : 'No';
 
 			let timeName = this.levelInfo.gameMode?.split(' ').some(x => COUNT_DOWN_MODES.includes(x))? 'Time' : 'Qualifying time';
 
