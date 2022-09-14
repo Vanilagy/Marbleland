@@ -451,8 +451,7 @@ export class Mission {
 
 			downloads: this.downloads ?? 0,
 			lovedCount: this.lovedBy.length,
-
-			hasCustomCode: this.hasCustomCode ?? false,
+			hasCustomCode: this.hasCustomCode
 		};
 	}
 

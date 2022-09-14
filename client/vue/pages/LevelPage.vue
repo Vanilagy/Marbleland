@@ -212,8 +212,7 @@ export default defineComponent({
 			if (this.levelInfo.gameMode && this.levelInfo.gameMode !== 'null')
 				result["Game mode"] = this.levelInfo.gameMode.split(' ').filter(x => x !== 'null').map(x => Util.splitWords(x).join(' ')).join(', ');
 			result["Gem count"] = this.levelInfo.gems;
-			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg ? 'Yes' : 'No';
-			result["Has Custom Code"] = this.levelInfo.hasCustomCode ? 'Yes' : 'No';
+			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg? 'Yes' : 'No';
 
 			let timeName = this.levelInfo.gameMode?.split(' ').some(x => COUNT_DOWN_MODES.includes(x))? 'Time' : 'Qualifying time';
 

@@ -390,7 +390,6 @@ Contains metadata about a level.
 
 	downloads: number,
 	lovedCount: number,
-
 	hasCustomCode: boolean
 }
 ```
