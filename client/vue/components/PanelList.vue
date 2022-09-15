@@ -44,9 +44,7 @@ export default defineComponent({
 		};
 	},
 	mounted() {
-		if (this.entries && this.shownCount > 4 && this.entries.length - this.shownCount <= 4) {
-			this.shownCount = this.entries.length;
-		}
+		this.maybeShowAll();
 	},
 	computed: {
 		shownEntries(): (LevelInfo[] | PackInfo[]) {
@@ -70,6 +68,13 @@ export default defineComponent({
 	methods: {
 		showMore() {
 			this.shownCount += 24;
+			this.maybeShowAll();
+		},
+		/** If there is at most one row of levels still not shown, show them. */
+		maybeShowAll() {
+			if (this.entries && this.shownCount > 4 && this.entries.length - this.shownCount <= 4) {
+				this.shownCount = this.entries.length;
+			}
 		}
 	},
 	watch: {
