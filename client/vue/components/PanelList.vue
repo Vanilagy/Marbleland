@@ -44,7 +44,7 @@ export default defineComponent({
 		};
 	},
 	mounted() {
-		if (this.shownCount > 4 && this.entries.length - this.shownCount <= 4) {
+		if (this.entries && this.shownCount > 4 && this.entries.length - this.shownCount <= 4) {
 			this.shownCount = this.entries.length;
 		}
 	},
