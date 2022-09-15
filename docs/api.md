@@ -469,7 +469,11 @@ Contains metadata about a profile, as well as additional data to display on the 
 ProfileInfo & {
 	bio: string,
 	uploadedLevels: LevelInfo[], // Newest levels first
-	createdPacks: PackInfo[]
+	createdPacks: PackInfo[],
+	levelDownloads: number,
+	levelLoves: number,
+	packDownloads: number,
+	packLoves: number
 }
 ```
 

@@ -43,6 +43,11 @@ export default defineComponent({
 			shownCount: this.defaultCount
 		};
 	},
+	mounted() {
+		if (this.shownCount > 4 && this.entries.length - this.shownCount <= 4) {
+			this.shownCount = this.entries.length;
+		}
+	},
 	computed: {
 		shownEntries(): (LevelInfo[] | PackInfo[]) {
 			return this.entries.slice(0, this.shownCount);

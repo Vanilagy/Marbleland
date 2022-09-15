@@ -22,7 +22,7 @@
 		</ul>
 	</p>
 	<footer @click="showVersionHistory">
-		Marbleland v1.4.7
+		Marbleland v1.4.8
 	</footer>
 </template>
 

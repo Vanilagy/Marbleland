@@ -27,6 +27,12 @@
 			<textarea class="bioTextarea basicTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="saveBio" @click="saveBio">Save bio</button-with-icon>
 		</template>
+		<p class="stats">
+			Level downloads: <strong>{{ profileInfo.levelDownloads }}</strong><br>
+			Level loves: <strong>{{ profileInfo.levelLoves }}</strong><br>
+			Pack downloads: <strong>{{ profileInfo.packDownloads }}</strong><br>
+			Pack loves: <strong>{{ profileInfo.packLoves }}</strong>
+		</p>
 		<h3>Uploaded levels ({{ profileInfo.uploadedLevels.length }})</h3>
 		<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
 		<h3>Created packs ({{ profileInfo.createdPacks.length }})</h3>
@@ -277,5 +283,17 @@ h3 {
     border-radius: 5px;
     font-weight: bold;
     padding: 1px;
+}
+
+.stats {
+	font-size: 11px;
+	width: 130px;
+	margin: auto;
+	margin-top: 20px;
+	opacity: 0.75;
+}
+
+.stats strong {
+	float: right;
 }
 </style>
