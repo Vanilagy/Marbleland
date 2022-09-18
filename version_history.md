@@ -1,7 +1,10 @@
 # Version history
 
+## 1.4.9
+- Fixed editing with escaped characters
+
 ## 1.4.8
-- Add stats to profiles
+- Added stats to profiles
 
 ## 1.4.7
 - Added labels to levels that utilize custom code in their .mis file

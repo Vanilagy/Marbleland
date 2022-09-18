@@ -40,7 +40,7 @@
 					<h1>{{ levelInfo.name }}</h1>
 					<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
 					<h3 v-if="levelInfo.desc">Description</h3>
-					<p class="regularParagraph" v-html="description"></p>
+					<p class="regularParagraph description" v-html="description"></p>
 					<h3>Details</h3>
 					<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
 					<h3 v-if="levelInfo.remarks">Remarks</h3>
@@ -398,7 +398,7 @@ export default defineComponent({
 			MISSION_INFO_REGEX.lastIndex = 0;
 			let match: RegExpExecArray;
 			while ((match = MISSION_INFO_REGEX.exec(code)) !== null) {
-				obj[match[1].toLowerCase()] = match[4];
+				obj[match[1].toLowerCase()] = JSON.parse(match[3]);
 			}
 
 			let problems: string[] = [];
@@ -525,6 +525,11 @@ h3 {
 
 .regularParagraph {
 	margin: 0;
+}
+
+.description {
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
 }
 
 .detail {
