@@ -70,11 +70,7 @@ export interface ProfileInfo {
 export interface ExtendedProfileInfo extends ProfileInfo {
 	bio: string,
 	uploadedLevels: LevelInfo[],
-	createdPacks: PackInfo[],
-	levelDownloads: number,
-	levelLoves: number,
-	packDownloads: number,
-	packLoves: number
+	createdPacks: PackInfo[]
 }
 
 /** Contains data that is remembered by the client upon login. */

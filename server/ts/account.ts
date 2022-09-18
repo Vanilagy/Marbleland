@@ -125,19 +125,10 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 		createdPacks.push(await getPackInfo(doc));
 	}
 
-	let levelDownloads = missionDocs.reduce((a, b) => a + b.downloads ?? 0, 0);
-	let levelLoves = missionDocs.reduce((a, b) => a + (b.lovedBy?.length ?? 0), 0);
-	let packDownloads = packDocs.reduce((a, b) => a + b.downloads ?? 0, 0);
-	let packLoves = packDocs.reduce((a, b) => a + (b.lovedBy?.length ?? 0), 0);
-
 	return Object.assign(profileInfo, {
 		bio: doc.bio,
 		uploadedLevels,
-		createdPacks,
-		levelDownloads,
-		levelLoves,
-		packDownloads,
-		packLoves
+		createdPacks
 	});
 };
 

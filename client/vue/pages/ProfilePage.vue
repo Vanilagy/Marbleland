@@ -28,10 +28,10 @@
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="saveBio" @click="saveBio">Save bio</button-with-icon>
 		</template>
 		<p class="stats">
-			Level downloads: <strong>{{ profileInfo.levelDownloads }}</strong><br>
-			Level loves: <strong>{{ profileInfo.levelLoves }}</strong><br>
-			Pack downloads: <strong>{{ profileInfo.packDownloads }}</strong><br>
-			Pack loves: <strong>{{ profileInfo.packLoves }}</strong>
+			Level downloads: <strong>{{ levelDownloads }}</strong><br>
+			Level loves: <strong>{{ levelLoves }}</strong><br>
+			Pack downloads: <strong>{{ packDownloads }}</strong><br>
+			Pack loves: <strong>{{ packLoves }}</strong>
 		</p>
 		<h3>Uploaded levels ({{ profileInfo.uploadedLevels.length }})</h3>
 		<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
@@ -106,6 +106,18 @@ export default defineComponent({
 		},
 		origin(): string {
 			return ORIGIN;
+		},
+		levelDownloads(): number {
+			return this.profileInfo.uploadedLevels.reduce((a, b) => a + b.downloads, 0);
+		},
+		levelLoves(): number {
+			return this.profileInfo.uploadedLevels.reduce((a, b) => a + b.lovedCount, 0);
+		},
+		packDownloads(): number {
+			return this.profileInfo.createdPacks.reduce((a, b) => a + b.downloads, 0);
+		},
+		packLoves(): number {
+			return this.profileInfo.createdPacks.reduce((a, b) => a + b.lovedCount, 0);
 		}
 	},
 	methods: {
