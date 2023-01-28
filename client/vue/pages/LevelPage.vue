@@ -38,7 +38,7 @@
 				</div>
 				<template v-if="!editing">
 					<h1>{{ levelInfo.name }}</h1>
-					<h2 v-if="levelInfo.artist">By {{ levelInfo.artist }}</h2>
+					<h2 v-if="levelInfo.artist">by {{ levelInfo.artist }}</h2>
 					<h3 v-if="levelInfo.desc">Description</h3>
 					<p class="regularParagraph description" v-html="description"></p>
 					<h3>Details</h3>
@@ -168,7 +168,7 @@ export default defineComponent({
 
 			// Create the small code editor for MissionInfo
 			let jar = CodeJar((this.$refs as any).editor, editor => {
-				let code = editor.textContent;
+				let code = editor.innerHTML;
 
 				// Perform primitive syntax highlighting
 				MISSION_INFO_REGEX.lastIndex = 0;

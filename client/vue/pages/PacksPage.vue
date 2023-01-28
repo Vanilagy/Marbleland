@@ -3,9 +3,9 @@
 		<title>Packs - Marbleland</title>
 		<meta name="og:title" content="Packs">
 	</Head>
+	<search-bar :config="searchBarConfig" :placeholder="searchBarPlaceholder()"></search-bar>
 	<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createPackButton" @click="createPack" v-if="$store.state.loggedInAccount">Create new pack</button-with-icon>
 	<a href="/create-pack" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
-	<search-bar :config="searchBarConfig" :placeholder="searchBarPlaceholder()"></search-bar>
 	<panel-list :entries="filteredPacks" :defaultCount="24" mode="pack" :noEntriesNotice="noEntriesNotice()" showTotal></panel-list>
 </template>
 
@@ -160,6 +160,6 @@ export default defineComponent({
 .createPackButton {
 	margin: auto;
 	width: 200px;
-	margin-bottom: 10px;
+	margin-top: 10px;
 }
 </style>

@@ -1,5 +1,9 @@
 # Version history
 
+## 1.4.10
+- Fixed XSS in MissionInfo code editor
+- Slight style adjustments
+
 ## 1.4.9
 - Fixed editing with escaped characters
 
