@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.11
+- Don't include preview images with archives for MBG
+
 ## 1.4.10
 - Fixed XSS in MissionInfo code editor
 - Slight style adjustments

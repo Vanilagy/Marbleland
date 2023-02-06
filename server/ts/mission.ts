@@ -385,6 +385,9 @@ export class Mission {
 		let result: string[] = [];
 
 		for (let dependency of this.dependencies) {
+			// Skip preview images for MBG since they won't be used anyway
+			if (assuming === 'gold' && dependency === this.getPrevImagePath()) continue;
+
 			let normalized = this.normalizeDependency(dependency, appendIdToMis);
 			if (assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
 			if (assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;

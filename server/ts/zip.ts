@@ -16,22 +16,17 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 	for (let mission of missions.slice().reverse()) {
 		let zip = new jszip();
 
-		for (let dependency of mission.dependencies) {
-			// Skip default assets
-			let normalized = mission.normalizeDependency(dependency, false);
-			if (includedFiles.has(normalized)) continue;
-			if (assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
-			if (assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
-
+		let normalizedDependencies = mission.getNormalizedDependencies(assuming, false).filter(x => !includedFiles.has(x));
+		for (let dependency of normalizedDependencies) {
 			let fullPath = await mission.findPath(dependency);
-			if (fullPath) {
-				normalized = mission.normalizeDependency(dependency, appendIdToMis); // Refine it
+			if (!fullPath) continue;
 
-				// Open up a read stream and add it to the zip
-				let stream = fs.createReadStream(fullPath);
-				zip.file(normalized, stream);
-				includedFiles.add(normalized);
-			}
+			dependency = mission.normalizeDependency(dependency, appendIdToMis); // Refine it
+
+			// Open up a read stream and add it to the zip
+			let stream = fs.createReadStream(fullPath);
+			zip.file(dependency, stream);
+			includedFiles.add(dependency);
 		}
 
 		// Remove all directory entries
@@ -125,23 +120,17 @@ export class MissionZipStream extends Readable {
 
 		for (let i = this.missions.length - 1; i >= 0; i--) {
 			let mission = this.missions[i];
-			let j = -1;
 
-			for (let dependency of mission.dependencies) {
-				j++;
+			for (let dependency of mission.getNormalizedDependencies(this.assuming, false)) {
+				if (includedFiles.has(dependency)) continue;
 
-				// Skip default assets
-				let normalized = mission.normalizeDependency(dependency, false);
-				if (includedFiles.has(normalized)) continue;
-				if (this.assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
-				if (this.assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
-
-				let size = mission.fileSizes?.[j] ?? 0;
+				let dependencyIndex = [...mission.dependencies].indexOf(dependency);
+				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
 				totalSize += size; // Add the actual size of the file
 				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
 				totalSize += Buffer.byteLength(mission.normalizeDependency(dependency, this.appendIdToMis)) * 2; // Both headers contain the file name, so add its byte size twice
 
-				includedFiles.add(normalized);
+				includedFiles.add(dependency);
 			}
 
 			if (i % 100 === 0) await new Promise(resolve => setImmediate(resolve)); // To avoid blocking for too long
