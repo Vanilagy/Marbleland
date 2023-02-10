@@ -167,7 +167,7 @@ export class MissionZipStream extends Readable {
 
 		res.set('Content-Type', 'application/zip');
 		res.set('Content-Disposition', `attachment; filename="${fileName}"`);
-		//res.set('Content-Length', this.expectedSize.toString());
+		res.set('Content-Length', this.expectedSize.toString());
 
 		this.pipe(res);
 	}
