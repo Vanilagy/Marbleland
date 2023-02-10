@@ -127,7 +127,6 @@ export class MissionZipStream extends Readable {
 				if (includedFiles.has(dependency)) continue;
 
 				let dependencyIndex = [...mission.dependencies].indexOf(dependency);
-				console.log("i", dependencyIndex, dependency);
 				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
 				totalSize += size; // Add the actual size of the file
 				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
@@ -140,7 +139,6 @@ export class MissionZipStream extends Readable {
 		}
 
 		totalSize += 0x16; // Length of end of central directory record
-		console.log('totes', totalSize)
 
 		this.expectedSize = totalSize;
 	}

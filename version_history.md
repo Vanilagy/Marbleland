@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.12
+- Fixed incorrect level archives
+
 ## 1.4.11
 - Don't include preview images with archives for MBG
 
