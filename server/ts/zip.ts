@@ -17,6 +17,7 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 		let zip = new jszip();
 
 		let normalizedDependencies = mission.getNormalizedDependencies(assuming, false).filter(x => !includedFiles.has(x));
+		console.log(normalizedDependencies);
 		for (let dependency of normalizedDependencies) {
 			let fullPath = await mission.findPath(dependency);
 			if (!fullPath) continue;
@@ -137,6 +138,7 @@ export class MissionZipStream extends Readable {
 		}
 
 		totalSize += 0x16; // Length of end of central directory record
+		console.log('totes', totalSize)
 
 		this.expectedSize = totalSize;
 	}

@@ -81,6 +81,8 @@ export const initLevelApi = () => {
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
 
+		console.log("Here!!");
+
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
