@@ -126,7 +126,7 @@ export class MissionZipStream extends Readable {
 				if (includedFiles.has(dependency)) continue;
 
 				let dependencyIndex = [...mission.dependencies].indexOf(dependency);
-				console.log("i", dependencyIndex);
+				console.log("i", dependencyIndex, dependency);
 				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
 				totalSize += size; // Add the actual size of the file
 				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
