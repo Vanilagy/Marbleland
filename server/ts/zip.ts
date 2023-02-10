@@ -122,10 +122,13 @@ export class MissionZipStream extends Readable {
 		for (let i = this.missions.length - 1; i >= 0; i--) {
 			let mission = this.missions[i];
 
+			// Get them all so we can do a proper indexOf later
+			let allNormalizedDependencies = mission.getNormalizedDependencies('none', false);
+
 			for (let dependency of mission.getNormalizedDependencies(this.assuming, false)) {
 				if (includedFiles.has(dependency)) continue;
 
-				let dependencyIndex = [...mission.dependencies].indexOf(dependency);
+				let dependencyIndex = allNormalizedDependencies.indexOf(dependency);
 				console.log("i", dependencyIndex, dependency);
 				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
 				totalSize += size; // Add the actual size of the file
