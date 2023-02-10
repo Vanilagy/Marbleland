@@ -381,7 +381,7 @@ export class Mission {
 		return path.posix.join(rootPath, dependency);
 	}
 
-	getNormalizedDependencies(assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean) {
+	getFilteredDependencies(assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean, normalize = true) {
 		let result: string[] = [];
 
 		for (let dependency of this.dependencies) {
@@ -392,7 +392,7 @@ export class Mission {
 			if (assuming === 'gold' && structureMBGSet.has(normalized.toLowerCase())) continue;
 			if (assuming === 'platinumquest' && structurePQSet.has(normalized.toLowerCase())) continue;
 
-			result.push(normalized);
+			result.push(normalize ? normalized : dependency);
 		}
 
 		return result;
@@ -481,7 +481,7 @@ export class Mission {
 			lovedByYou,
 			hasPrevImage: this.getPrevImagePath() !== null,
 			missionInfo: this.info as any,
-			dependencies: this.getNormalizedDependencies('none', false)
+			dependencies: this.getFilteredDependencies('none', false)
 		});
 	}
 

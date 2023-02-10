@@ -16,18 +16,19 @@ export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold
 	for (let mission of missions.slice().reverse()) {
 		let zip = new jszip();
 
-		let normalizedDependencies = mission.getNormalizedDependencies(assuming, false).filter(x => !includedFiles.has(x));
-		console.log(normalizedDependencies);
-		for (let dependency of normalizedDependencies) {
+		for (let dependency of mission.getFilteredDependencies(assuming, false, false)) {
+			let normalized = mission.normalizeDependency(dependency, false);
+			if (includedFiles.has(normalized)) continue;
+
 			let fullPath = await mission.findPath(dependency);
 			if (!fullPath) continue;
 
-			dependency = mission.normalizeDependency(dependency, appendIdToMis); // Refine it
+			normalized = mission.normalizeDependency(dependency, appendIdToMis); // Refine it
 
 			// Open up a read stream and add it to the zip
 			let stream = fs.createReadStream(fullPath);
-			zip.file(dependency, stream);
-			includedFiles.add(dependency);
+			zip.file(normalized, stream);
+			includedFiles.add(normalized);
 		}
 
 		// Remove all directory entries
@@ -122,13 +123,10 @@ export class MissionZipStream extends Readable {
 		for (let i = this.missions.length - 1; i >= 0; i--) {
 			let mission = this.missions[i];
 
-			// Get them all so we can do a proper indexOf later
-			let allNormalizedDependencies = mission.getNormalizedDependencies('none', false);
-
-			for (let dependency of mission.getNormalizedDependencies(this.assuming, false)) {
+			for (let dependency of mission.getFilteredDependencies(this.assuming, false, false)) {
 				if (includedFiles.has(dependency)) continue;
 
-				let dependencyIndex = allNormalizedDependencies.indexOf(dependency);
+				let dependencyIndex = [...mission.dependencies].indexOf(dependency);
 				console.log("i", dependencyIndex, dependency);
 				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
 				totalSize += size; // Add the actual size of the file

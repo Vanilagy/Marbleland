@@ -173,7 +173,7 @@ export const initLevelApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest';
 
-		let normalizedDependencies = mission.getNormalizedDependencies(assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
+		let normalizedDependencies = mission.getFilteredDependencies(assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
 
 		res.send(normalizedDependencies);
 	});
