@@ -142,7 +142,6 @@ export class MissionZipStream extends Readable {
 		totalSize += 0x16; // Length of end of central directory record
 
 		this.expectedSize = totalSize;
-		console.log(totalSize);
 	}
 
 	async _read() {

@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.13
+- Fixed more incorrect level archives
+
 ## 1.4.12
 - Fixed incorrect level archives
 
