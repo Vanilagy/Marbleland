@@ -124,7 +124,8 @@ export class MissionZipStream extends Readable {
 			let mission = this.missions[i];
 
 			for (let dependency of mission.getFilteredDependencies(this.assuming, false, false)) {
-				if (includedFiles.has(dependency)) continue;
+				let normalized = mission.normalizeDependency(dependency, false);
+				if (includedFiles.has(normalized)) continue;
 
 				let dependencyIndex = [...mission.dependencies].indexOf(dependency);
 				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
@@ -132,7 +133,7 @@ export class MissionZipStream extends Readable {
 				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
 				totalSize += Buffer.byteLength(mission.normalizeDependency(dependency, this.appendIdToMis)) * 2; // Both headers contain the file name, so add its byte size twice
 
-				includedFiles.add(dependency);
+				includedFiles.add(normalized);
 			}
 
 			if (i % 100 === 0) await new Promise(resolve => setImmediate(resolve)); // To avoid blocking for too long
@@ -141,6 +142,7 @@ export class MissionZipStream extends Readable {
 		totalSize += 0x16; // Length of end of central directory record
 
 		this.expectedSize = totalSize;
+		console.log(totalSize);
 	}
 
 	async _read() {
