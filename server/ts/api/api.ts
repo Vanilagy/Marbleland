@@ -44,7 +44,8 @@ export const compressAndSendImage = async (imagePath: string, req: express.Reque
 
 	if ('original' in req.query) {
 		// Transmit the uncompressed, original image
-		res.set('Content-Type', imagePath.toLowerCase().endsWith('.png')? 'image/png' : 'image/jpeg');
+		res.set('Content-Type', imagePath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+		res.set('Access-Control-Allow-Origin', '*');
 		res.send(buffer);
 		return;
 	}
@@ -66,6 +67,7 @@ export const compressAndSendImage = async (imagePath: string, req: express.Reque
 
 		let resized = await sharp(buffer).resize({ width, height, fit: 'cover' }).jpeg({ quality: 60 }).toBuffer();
 		res.set('Content-Type', 'image/jpeg');
+		res.set('Access-Control-Allow-Origin', '*');
 		res.send(resized);
 
 		return;
@@ -73,7 +75,8 @@ export const compressAndSendImage = async (imagePath: string, req: express.Reque
 	
 	// Default case, compress and resize to a reasonable quality
 	let resized = await sharp(buffer).resize({width: defaultDimensions.width, height: defaultDimensions.height, fit: 'inside', withoutEnlargement: true}).jpeg({quality: 60}).toBuffer();
-	res.set('Content-Type', imagePath.endsWith('.png')? 'image/png' : 'image/jpeg');
+	res.set('Content-Type', imagePath.endsWith('.png') ? 'image/png' : 'image/jpeg');
+	res.set('Access-Control-Allow-Origin', '*');
 	res.send(resized);
 };
 
