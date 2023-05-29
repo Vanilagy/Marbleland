@@ -160,6 +160,7 @@ export class Mission {
 		this.visitedPaths.clear();
 		await this.addSimGroupDependencies(this.mis.root);
 		await this.addFilePathDependencies(this.mis.datablockFilePaths);
+		await this.addFilePathDependencies(this.mis.manualIncludes);
 	}
 
 	classify() {
