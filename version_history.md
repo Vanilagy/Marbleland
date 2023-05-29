@@ -1,5 +1,9 @@
 # Version history
 
+## 1.4.14
+- Added support for custom datablocks and AudioEmitters
+- Added manual dependency inclusion using the @include directive
+
 ## 1.4.13
 - Fixed more incorrect level archives
 
