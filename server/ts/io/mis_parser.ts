@@ -4,7 +4,8 @@ export interface MisFile {
 	root: MissionElementSimGroup,
 	/** The custom marble attributes overrides specified in the file. */
 	marbleAttributes: Record<string, string>,
-	activatedPackages: string[]
+	activatedPackages: string[],
+	datablockFilePaths: string[]
 }
 
 export enum MissionElementType {
@@ -254,6 +255,7 @@ const lineCommentRegEx = /\/\/.*/g;
 const assignmentRegEx = /(\$(?:\w|\d)+)\s*=\s*(.+?);/g;
 const marbleAttributesRegEx = /setMarbleAttributes\("(\w+)",\s*(.+?)\);/g;
 const activatePackageRegEx = /activatePackage\((.+?)\);/g;
+const datablockFilePathRegEx = /(?<=datablock\s+.+?\n*{[^}]*)(?:filename|shapefile)\s*=\s*(.+?);/gi;
 
 /** A parser for .mis files, which hold mission information. */
 export class MisParser {
@@ -269,6 +271,33 @@ export class MisParser {
 	parse(): MisFile {
 		let objectWriteBeginIndex = this.text.indexOf("//--- OBJECT WRITE BEGIN ---");
 		let objectWriteEndIndex = this.text.lastIndexOf("//--- OBJECT WRITE END ---");
+
+		// Replace all block and line comments with whitespace to make parsing easier
+		let currentIndex = 0;
+		while (true) {
+			blockCommentRegEx.lastIndex = currentIndex;
+			lineCommentRegEx.lastIndex = currentIndex;
+
+			let blockMatch = blockCommentRegEx.exec(this.text);
+			let lineMatch = lineCommentRegEx.exec(this.text);
+
+			// The detected "comment" might be inside a string literal, in which case we ignore it 'cause it ain't no comment.
+			if (blockMatch && Util.indexIsInStringLiteral(this.text, blockMatch.index)) blockMatch = null;
+			if (lineMatch && Util.indexIsInStringLiteral(this.text, lineMatch.index)) lineMatch = null;
+
+			if (!blockMatch && !lineMatch) break;
+			else if (!lineMatch || (blockMatch && lineMatch && blockMatch.index < lineMatch.index)) {
+				this.text = this.text.slice(0, blockMatch.index)
+					+ ' '.repeat(blockMatch[0].length)
+					+ this.text.slice(blockMatch.index + blockMatch[0].length);
+				currentIndex = blockCommentRegEx.lastIndex;
+			} else {
+				this.text = this.text.slice(0, lineMatch.index)
+					+ ' '.repeat(lineMatch[0].length)
+					+ this.text.slice(lineMatch.index + lineMatch[0].length);
+				currentIndex = lineCommentRegEx.lastIndex;
+			}
+		}
 
 		let outsideText = this.text.slice(0, objectWriteBeginIndex) + this.text.slice(objectWriteEndIndex);
 
@@ -297,32 +326,17 @@ export class MisParser {
 			activatedPackages.push(this.resolveExpression(match[1]));
 		}
 
+		// Parse any file paths required by datablocks
+		let datablockFilePaths: string[] = [];
+		match = null;
+		datablockFilePathRegEx.lastIndex = 0;
+		while ((match = datablockFilePathRegEx.exec(outsideText)) !== null) {
+			datablockFilePaths.push(this.resolveExpression(match[1]));
+		}
+
 		// Trim away the outside text
 		if (objectWriteBeginIndex !== -1 && objectWriteEndIndex !== -1) {
 			this.text = this.text.slice(objectWriteBeginIndex, objectWriteEndIndex);
-		}
-
-		// Remove all block and line comments to make parsing easier
-		let currentIndex = 0;
-		while (true) {
-			blockCommentRegEx.lastIndex = currentIndex;
-			lineCommentRegEx.lastIndex = currentIndex;
-
-			let blockMatch = blockCommentRegEx.exec(this.text);
-			let lineMatch = lineCommentRegEx.exec(this.text);
-
-			// The detected "comment" might be inside a string literal, in which case we ignore it 'cause it ain't no comment.
-			if (blockMatch && Util.indexIsInStringLiteral(this.text, blockMatch.index)) blockMatch = null;
-			if (lineMatch && Util.indexIsInStringLiteral(this.text, lineMatch.index)) lineMatch = null;
-
-			if (!blockMatch && !lineMatch) break;
-			else if (!lineMatch || (blockMatch && lineMatch && blockMatch.index < lineMatch.index)) {
-				this.text = this.text.slice(0, blockMatch.index) + this.text.slice(blockMatch.index + blockMatch[0].length);
-				currentIndex = blockMatch.index;
-			} else {
-				this.text = this.text.slice(0, lineMatch.index) + this.text.slice(lineMatch.index + lineMatch[0].length);
-				currentIndex = lineMatch.index;
-			}
 		}
 
 		let indexOfMissionGroup = this.text.indexOf('new SimGroup(MissionGroup)');
@@ -345,7 +359,8 @@ export class MisParser {
 		return {
 			root: elements[0] as MissionElementSimGroup,
 			marbleAttributes: marbleAttributes,
-			activatedPackages: activatedPackages
+			activatedPackages: activatedPackages,
+			datablockFilePaths: datablockFilePaths
 		};
 	}
 

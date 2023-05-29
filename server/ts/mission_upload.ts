@@ -72,7 +72,7 @@ export class MissionUpload {
 		for (let group of this.groups) {
 			let continueProcess = await this.checkMis(group);
 			if (!continueProcess) continue; // If the mis wasn't valid, no need to even continue
-	
+
 			await this.checkInteriors(group);
 			await this.checkSky(group);
 			await this.checkShapes(group);
@@ -159,7 +159,7 @@ export class MissionUpload {
 		}
 
 		await this.traverseMis(group, misFile.root); // Start scanning all elements in the .mis file to find possible dependencies
-
+		
 		if (!group.missionInfo) {
 			this.problems.add(`${group.misFilePath} does not contain a MissionInfo ScriptObject.`);
 		} else {
@@ -199,7 +199,19 @@ export class MissionUpload {
 			this.problems.add(`The level ${group.misFilePath} is missing an image thumbnail.`);
 		}
 
+		await this.checkDatablocks(group, misFile.datablockFilePaths);
+
 		return true;
+	}
+
+	async checkDatablocks(missionGroup: MissionGroup, filePaths: string[]) {
+		for (let filePath of filePaths) {
+			if (filePath.toLowerCase().endsWith('.dts')) {
+				missionGroup.shapeDependencies.add(filePath);
+			} else {
+				await this.registerDependency(missionGroup, filePath, 'exact', missionGroup.misFilePath);
+			}
+		}
 	}
 
 	async traverseMis(missionGroup: MissionGroup, simGroup: MissionElementSimGroup) {

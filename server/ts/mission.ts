@@ -159,6 +159,7 @@ export class Mission {
 		// Start walking over all elements over the mission file
 		this.visitedPaths.clear();
 		await this.addSimGroupDependencies(this.mis.root);
+		await this.addDatablockDependencies(this.mis.datablockFilePaths);
 	}
 
 	classify() {
@@ -222,7 +223,7 @@ export class Mission {
 			} else if (element._type === MissionElementType.Sky) {
 				await this.addSkyDependencies(element);
 			} else if (element._type === MissionElementType.TSStatic) {
-				await this.addTSStaticDependencies(element);
+				await this.addShapeDependencies(element.shapename);
 			} else if (element._type === MissionElementType.ScriptObject && element._name === 'MissionInfo') {
 				if (element.music) {
 					// Add the music as a dependency
@@ -242,6 +243,18 @@ export class Mission {
 				let audioPath = element.filename.slice(element.filename.indexOf('data/') + 'data/'.length);
 				let fullPath = await this.findPath(audioPath);
 				if (fullPath) this.dependencies.add(audioPath);
+				else this.missesDependencies = true;
+			}
+		}
+	}
+
+	async addDatablockDependencies(filePaths: string[]) {
+		for (let filePath of filePaths) {
+			if (filePath.toLowerCase().endsWith('.dts')) {
+				await this.addShapeDependencies(filePath);
+			} else {
+				let fullPath = await this.findPath(filePath);
+				if (fullPath) this.dependencies.add(filePath);
 				else this.missesDependencies = true;
 			}
 		}
@@ -328,8 +341,8 @@ export class Mission {
 	}
 
 	/** Adds all dependencies of a given TSStatic element. */
-	async addTSStaticDependencies(element: MissionElementTSStatic) {
-		let dtsPath = element.shapename.slice(element.shapename.indexOf('data/') + 'data/'.length);
+	async addShapeDependencies(rawShapePath: string) {
+		let dtsPath = rawShapePath.slice(rawShapePath.indexOf('data/') + 'data/'.length);
 		let dtsDirectory = dtsPath.substring(0, dtsPath.lastIndexOf('/'));
 
 		if (this.visitedPaths.has(dtsPath)) return;
