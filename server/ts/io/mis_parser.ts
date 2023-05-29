@@ -23,7 +23,8 @@ export enum MissionElementType {
 	AudioProfile,
 	MessageVector,
 	TSStatic,
-	ParticleEmitterNode
+	ParticleEmitterNode,
+	AudioEmitter
 }
 
 export interface MissionElementBase {
@@ -239,7 +240,13 @@ export interface MissionElementParticleEmitterNode extends MissionElementBase {
 	velocity: string
 }
 
-type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode;
+export interface MissionElementAudioEmitter extends MissionElementBase {
+	_type: MissionElementType.AudioEmitter,
+	filename: string,
+	description: string
+}
+
+type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode | MissionElementAudioEmitter;
 
 const elementHeadRegEx = /new\s+(\w+)\((.*?)\)\s*{/g;
 const blockCommentRegEx = /\/\*(.|\n)*?\*\//g;
@@ -371,6 +378,7 @@ export class MisParser {
 			case "MessageVector": element = this.readMessageVector(name); break;
 			case "TSStatic": element = this.readTSStatic(name); break;
 			case "ParticleEmitterNode": element = this.readParticleEmitterNode(name); break;
+			case "AudioEmitter": element = this.readAudioEmitter(name); break;
 			default: {
 				// Still advance the index
 				let endingBraceIndex = Util.indexOfIgnoreStringLiterals(this.text, '};', this.index);
@@ -566,6 +574,13 @@ export class MisParser {
 			_type: MissionElementType.ParticleEmitterNode,
 			_name: name
 		}, this.readValues()) as unknown as MissionElementParticleEmitterNode;
+	}
+
+	readAudioEmitter(name: string) {
+		return Object.assign({
+			_type: MissionElementType.AudioEmitter,
+			_name: name
+		}, this.readValues()) as unknown as MissionElementAudioEmitter;
 	}
 
 	/** Parses a numeric value. */

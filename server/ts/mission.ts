@@ -238,6 +238,11 @@ export class Mission {
 					if (relativePath) this.dependencies.add(relativePath);
 					else this.missesDependencies = true;
 				}
+			} else if (element._type === MissionElementType.AudioEmitter) {
+				let audioPath = element.filename.slice(element.filename.indexOf('data/') + 'data/'.length);
+				let fullPath = await this.findPath(audioPath);
+				if (fullPath) this.dependencies.add(audioPath);
+				else this.missesDependencies = true;
 			}
 		}
 	}

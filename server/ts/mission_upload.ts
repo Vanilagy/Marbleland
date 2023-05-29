@@ -224,6 +224,8 @@ export class MissionUpload {
 				if (element.datablock?.toLowerCase() === 'musictrigger') {
 					await this.registerDependency(missionGroup, path.posix.join('sound/music', element.text), 'extension-agnostic', missionGroup.misFilePath);
 				}
+			} else if (element._type === MissionElementType.AudioEmitter) {
+				await this.registerDependency(missionGroup, element.filename, 'exact', missionGroup.misFilePath);
 			}
 		}
 	}
