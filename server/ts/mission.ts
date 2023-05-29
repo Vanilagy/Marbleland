@@ -159,7 +159,7 @@ export class Mission {
 		// Start walking over all elements over the mission file
 		this.visitedPaths.clear();
 		await this.addSimGroupDependencies(this.mis.root);
-		await this.addDatablockDependencies(this.mis.datablockFilePaths);
+		await this.addFilePathDependencies(this.mis.datablockFilePaths);
 	}
 
 	classify() {
@@ -221,7 +221,7 @@ export class Mission {
 			} else if (element._type === MissionElementType.PathedInterior) {
 				await this.addInteriorDependencies(element.interiorresource);
 			} else if (element._type === MissionElementType.Sky) {
-				await this.addSkyDependencies(element);
+				await this.addSkyDependencies(element.materiallist);
 			} else if (element._type === MissionElementType.TSStatic) {
 				await this.addShapeDependencies(element.shapename);
 			} else if (element._type === MissionElementType.ScriptObject && element._name === 'MissionInfo') {
@@ -248,11 +248,16 @@ export class Mission {
 		}
 	}
 
-	async addDatablockDependencies(filePaths: string[]) {
+	async addFilePathDependencies(filePaths: string[]) {
 		for (let filePath of filePaths) {
 			if (filePath.toLowerCase().endsWith('.dts')) {
 				await this.addShapeDependencies(filePath);
+			} else if (filePath.toLowerCase().endsWith('.dif')) {
+				await this.addInteriorDependencies(filePath);
+			} else if (filePath.toLowerCase().endsWith('.dml')) {
+				await this.addSkyDependencies(filePath);
 			} else {
+				// We don't have any special handling for this extension, just add it in
 				let slicedPath = filePath.slice(filePath.indexOf('data/') + 'data/'.length);
 				let fullPath = await this.findPath(slicedPath);
 				if (fullPath) this.dependencies.add(slicedPath);
@@ -314,8 +319,8 @@ export class Mission {
 	}
 
 	/** Adds all sky dependencies. */
-	async addSkyDependencies(element: MissionElementSky) {
-		let skyPath = element.materiallist.slice(element.materiallist.indexOf('data/') + 'data/'.length);
+	async addSkyDependencies(rawSkyPath: string) {
+		let skyPath = rawSkyPath.slice(rawSkyPath.indexOf('data/') + 'data/'.length);
 		let skyDirectory = skyPath.substring(0, skyPath.lastIndexOf('/'));
 
 		if (this.visitedPaths.has(skyPath)) return;

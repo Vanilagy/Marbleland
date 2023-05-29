@@ -5,7 +5,8 @@ export interface MisFile {
 	/** The custom marble attributes overrides specified in the file. */
 	marbleAttributes: Record<string, string>,
 	activatedPackages: string[],
-	datablockFilePaths: string[]
+	datablockFilePaths: string[],
+	manualIncludes: string[]
 }
 
 export enum MissionElementType {
@@ -256,6 +257,7 @@ const assignmentRegEx = /(\$(?:\w|\d)+)\s*=\s*(.+?);/g;
 const marbleAttributesRegEx = /setMarbleAttributes\("(\w+)",\s*(.+?)\);/g;
 const activatePackageRegEx = /activatePackage\((.+?)\);/g;
 const datablockFilePathRegEx = /(?<=datablock\s+.+?\n*{[^}]*)(?:filename|shapefile)\s*=\s*(.+?);/gi;
+const includeDirectiveRegEx = /\/\/\s*@include\s+"((?:[^"\\]|\\.)*)"/gi;
 
 /** A parser for .mis files, which hold mission information. */
 export class MisParser {
@@ -269,8 +271,18 @@ export class MisParser {
 	}
 
 	parse(): MisFile {
+		let match: RegExpMatchArray;
+
 		let objectWriteBeginIndex = this.text.indexOf("//--- OBJECT WRITE BEGIN ---");
 		let objectWriteEndIndex = this.text.lastIndexOf("//--- OBJECT WRITE END ---");
+
+		let manualIncludes: string[] = [];
+		match = null;
+		includeDirectiveRegEx.lastIndex = 0;
+		while ((match = includeDirectiveRegEx.exec(this.text)) !== null) {
+			if (Util.indexIsInStringLiteral(this.text, match.index)) continue;
+			manualIncludes.push(Util.unescape(match[1]));
+		}
 
 		// Replace all block and line comments with whitespace to make parsing easier
 		let currentIndex = 0;
@@ -304,7 +316,7 @@ export class MisParser {
 		// Find all specified variables
 		this.variables = { "$usermods": '""' }; // Just make $usermods point to nothing
 		assignmentRegEx.lastIndex = 0;
-		let match: RegExpMatchArray = null;
+		match = null;
 		while ((match = assignmentRegEx.exec(outsideText)) !== null) {
 			// Only use the first variable found. This is because the variable is likely to be modified later on with conditional statements and that's too complex to parse right now.
 			if (!this.variables[match[1]]) this.variables[match[1]] = match[2];
@@ -358,9 +370,10 @@ export class MisParser {
 
 		return {
 			root: elements[0] as MissionElementSimGroup,
-			marbleAttributes: marbleAttributes,
-			activatedPackages: activatedPackages,
-			datablockFilePaths: datablockFilePaths
+			marbleAttributes,
+			activatedPackages,
+			datablockFilePaths,
+			manualIncludes
 		};
 	}
 

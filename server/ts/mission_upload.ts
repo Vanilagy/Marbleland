@@ -199,7 +199,12 @@ export class MissionUpload {
 			this.problems.add(`The level ${group.misFilePath} is missing an image thumbnail.`);
 		}
 
-		await this.checkDatablocks(group, misFile.datablockFilePaths);
+		await this.checkFilePaths(group, misFile.datablockFilePaths);
+
+		for (let filePath of misFile.manualIncludes) {
+			if (!filePath.includes('/data/')) this.problems.add(`All manual @includes must contain "/data/" to indicate the root of the resource.`);
+			else await this.checkFilePaths(group, [filePath]);
+		}
 
 		return true;
 	}
@@ -232,10 +237,14 @@ export class MissionUpload {
 		}
 	}
 
-	async checkDatablocks(missionGroup: MissionGroup, filePaths: string[]) {
+	async checkFilePaths(missionGroup: MissionGroup, filePaths: string[]) {
 		for (let filePath of filePaths) {
 			if (filePath.toLowerCase().endsWith('.dts')) {
 				missionGroup.shapeDependencies.add(filePath);
+			} else if (filePath.toLowerCase().endsWith('.dif')) {
+				missionGroup.interiorDependencies.add(filePath);
+			} else if (filePath.toLowerCase().endsWith('.dml')) {
+				missionGroup.skyDependencies.add(filePath);
 			} else {
 				await this.registerDependency(missionGroup, filePath, 'exact', missionGroup.misFilePath);
 			}
