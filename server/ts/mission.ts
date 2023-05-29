@@ -253,8 +253,9 @@ export class Mission {
 			if (filePath.toLowerCase().endsWith('.dts')) {
 				await this.addShapeDependencies(filePath);
 			} else {
-				let fullPath = await this.findPath(filePath);
-				if (fullPath) this.dependencies.add(filePath);
+				let slicedPath = filePath.slice(filePath.indexOf('data/') + 'data/'.length);
+				let fullPath = await this.findPath(slicedPath);
+				if (fullPath) this.dependencies.add(slicedPath);
 				else this.missesDependencies = true;
 			}
 		}

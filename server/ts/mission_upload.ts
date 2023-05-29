@@ -204,16 +204,6 @@ export class MissionUpload {
 		return true;
 	}
 
-	async checkDatablocks(missionGroup: MissionGroup, filePaths: string[]) {
-		for (let filePath of filePaths) {
-			if (filePath.toLowerCase().endsWith('.dts')) {
-				missionGroup.shapeDependencies.add(filePath);
-			} else {
-				await this.registerDependency(missionGroup, filePath, 'exact', missionGroup.misFilePath);
-			}
-		}
-	}
-
 	async traverseMis(missionGroup: MissionGroup, simGroup: MissionElementSimGroup) {
 		for (let element of simGroup.elements) {
 			if (element._type === MissionElementType.ScriptObject && element._name === 'MissionInfo' && !missionGroup.missionInfo) {
@@ -238,6 +228,16 @@ export class MissionUpload {
 				}
 			} else if (element._type === MissionElementType.AudioEmitter) {
 				await this.registerDependency(missionGroup, element.filename, 'exact', missionGroup.misFilePath);
+			}
+		}
+	}
+
+	async checkDatablocks(missionGroup: MissionGroup, filePaths: string[]) {
+		for (let filePath of filePaths) {
+			if (filePath.toLowerCase().endsWith('.dts')) {
+				missionGroup.shapeDependencies.add(filePath);
+			} else {
+				await this.registerDependency(missionGroup, filePath, 'exact', missionGroup.misFilePath);
 			}
 		}
 	}
