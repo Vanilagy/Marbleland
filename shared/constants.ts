@@ -1,4 +1,4 @@
-export const ORIGIN = 'https://marbleland.vani.ga';
+export const ORIGIN = 'https://marbleland.vaniverse.io';
 
 /** Defines a list of properties of a .mis file's MissionInfo that are allowed to be edited. Generally, properties are editable iff they don't change gameplay. */
 export const MUTABLE_MISSION_INFO_FIELDS = [

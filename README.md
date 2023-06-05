@@ -1,7 +1,7 @@
 <img src="client/assets/img/favicon.png" width=100>
 
 # Marbleland
-A custom level sharing platform for Marble Blast, allowing you to browse, download and upload custom levels and level packs.<br>https://marbleland.vani.ga/
+A custom level sharing platform for Marble Blast, allowing you to browse, download and upload custom levels and level packs.<br>https://marbleland.vaniverse.io/
 
 <img src="client/assets/img/homepage.jpg" width=640>
 
@@ -51,4 +51,4 @@ To set this up, you can configure a few values in `server/data/config.json`:
 - `backupPeriod` specifies the number of seconds between periodic backups. 
 - `backupPushSizeLimit` specifies the maximum size of a push to the remote (often, that size is limited).
 
-The public backups for https://marbleland.vani.ga/ can be found [here](https://github.com/Vanilagy/MarblelandBackups/).
+The public backups for https://marbleland.vaniverse.io/ can be found [here](https://github.com/Vanilagy/MarblelandBackups/).
