@@ -11,8 +11,7 @@ export default defineComponent({
 	props: {
 		icon: String as PropType<string>,
 		noMargin: Boolean as PropType<boolean>
-	},
-	emits: ['clicked']
+	}
 });
 </script>
 

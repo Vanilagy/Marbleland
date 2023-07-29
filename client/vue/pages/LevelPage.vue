@@ -31,7 +31,8 @@
 			</aside>
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
-					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">
+					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
+					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
 					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
@@ -76,6 +77,44 @@
 		<div>
 			<comment-element v-for="comment of levelInfo.comments" :key="comment.id" :commentInfo="comment" @delete="deleteComment(comment.id)"></comment-element>
 		</div>
+
+		<Modal ref="deleteConfirmationModal">
+			<h2 class="deleteModalHeading">CAUTION: You're about to delete "{{ levelInfo.name }}"</h2>
+			<hr />
+			<div class="deleteModalBody">
+				<p>In the interest of data integrity, <em>we strongly advise against deleting levels</em>. Deleting this level will permanently:</p>
+				<ul>
+					<li>
+						<strong>Invalidate all links</strong> on the Internet referencing this level
+					</li>
+					<li>
+						<strong>Disrupt leaderboard activity</strong> for this level and potentially invalidate all scores or replays
+					</li>
+					<li>
+						<strong>Remove this level from every pack</strong> that purposefully included it
+					</li>
+					<li>
+						<strong>Discard this level's statistics</strong>, including all <strong>{{ levelInfo.downloads }}</strong> downloads and <strong>{{ levelInfo.lovedCount }}</strong> loves
+					</li>
+				</ul>
+				<p>Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
+
+				<div class="deleteModalCheckboxContainer">
+					<input type="checkbox" id="deleteModelAcknowledgement" class="basicCheckbox" v-model="acknowledgedDeletionConsequences"><label for="deleteModelAcknowledgement" class="notSelectable">
+						<em>I understand the consequences of level deletion</em>
+					</label>
+				</div>
+			</div>
+			<hr />
+			<div class="deleteModalButtons">
+				<ButtonWithIcon v-if="acknowledgedDeletionConsequences" class="deleteLevelButton" @click="deleteLevel">
+					Delete level
+				</ButtonWithIcon>
+				<ButtonWithIcon @click="closeDeleteConfirmationModal">
+					Cancel
+				</ButtonWithIcon>
+			</div>
+		</Modal>
 	</template>
 </template>
 
@@ -100,6 +139,7 @@ import { MissionDoc, Mission } from '../../../server/ts/mission';
 import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS } from '../../../shared/constants';
 import { CodeJar } from "codejar";
 import { guessGameType, guessModification } from "../../../shared/classification";
+import Modal from '../components/Modal.vue';
 
 const COUNT_DOWN_MODES = ['collection', 'elimination', 'gemMadness', 'ghosts', 'hunt', 'king', 'mega', 'party', 'props', 'seek', 'snowball', 'snowballsOnly', 'spooky', 'steal', 'tag', 'training'];
 
@@ -116,7 +156,8 @@ export default defineComponent({
 		CommentElement,
 		Loader,
 		Head,
-		LoveButton
+		LoveButton,
+		Modal
 	},
 	data() {
 		return {
@@ -134,7 +175,8 @@ export default defineComponent({
 			missionInfoCode: '',
 			editor: null as CodeJar,
 			missionInfoCodeProblems: '',
-			hasDownloaded: false
+			hasDownloaded: false,
+			acknowledgedDeletionConsequences: false
 		};
 	},
 	async mounted() {
@@ -314,9 +356,20 @@ export default defineComponent({
 			this.setMissionInfoCode(); // Reset this boy
 			this.editor.updateCode(this.missionInfoCode);
 		},
+		showDeleteConfirmation() {
+			if (this.levelInfo.downloads < 5 && confirm("Are you sure you want to delete this level?")) {
+				// If the level hasn't been downloaded much (and probably is new), don't go too overboard with the warnings
+				this.deleteLevel();
+			} else {
+				this.acknowledgedDeletionConsequences = false;
+				(this.$refs.deleteConfirmationModal as any).show();
+			}
+		},
+		closeDeleteConfirmationModal() {
+			(this.$refs.deleteConfirmationModal as any).hide();
+		},
 		async deleteLevel() {
-			if (!confirm("Are you sure you want to delete this level? This will also remove it from all packs that currently contain it.")) return;
-
+			this.closeDeleteConfirmationModal();
 			this.deleting = true;
 
 			// Do the level delete API call
@@ -617,6 +670,39 @@ h3 {
 	color: crimson;
 	font-weight: bold;
 	white-space: pre-wrap;
+}
+
+.deleteModalHeading {
+	text-align: center;
+	color: crimson;
+	margin-bottom: 10px;
+}
+
+.deleteModalBody {
+	font-size: 14px;
+	margin-bottom: 10px;
+}
+
+.deleteModalCheckboxContainer {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.deleteModalButtons {
+	display: flex;
+	gap: 10px;
+}
+
+.deleteLevelButton {
+	background: crimson !important;
+	color: white !important;
+}
+.deleteLevelButton:hover {
+	border-color: rgb(218, 76, 105) !important;
+}
+.deleteLevelButton:active {
+	background: rgb(218, 76, 105) !important;
 }
 </style>
 

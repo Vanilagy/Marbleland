@@ -96,6 +96,11 @@ body {
 	margin-bottom: 20px;
 }
 
+#app {
+	isolation: isolate;
+	position: relative;
+}
+
 * {
 	-webkit-user-drag: none;
 	-moz-user-drag: none;
@@ -221,5 +226,15 @@ a:visited {
 :root.dark .basicCheckbox:checked::after {
 	opacity: 1;
 	filter: invert(1);
+}
+
+#modal-container {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 10;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
 }
 </style>
