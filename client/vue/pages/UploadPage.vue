@@ -4,6 +4,7 @@
 		<meta name="og:title" content="Upload levels">
 	</Head>
 	<template v-if="$store.state.loggedInAccount">
+		<InfoBanner />
 		<h1>Upload levels</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
@@ -32,8 +33,19 @@
 				<img src="/assets/svg/chevron_left_black_24dp.svg" class="basicIcon" title="Cycle to previous level" v-if="successResponse.missions.length > 1" @click="currentIndex = (currentIndex - 1 + successResponse.missions.length) % successResponse.missions.length">
 				<img src="/assets/svg/chevron_right_black_24dp.svg" class="basicIcon" title="Cycle to next level" v-if="successResponse.missions.length > 1" @click="currentIndex = (currentIndex + 1) % successResponse.missions.length">
 			</div>
-			<h3>If you want to, add a few additional remarks describing this level ({{ successResponse.missions[currentIndex].name }}) and its creation before submitting it:</h3>
-			<textarea class="remarks basicTextarea" :placeholder="`Additional remarks on ${successResponse.missions[currentIndex].name}`" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
+
+			<div v-if="successResponse.missions[currentIndex].updateableLevels.length > 0" class="levelUpdateSection">
+				<h3>Looks like you're trying to update one of your levels. Select the level you want to update:</h3>
+				<div>
+					<panel-list mode="level" :entries="successResponse.missions[currentIndex].updateableLevels" :defaultCount="24" noEntriesNotice="" :selectedLevels="levelsToUpdate[currentIndex]" />
+				</div>
+				<input type="checkbox" id="noUpdateCheckbox" class="basicCheckbox" v-model="currentLevelIsNotAnUpdate"><label for="noUpdateCheckbox" class="notSelectable"><em>This level is new and not an update to one of my other levels</em></label>
+			</div>
+
+			<div :class="{ disabled: successResponse.missions[currentIndex].updateableLevels.length > 0 && levelsToUpdate[currentIndex].length === 0 }">
+				<h3>If you want to, add a few additional remarks describing this level ({{ successResponse.missions[currentIndex].name }}) and its creation before submitting it:</h3>
+				<textarea class="remarks basicTextarea" :placeholder="`Additional remarks on ${successResponse.missions[currentIndex].name}`" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
+			</div>
 
 			<hr>
 
@@ -58,15 +70,17 @@ import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 import PanelList from '../components/PanelList.vue';
 import { Head } from '@vueuse/head';
-import { PackInfo } from '../../../shared/types';
+import { LevelInfo, PackInfo } from '../../../shared/types';
+import InfoBanner from '../components/InfoBanner.vue';
 
 export default defineComponent({
 	components: {
-		ButtonWithIcon,
-		ProgressBar,
-		PanelList,
-		Head
-	},
+    ButtonWithIcon,
+    ProgressBar,
+    PanelList,
+    Head,
+    InfoBanner
+},
 	data() {
 		return {
 			uploading: false,
@@ -79,13 +93,15 @@ export default defineComponent({
 				uploadId: string,
 				missions: {
 					misFilePath: string,
-					name: string
+					name: string,
+					updateableLevels: LevelInfo[]
 				}[],
 				packs: PackInfo[],
 				warnings: string[]
 			},
 			currentIndex: 0,
 			remarks: [] as string[],
+			levelsToUpdate: [] as number[][],
 			selectedPacks: [] as number[],
 			createNewPack: false,
 			newPackName: "",
@@ -93,6 +109,20 @@ export default defineComponent({
 			submitting: false,
 			dragEntered: false
 		};
+	},
+	computed: {
+		currentLevelIsNotAnUpdate: {
+			get(): boolean {
+				return this.levelsToUpdate[this.currentIndex].includes(-1);
+			},
+			set(newValue: boolean) {
+				if (newValue && !this.levelsToUpdate[this.currentIndex].includes(-1)) {
+					this.levelsToUpdate[this.currentIndex].push(-1);
+				} else if (!newValue && this.levelsToUpdate[this.currentIndex].includes(-1)) {
+					this.levelsToUpdate[this.currentIndex].length = 0;
+				}
+			}
+		}
 	},
 	methods: {
 		/** Show a file dialog that allows the user to select a .zip file, then upload it to the server. */
@@ -134,11 +164,13 @@ export default defineComponent({
 					uploadId: string,
 					missions: {
 						misFilePath: string,
-						name: string
+						name: string,
+						updateableLevels: LevelInfo[]
 					}[],
 					packs: PackInfo[],
 					warnings: string[]
 				};
+				console.log(json);
 
 				if (json.status === 'error') {
 					// There were problems with the upload, show them to the user
@@ -150,6 +182,7 @@ export default defineComponent({
 					this.successResponse = json;
 					this.uploadState = 'positive';
 					this.remarks = Array(json.missions.length).fill('');
+					this.levelsToUpdate = Array(json.missions.length).fill([]);
 				}
 			};
 
@@ -165,6 +198,10 @@ export default defineComponent({
 		},
 		/** Submits the already uploaded level. */
 		async submit() {
+			if (this.successResponse.missions.some((x, i) => x.updateableLevels.length > 0 && this.levelsToUpdate[i].length === 0)) {
+				alert("Since some of your levels appear to be updates to existing ones, you'll need to inform Marbleland whether these are actual updates or brand-new levels. Please select the appropriate setting for all remaining levels.");
+				return;
+			}
 			if (this.successResponse.missions.length > 1 && !confirm(`Please confirm the submission of these ${this.successResponse.missions.length} levels.`)) return;
 
 			this.submitting = true;
@@ -178,6 +215,7 @@ export default defineComponent({
 				body: JSON.stringify({
 					uploadId: this.successResponse.uploadId,
 					remarks: this.remarks,
+					levelsToUpdate: this.levelsToUpdate.map(x => x[0] ?? -1),
 					addToPacks: this.selectedPacks,
 					newPack: this.createNewPack? {
 						name: this.newPackName,
@@ -228,7 +266,17 @@ export default defineComponent({
 			let file = files[0];
 			this.uploadFile(file);
 		}
-	}
+	},
+	watch: {
+		levelsToUpdate: {
+			handler() {
+				for (let levels of this.levelsToUpdate) {
+					while (levels.length >= 2) levels.shift();
+				}
+			},
+			deep: true
+		}
+	  }
 });
 </script>
 
@@ -420,5 +468,17 @@ input[type="checkbox"] + label {
 	max-width: 500px;
 	height: 100px;
 	margin-top: 10px;
+}
+
+.levelUpdateSection {
+	margin-top: 10px;
+	margin-bottom: 20px;
+	padding: 15px;
+	border-radius: 10px;
+	border: 2px solid var(--background-2);
+}
+
+.levelUpdateSection > h3 {
+	color: #73abff;
 }
 </style>

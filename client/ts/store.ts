@@ -104,8 +104,11 @@ export const createNewStore = () => {
 			ownPacks: null as SignInInfo["packs"],
 			/** Used to update images accordingly. */
 			avatarVersion: 0,
+
 			/** Used to trigger banner messages. */
 			nextInfoBannerMessage: null as string,
+			nextInfoBannerType: null as 'success' | 'info',
+
 			levelRemarksMaxLength: 10000,
 			packNameMaxLength: 64,
 			packDescriptionMaxLength: 1000,

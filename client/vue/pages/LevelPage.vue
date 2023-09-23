@@ -32,7 +32,7 @@
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
-					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">
+					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="updateLevel" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
 					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
@@ -495,6 +495,11 @@ export default defineComponent({
 			// Note that the count might not always be 100% matching due to IP timeouts on the server
 			this.levelInfo.downloads++;
 			this.hasDownloaded = true;
+		},
+		updateLevel() {
+			this.$store.state.nextInfoBannerMessage = "To update a level, upload its new version here and make sure it has the same name as the current version.";
+			this.$store.state.nextInfoBannerType = 'info';
+			this.$router.push({ name: 'Upload' });
 		}
 	},
 	watch: {

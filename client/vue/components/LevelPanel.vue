@@ -1,12 +1,12 @@
 <template>
 	<div class="levelPanelWrapper">
-		<div class="panel notSelectable" @click="clicked">
-			<a :href="`/level/${levelInfo.id}`" @click.prevent=""><img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage"></a>
+		<div class="panel notSelectable" @click="clicked" :style="{ outline: selectedLevels?.includes(levelInfo.id)? '3px solid #64b8e9' : '' }">
+			<a :href="selectedLevels? undefined : `/level/${levelInfo.id}`" @click.prevent=""><img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage"></a>
 			<div class="bottom">
 				<div class="name">{{levelInfo.name}}</div>
 				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
 			</div>
-			<div class="actions" :style="actionsStyle">
+			<div class="actions" :style="actionsStyle" v-if="!selectedLevels">
 				<img src="/assets/svg/west_black_24dp.svg" v-if="actions && actions.swapLeft" title="Swap to the left" @click.stop="actions.swapLeft(levelInfo)" class="basicIcon">
 				<img src="/assets/svg/east_black_24dp.svg" v-if="actions && actions.swapRight" title="Swap to the right" @click.stop="actions.swapRight(levelInfo)" class="basicIcon">
 				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions && actions.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)" class="basicIcon">
@@ -35,7 +35,8 @@ export interface LevelPanelActions {
 export default defineComponent({
 	props: {
 		levelInfo: Object as PropType<LevelInfo>,
-		actions: Object as PropType<LevelPanelActions>
+		actions: Object as PropType<LevelPanelActions>,
+		selectedLevels: Array as PropType<number[]>
 	},
 	data() {
 		return {
@@ -54,6 +55,17 @@ export default defineComponent({
 	},
 	methods: {
 		clicked(): void {
+			if (this.selectedLevels) {
+				// Toggle the presence of this level in the list
+				if (this.selectedLevels.includes(this.levelInfo.id)) {
+					this.selectedLevels.splice(this.selectedLevels.indexOf(this.levelInfo.id), 1);
+				} else {
+					this.selectedLevels.push(this.levelInfo.id);
+				}
+
+				return;
+			}
+
 			this.$router.push({ name: 'Level', params: { id: this.levelInfo.id } });
 		},
 		imageLoadError() {

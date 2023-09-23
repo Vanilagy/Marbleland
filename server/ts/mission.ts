@@ -42,6 +42,7 @@ export interface MissionDoc {
 	lovedBy: number[],
 	editedAt: number,
 	hasCustomCode: boolean,
+	successor?: number
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -71,6 +72,7 @@ export class Mission {
 	lovedBy: number[];
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
+	successor: number = null;
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -105,6 +107,7 @@ export class Mission {
 		mission.lovedBy = doc.lovedBy ?? [];
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
+		mission.successor = doc.successor ?? null;
 
 		return mission;
 	}
@@ -446,6 +449,7 @@ export class Mission {
 			editedAt: this.editedAt,
 			lovedBy: this.lovedBy,
 			hasCustomCode: this.hasCustomCode,
+			successor: this.successor
 		};
 	}
 
@@ -775,6 +779,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 						doc.remarks = duplicateDoc.remarks;
 						doc.lovedBy = duplicateDoc.lovedBy;
 						doc.editedAt = duplicateDoc.editedAt;
+						doc.successor = duplicateDoc.successor;
 
 						// We wrongly incremented the ID even though it got replaced now, so set it back so we don't inflate the ID for nothing.
 						let incrementedId = keyValue.get('levelId');

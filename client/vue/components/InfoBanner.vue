@@ -1,5 +1,5 @@
 <template>
-	<div v-if="shown">
+	<div v-if="shown" :class="{ info: type === 'info' }">
 		<p>{{ content }}</p>
 		<img src="/assets/svg/close_black_24dp.svg" @click="shown = false">
 	</div>
@@ -11,14 +11,19 @@ export default defineComponent({
 	data() {
 		return {
 			shown: false,
-			content: ''
+			content: '',
+			type: 'success' as 'success' | 'info'
 		}
 	},
 	mounted() {
 		// If the store contains information about the next message to display, display it and then reset the store. Otherwise don't show.
 		if (this.$store.state.nextInfoBannerMessage) {
 			this.content = this.$store.state.nextInfoBannerMessage;
+			this.type = this.$store.state.nextInfoBannerType;
+
 			this.$store.state.nextInfoBannerMessage = null;
+			this.$store.state.nextInfoBannerType = null;
+
 			this.shown = true;
 		}
 	}
@@ -36,6 +41,9 @@ div {
 	align-items: center;
 	margin-bottom: 10px;
 	color: rgb(64, 64, 64);
+}
+div.info {
+	background: #7fb2ff;
 }
 
 p {

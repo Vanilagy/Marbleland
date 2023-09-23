@@ -11,6 +11,7 @@ import { DtsFile, DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
+import { LevelInfo } from '../../shared/types';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -33,7 +34,8 @@ interface MissionGroup {
 	skyDependencies: Set<string>,
 	shapeDependencies: Set<string>,
 	/** Stores the final, normalized directory structure for this level. */
-	normalizedDirectory: Map<string, jszip.JSZipObject>
+	normalizedDirectory: Map<string, jszip.JSZipObject>,
+	updateableLevels: LevelInfo[]
 }
 
 /** Represents a mission upload process. Handles processing, verification and submission of the uploaded missions. */
@@ -48,9 +50,11 @@ export class MissionUpload {
 	/** Stores a list of warnings regarding mission upload, which are things to pay attention to but not things that will prevent submission. */
 	warnings = new Set<string>();
 	groups: MissionGroup[] = [];
+	uploader: AccountDoc;
 
-	constructor(zip: jszip) {
+	constructor(zip: jszip, uploader: AccountDoc) {
 		this.zip = zip;
+		this.uploader = uploader;
 	}
 
 	/** Processes the uploaded missions, building the dependency tree while finding any problems present.
@@ -125,7 +129,8 @@ export class MissionUpload {
 				interiorDependencies: new Set(),
 				skyDependencies: new Set(),
 				shapeDependencies: new Set(),
-				normalizedDirectory: new Map()
+				normalizedDirectory: new Map(),
+				updateableLevels: []
 			};
 			this.groups.push(group);
 		}
@@ -168,6 +173,15 @@ export class MissionUpload {
 			if (!group.missionInfo.artist) missing.push("artist");
 
 			if (missing.length > 0) this.problems.add(`The mission info in ${group.misFilePath} is missing the following fields: ${missing.join(', ')}.`);
+		}
+
+		if (group.missionInfo?.name) {
+			let levelsByUploader = await db.missions.find({ addedBy: this.uploader._id }) as MissionDoc[];
+			let matchingLevels = levelsByUploader.filter(x =>
+				x.info.name.toLowerCase().trim() === group.missionInfo.name.toLowerCase().trim() &&
+				(x.successor === null || x.successor === undefined) // Make sure they are not outdated versions
+			);
+			group.updateableLevels = matchingLevels.map(x => Mission.fromDoc(x).createLevelInfo());
 		}
 
 		let startsWith = Util.removeExtension(group.misFile.name);
@@ -313,7 +327,7 @@ export class MissionUpload {
 					return this.registerDependency(group, dependency.replace('interiors/', 'interiors_mbg/'), matchType, requiredBy, permittedExtensions, false, dependency);
 				} else {
 					// We definitely couldn't locate a file, add a problem
-					this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
+					//this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
 				}
 			}
 
@@ -426,6 +440,7 @@ export class MissionUpload {
 	/** Submits the uploaded missions to the database and writes their normalized directories to disk. */
 	async submit(submitter: AccountDoc, requestBody: {
 		remarks: string[],
+		levelsToUpdate: number[],
 		addToPacks: number[],
 		newPack?: {
 			name: string,
@@ -455,6 +470,7 @@ export class MissionUpload {
 		}
 
 		let docs: MissionDoc[] = [];
+		let predecessorDocs: MissionDoc[] = [];
 		for (let [i, group] of this.groups.entries()) {
 			let levelId = keyValue.get('levelId');
 			keyValue.set('levelId', levelId + 1);
@@ -481,9 +497,20 @@ export class MissionUpload {
 			doc.remarks = requestBody.remarks[i] ?? '';
 
 			docs.push(doc);
+
+			if (requestBody.levelsToUpdate[i] >= 0) {
+				let predecessorDoc = await db.missions.findOne({ _id: requestBody.levelsToUpdate[i] }) as MissionDoc;
+				if (!predecessorDoc) continue;
+
+				predecessorDoc.successor = mission.id;
+				predecessorDocs.push(predecessorDoc);
+			}
 		}
 
 		await db.missions.insert(docs);
+		for (let doc of predecessorDocs) {
+			await db.missions.update({ _id: doc._id }, doc);
+		}
 
 		// Now, let's do all the pack updating:
 

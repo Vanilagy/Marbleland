@@ -7,7 +7,7 @@
 			<template v-if="entries.length > 0">
 				<p class="entryCount" v-if="showTotal">Total: {{ entries.length }}</p>
 				<template v-if="mode === 'level'">
-					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :actions="passedLevelPanelActions" class="entryPanel"></level-panel>
+					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :actions="passedLevelPanelActions" class="entryPanel" :selectedLevels="selectedLevels"></level-panel>
 				</template>
 				<template v-else>
 					<pack-panel v-for="info of shownEntries" :key="info.id" :packInfo="info" class="entryPanel" :selectedPacks="selectedPacks"></pack-panel>
@@ -36,6 +36,7 @@ export default defineComponent({
 		levelPanelActions: Object as PropType<LevelPanelActions>,
 		showTotal: Boolean as PropType<boolean>,
 		noShrink: Boolean as PropType<boolean>,
+		selectedLevels: Array as PropType<number[]>,
 		selectedPacks: Array as PropType<number[]>
 	},
 	data() {

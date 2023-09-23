@@ -81,8 +81,6 @@ export const initLevelApi = () => {
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
 
-		console.log("Here!!");
-
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
@@ -252,7 +250,7 @@ export const initLevelApi = () => {
 		if (zip) {
 			try {
 				// Start processing the uploaded archive
-				upload = new MissionUpload(zip);
+				upload = new MissionUpload(zip, doc);
 				await upload.process();
 
 				problems.push(...upload.problems);
@@ -288,7 +286,8 @@ export const initLevelApi = () => {
 				uploadId: upload.id,
 				missions: upload.groups.map(x => ({
 					misFilePath: x.misFilePath,
-					name: x.missionInfo.name
+					name: x.missionInfo.name,
+					updateableLevels: x.updateableLevels
 				})),
 				packs: packs,
 				warnings: warnings
