@@ -1,12 +1,12 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './io/mis_parser';
+import { MisFile, MisParser, MissionElement, MissionElementBase, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './io/mis_parser';
 import hxDif from '../lib/hxDif';
 import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
 import { Config } from './config';
-import { db, keyValue, structureMBGSet, structurePQSet } from './globals';
+import { datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
 import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
@@ -42,6 +42,7 @@ export interface MissionDoc {
 	lovedBy: number[],
 	editedAt: number,
 	hasCustomCode: boolean,
+	compatibility: 'mbg' | 'mbw' | 'pq'
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -71,6 +72,7 @@ export class Mission {
 	lovedBy: number[];
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
+	compatibility: 'mbg' | 'mbw' | 'pq';
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -114,9 +116,10 @@ export class Mission {
 		await this.parseMission();
 		await this.findDependencies();
 		await this.storeFileSizes();
-		this.scanSimGroup(this.mis.root);
+		this.scanSimGroupForMetadata(this.mis.root);
 		this.classify();
 		this.hasCustomCode = !(await MissionVerifier.verifyNoCustomCode(this));
+		this.compatibility = this.determineCompatibility();
 	}
 
 	async parseMission() {
@@ -169,10 +172,10 @@ export class Mission {
 	}
 
 	/** Scans a sim group for metadata collection. */
-	scanSimGroup(simGroup: MissionElementSimGroup) {
+	scanSimGroupForMetadata(simGroup: MissionElementSimGroup) {
 		for (let element of simGroup.elements) {
 			if (element._type === MissionElementType.SimGroup) {
-				this.scanSimGroup(element);
+				this.scanSimGroupForMetadata(element);
 			} else if (element._type === MissionElementType.Item) {
 				if (element.datablock?.toLowerCase().includes('gemitem')) this.gems++;
 				let a = element.datablock?.toLowerCase();
@@ -446,6 +449,7 @@ export class Mission {
 			editedAt: this.editedAt,
 			lovedBy: this.lovedBy,
 			hasCustomCode: this.hasCustomCode,
+			compatibility: this.compatibility
 		};
 	}
 
@@ -479,7 +483,9 @@ export class Mission {
 
 			downloads: this.downloads ?? 0,
 			lovedCount: this.lovedBy.length,
-			hasCustomCode: this.hasCustomCode
+
+			hasCustomCode: this.hasCustomCode,
+			compatibility: this.compatibility
 		};
 	}
 
@@ -667,176 +673,49 @@ export class Mission {
 
 		return text;
 	}
-}
 
-/** Scans a given directory for missions and imports them all.
- * @param idMapPath Path to a JSON file which maps mission base names to IDs. Can be used for controlled setting of IDs.
- */
-export const scanForMissions = async (baseDirectory: string, idMapPath?: string, replaceDuplicates = false, allowedRelativePaths?: Set<string>) => {
-	let idMap: { id: number, baseName: string }[] = null;
-	if (idMapPath) {
-		idMap = JSON.parse(fs.readFileSync(idMapPath).toString());
-		console.log("ID map loaded.");
-	}
+	determineCompatibility(): Mission['compatibility'] {
+		let queue = [this.mis.root] as MissionElement[];
+		let result = 'mbg' as Mission['compatibility'];
+		let cameraPathNodeRegEx = /camerapath\d+/i;
 
-	console.log("Replace duplicate mode: On.");
+		const updateResult = (datablock: string) => {
+			datablock = datablock.toLowerCase();
 
-	let success = 0;
-	let failure = 0;
-	let skipped = 0;
-	let duplicates = 0;
-
-	/** Recursively scans a directory. */
-	const scan = async (relativePath: string) => {
-		let entries = await fs.readdir(path.join(baseDirectory, relativePath));
-
-		for (let entry of entries) {
-			let joined = path.join(baseDirectory, relativePath, entry);
-			let stat = await fs.stat(joined);
-			let fromStart = path.posix.join(relativePath, entry);
-	
-			if (stat.isDirectory()) {
-				await scan(fromStart); // Recurse
-			} else {
-				if (entry.toLowerCase().endsWith('.mis')) {
-					if (allowedRelativePaths && !allowedRelativePaths.has(fromStart)) continue;
-
-					// Check if the same file already exists in default PQ, and if so, skip it
-					let existsInPq = await fs.pathExists(path.join(Config.dataPath, relativePath, entry));
-					let isProbablyCustom = relativePath.includes('custom');
-					if (existsInPq && !isProbablyCustom) {
-						skipped++;
-						console.log("Skipping: ", fromStart);
-						continue;
-					}
-
-					console.log("Importing: ", fromStart);
-
-					let id: number;
-					if (idMap) {
-						// Find the ID in the map
-						let baseName = Util.getFileName(fromStart);
-						id = idMap.find(x => x.baseName === baseName)?.id;
-						if (id === undefined) throw new Error(`ID map is missing entry for baseName ${baseName}.`);
-						keyValue.set('levelId', Math.max(id, keyValue.get('levelId')));
-					}
-
-					let mission = new Mission(baseDirectory, fromStart, id);
-	
-					try {
-						await mission.hydrate();
-					} catch (e) {
-						console.error(`Error in loading mission ${entry}:`, e);
-						failure++;
-						continue;
-					}
-
-					let duplicateDoc: MissionDoc;
-					if (replaceDuplicates) {
-						// Search for a duplicate level that was already added previously
-						let duplicatesArr = await db.missions.find({ $or: [
-							{
-								// Primitive heuristic, but should work to identify candidates
-								'info.name': mission.info.name,
-								'info.desc': mission.info.desc,
-								'info.artist': mission.info.artist,
-								'info.starthelptext': mission.info.starthelptext
-							},
-							{
-								misHash: mission.misHash
-							}
-						] }) as MissionDoc[];
-
-						for (let duplicate of duplicatesArr) {
-							if (duplicate.misHash !== mission.misHash) {
-								// We found a possible duplicate candidate.
-								let mis1 = new MisParser((await fs.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString()).parse();
-								let mis2 = mission.mis;
-
-								// Compare the contents. If they don't match, it's (probably) not a duplicate.
-								if (!compareMissions(mis1, mis2)) continue;
-							}
-
-							console.log(`Duplicate found for ${path.join(relativePath, entry)} in ${path.join(duplicate.baseDirectory, duplicate.relativePath)}. Replacing the old entry.`);
-							duplicateDoc = duplicate;
-							duplicates++;
-
-							break;
-						}
-					}
-					
-					// Add the mission to the database
-					let doc = mission.createDoc();
-					if (duplicateDoc) {
-						doc._id = duplicateDoc._id;
-						doc.addedAt = duplicateDoc.addedAt;
-						doc.addedBy = duplicateDoc.addedBy;
-						doc.downloads = duplicateDoc.downloads;
-						doc.remarks = duplicateDoc.remarks;
-						doc.lovedBy = duplicateDoc.lovedBy;
-						doc.editedAt = duplicateDoc.editedAt;
-
-						// We wrongly incremented the ID even though it got replaced now, so set it back so we don't inflate the ID for nothing.
-						let incrementedId = keyValue.get('levelId');
-						keyValue.set('levelId', incrementedId - 1);
-					}
-
-					await db.missions.update({ _id: doc._id }, doc, { upsert: true });
-	
-					console.log("Level imported successfully with id " + doc._id);
-					success++;
-				}
+			if (result === 'mbg' && !datablocksMBG.includes(datablock)) {
+				result = 'mbw';
 			}
-		}
-	};
 
-	await scan('');
-	console.log(
-`================
-Imported ${success + failure + skipped} level(s).
-Successes: ${success}
-Failures: ${failure}
-Skipped: ${skipped}
-Duplicates: ${duplicates}
-	`);
-};
+			if (result === 'mbw' && !datablocksMBW.includes(datablock)) {
+				result = 'pq';
+			}
+		};
 
-/** Compares two missions and returns true, if their contents match (excluding MissionInfo). */
-export const compareMissions = (mis1: MisFile, mis2: MisFile) => {
-	let root1 = Util.jsonClone(mis1.root);
-	let root2 = Util.jsonClone(mis2.root);
+		while (queue.length > 0) {
+			if (result === 'pq') {
+				break;
+			}
 
-	const prepare = (simGroup: MissionElementSimGroup) => {
-		for (let i = 0; i < simGroup.elements.length; i++) {
-			let element = simGroup.elements[i];
+			let element = queue.pop();
 
 			if (element._type === MissionElementType.SimGroup) {
-				prepare(element);
-			} else if (element._type === MissionElementType.ScriptObject && element._name === "MissionInfo") {
-				simGroup.elements.splice(i--, 1);
+				queue.push(...element.elements);
+			} else if (element._type === MissionElementType.StaticShape) {
+				if (
+					element.datablock.toLowerCase() === 'pathnode' &&
+					cameraPathNodeRegEx.test(element._name)
+				) {
+					continue; // Ignore PathNodes that belong to a camera path
+				}
+
+				updateResult(element.datablock);
+			} else if (element._type === MissionElementType.Item) {
+				updateResult(element.datablock);
+			} else if (element._type === MissionElementType.ParticleEmitterNode) {
+				updateResult(element.datablock);
 			}
 		}
-	};
-	prepare(root1);
-	prepare(root2);
 
-	return JSON.stringify(root1) === JSON.stringify(root2);
-};
-
-export const reimportMissions = async (levelIds: number[], allowCreation: boolean) => {
-	let missions = await db.missions.find({}) as MissionDoc[];
-	if (levelIds.length > 0) missions = missions.filter(x => levelIds.includes(x._id));
-	let baseDirectories = new Set(missions.map(x => x.baseDirectory));
-
-	let relativePaths = allowCreation? null : new Set(missions.map(x => x.relativePath));
-
-	console.log("Reimporting missions...");
-	if (levelIds.length > 0) console.log(`Reimporting only level IDs ${levelIds.join(', ')}`);
-
-	for (let directory of baseDirectories) {
-		console.log(`Now re-scanning: ${directory}\n\n`);
-		await scanForMissions(directory, null, true, relativePaths);
+		return result;
 	}
-
-	console.log("Reimport complete.");
-};
+}

@@ -248,7 +248,7 @@ export interface MissionElementAudioEmitter extends MissionElementBase {
 	description: string
 }
 
-type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode | MissionElementAudioEmitter;
+export type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode | MissionElementAudioEmitter;
 
 const elementHeadRegEx = /new\s+(\w+)\((.*?)\)\s*{/g;
 const blockCommentRegEx = /\/\*(.|\n)*?\*\//g;

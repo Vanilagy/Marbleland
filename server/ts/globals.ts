@@ -26,6 +26,8 @@ export let structureMBG: DirectoryStructure;
 export let structurePQ: DirectoryStructure;
 export let structureMBGSet: Set<string>;
 export let structurePQSet: Set<string>;
+export let datablocksMBG: string[];
+export let datablocksMBW: string[];
 
 export let mbcryptRsaKey: string;
 export let mbcryptAesKey: Buffer;
@@ -87,6 +89,9 @@ export const initGlobals = async () => {
 	structurePQ = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(pqStructurePath).toString()));
 	structureMBGSet = Util.directoryStructureToSet(structureMBG);
 	structurePQSet = Util.directoryStructureToSet(structurePQ);
+
+	datablocksMBG = fs.readFileSync(path.join(__dirname, 'data/datablocks_mbg.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
+	datablocksMBW = fs.readFileSync(path.join(__dirname, 'data/datablocks_mbg.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
 };
 
 /** Scans the directory recursively. */

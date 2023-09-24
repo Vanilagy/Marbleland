@@ -1,4 +1,4 @@
-import { Mission, MissionDoc, reimportMissions, scanForMissions } from "./mission";
+import { Mission, MissionDoc } from "./mission";
 import { config, db, initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import { initApi } from "./api/api";
@@ -9,6 +9,7 @@ import { LevelInfo, Modification } from "../../shared/types";
 import { MisParser, MissionElementSimGroup, MissionElementType } from "./io/mis_parser";
 import { initializeImageMagick } from "@imagemagick/magick-wasm";
 import { initBackup } from "./backup";
+import { reimportMissions, scanForMissions } from "./import";
 
 interface CLAEntry {
 	addTime: string,

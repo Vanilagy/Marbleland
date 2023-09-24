@@ -1,3 +1,5 @@
+import { Mission } from "../server/ts/mission"
+
 export enum GameType {
 	SinglePlayer = "single",
 	Multiplayer = "multi"
@@ -43,6 +45,7 @@ export interface LevelInfo {
 	lovedCount: number,
 	
 	hasCustomCode: boolean,
+	compatibility: Mission['compatibility']
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */

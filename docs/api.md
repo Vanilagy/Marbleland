@@ -390,7 +390,9 @@ Contains metadata about a level.
 
 	downloads: number,
 	lovedCount: number,
-	hasCustomCode: boolean
+
+	hasCustomCode: boolean,
+	compatibility: 'mbg' | 'mbw' | 'pq' // Which variant of Marble Blast this level will run in
 }
 ```
 
