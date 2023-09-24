@@ -60,8 +60,12 @@ export abstract class Search {
 
 			let info = x.info;
 
+			let selectedCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[filter.compatibility.value];
+			let levelCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[info.compatibility];
+
 			// Apply additional filtering
 			if (filter.modification.value !== 'all' && info.modification !== filter.modification.value) return false;
+			if (selectedCompatibilityLevel < levelCompatibilityLevel) return false;
 			if (filter.gameType.value !== 'all' && info.gameType !== filter.gameType.value) return false;
 			if (filter.hasGems.value !== 'all' && (info.gems > 0) !== (filter.hasGems.value === 'yes')) return false;
 			if (filter.hasEasterEgg.value !== 'all' && info.hasEasterEgg !== (filter.hasEasterEgg.value === 'yes')) return false;

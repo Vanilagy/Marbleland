@@ -22,7 +22,7 @@ export const createNewStore = () => {
 							]
 						},
 						compatibility: {
-							label: 'Compatibility',
+							label: 'Compatible with',
 							value: 'pq',
 							options: [
 								{ name: 'mbg', label: 'Gold'},
