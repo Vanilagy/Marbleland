@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.15
+- Added logic to recover state after data loss
+
 ## 1.4.14
 - Added support for custom datablocks and AudioEmitters
 - Added manual dependency inclusion using the @include directive
