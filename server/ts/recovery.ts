@@ -23,9 +23,23 @@ if (fs.existsSync(recoveryStatePath)) {
 export const tryAssociatingOldUserData = async (newUsername: string, newAccountId: number) => {
     if (!recoveryState) return;
 
+    // Try matching using pack usernames
     let oldAccountId = recoveryState.oldUsernameToOldAccountId[newUsername];
     if (oldAccountId !== undefined) {
         await associateNewAccountIdWithOldAccountId(newAccountId, oldAccountId);
+    } else {
+        // Match using levels where artist = username
+        let docs = await db.missions.find({}) as MissionDoc[];
+        let matchingDocs = docs.filter(x =>
+            x.addedBy == null && // Currently belongs to nobody
+            recoveryState.missionIdToOldUploaderId[x._id] && // Used to belong to somebody
+            x.info.artist === newUsername // Artist name matches username
+        );
+
+        for (let doc of matchingDocs) {
+            doc.addedBy = newAccountId;
+            await db.missions.update({ _id: doc._id }, doc);
+        }
     }
 };
 
