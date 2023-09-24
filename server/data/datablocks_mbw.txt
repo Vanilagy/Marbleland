@@ -116,6 +116,7 @@ AntiGravityItem
 EasterEggSfx
 EasterEggFoundSfx
 easterEgg
+easterEgg_MBG
 NoRespawnAntiGravityItem
 PuBlastVoiceSfx
 BlastItem
@@ -156,7 +157,11 @@ NukeSubBlow2
 NukeExplosion
 Nuke
 StartPad
+StartPad_MBG
+StartPad_MBP
 EndPad
+EndPad_MBG
+EndPad_MBP
 BumperDing
 BumperFlat
 TriangleBumper
