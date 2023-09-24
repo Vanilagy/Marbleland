@@ -55,7 +55,7 @@ export const initGlobals = async () => {
 		mbcryptAesKey = key.aeskey;
 	}
 	
-	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 0, accountId: 0, packId: 0, commentId: 0 });
+	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 1, accountId: 1, packId: 1, commentId: 1 });
 
 	// Sometimes, NeDB kinda discards data for some weird reasons when first writing to a database file, so I'm doing this to (maybe) help prevent that:
 	fs.ensureFileSync(path.join(__dirname, 'storage/missions.db'));

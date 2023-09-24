@@ -48,5 +48,5 @@ export const associateNewAccountIdWithOldAccountId = async (newAccountId: number
         recoveryState.orphanedPacks.splice(recoveryState.orphanedPacks.indexOf(doc), 1);
     }
 
-    await fs.writeFile(recoveryStatePath, JSON.stringify(recoveryState));
+    await fs.writeFile(recoveryStatePath, JSON.stringify(recoveryState, null, 4));
 };
