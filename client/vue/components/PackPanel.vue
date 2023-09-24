@@ -6,7 +6,7 @@
 				<div class="name">{{packInfo.name}}</div>
 				<div class="creator">
 					<img :src="avatarSrc" :style="{ opacity: avatarOpacity }">
-					<p>{{packInfo.createdBy.username}}</p>
+					<p>{{ packInfo.createdBy.username }}</p>
 				</div>
 				<div class="levelCount">{{ packInfo.levelIds.length }} levels</div>
 			</div>
