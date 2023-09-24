@@ -107,6 +107,7 @@ export class Mission {
 		mission.lovedBy = doc.lovedBy ?? [];
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
+		mission.compatibility = doc.compatibility ?? 'pq';
 
 		return mission;
 	}

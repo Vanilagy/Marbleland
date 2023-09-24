@@ -21,6 +21,15 @@ export const createNewStore = () => {
 								{ name: 'platinumquest', label: 'PlatinumQuest'}
 							]
 						},
+						compatibility: {
+							label: 'Compatibility',
+							value: 'pq',
+							options: [
+								{ name: 'mbg', label: 'Gold'},
+								{ name: 'mbw', label: 'Web'},
+								{ name: 'pq', label: 'PlatinumQuest'}
+							]
+						},
 						gameType: {
 							label: 'Game type',
 							value: 'all',
