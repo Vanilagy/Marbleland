@@ -91,7 +91,7 @@ export const initGlobals = async () => {
 	structurePQSet = Util.directoryStructureToSet(structurePQ);
 
 	datablocksMBG = fs.readFileSync(path.join(__dirname, 'data/datablocks_mbg.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
-	datablocksMBW = fs.readFileSync(path.join(__dirname, 'data/datablocks_mbg.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
+	datablocksMBW = fs.readFileSync(path.join(__dirname, 'data/datablocks_mbw.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
 };
 
 /** Scans the directory recursively. */
