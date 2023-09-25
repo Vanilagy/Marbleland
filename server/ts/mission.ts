@@ -684,10 +684,12 @@ export class Mission {
 			datablock = datablock.toLowerCase();
 
 			if (result === 'mbg' && !datablocksMBG.includes(datablock)) {
+				console.log("Changed to MBW", datablock);
 				result = 'mbw';
 			}
 
 			if (result === 'mbw' && !datablocksMBW.includes(datablock)) {
+				console.log("Changed to PQ", datablock);
 				result = 'pq';
 			}
 		};
