@@ -714,6 +714,8 @@ export class Mission {
 				updateResult(element.datablock);
 			} else if (element._type === MissionElementType.ParticleEmitterNode) {
 				updateResult(element.datablock);
+			} else if (element._type === MissionElementType.Trigger) {
+				updateResult(element.datablock);
 			}
 		}
 
