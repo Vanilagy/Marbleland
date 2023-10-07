@@ -60,8 +60,8 @@ export abstract class Search {
 
 			let info = x.info;
 
-			let selectedCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[filter.compatibility.value];
-			let levelCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[info.compatibility];
+			let selectedCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[filter.datablockCompatibility.value];
+			let levelCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[info.datablockCompatibility];
 
 			// Apply additional filtering
 			if (filter.modification.value !== 'all' && info.modification !== filter.modification.value) return false;

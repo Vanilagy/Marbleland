@@ -42,7 +42,7 @@ export interface MissionDoc {
 	lovedBy: number[],
 	editedAt: number,
 	hasCustomCode: boolean,
-	compatibility: 'mbg' | 'mbw' | 'pq'
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -72,7 +72,7 @@ export class Mission {
 	lovedBy: number[];
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
-	compatibility: 'mbg' | 'mbw' | 'pq';
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -107,7 +107,7 @@ export class Mission {
 		mission.lovedBy = doc.lovedBy ?? [];
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
-		mission.compatibility = doc.compatibility ?? 'pq';
+		mission.datablockCompatibility = doc.datablockCompatibility ?? 'pq';
 
 		return mission;
 	}
@@ -120,7 +120,7 @@ export class Mission {
 		this.scanSimGroupForMetadata(this.mis.root);
 		this.classify();
 		this.hasCustomCode = !(await MissionVerifier.verifyNoCustomCode(this));
-		this.compatibility = this.determineCompatibility();
+		this.datablockCompatibility = this.determineDatablockCompatibility();
 	}
 
 	async parseMission() {
@@ -450,7 +450,7 @@ export class Mission {
 			editedAt: this.editedAt,
 			lovedBy: this.lovedBy,
 			hasCustomCode: this.hasCustomCode,
-			compatibility: this.compatibility
+			datablockCompatibility: this.datablockCompatibility
 		};
 	}
 
@@ -486,7 +486,7 @@ export class Mission {
 			lovedCount: this.lovedBy.length,
 
 			hasCustomCode: this.hasCustomCode,
-			compatibility: this.compatibility
+			datablockCompatibility: this.datablockCompatibility
 		};
 	}
 
@@ -675,9 +675,9 @@ export class Mission {
 		return text;
 	}
 
-	determineCompatibility(): Mission['compatibility'] {
+	determineDatablockCompatibility(): Mission['datablockCompatibility'] {
 		let queue = [this.mis.root] as MissionElement[];
-		let result = 'mbg' as Mission['compatibility'];
+		let result = 'mbg' as Mission['datablockCompatibility'];
 		let cameraPathNodeRegEx = /camerapath\d+/i;
 
 		const updateResult = (datablock: string) => {

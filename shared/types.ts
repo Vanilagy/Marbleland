@@ -45,7 +45,7 @@ export interface LevelInfo {
 	lovedCount: number,
 	
 	hasCustomCode: boolean,
-	compatibility: Mission['compatibility']
+	datablockCompatibility: Mission['datablockCompatibility']
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */

@@ -21,7 +21,7 @@ export const createNewStore = () => {
 								{ name: 'platinumquest', label: 'PlatinumQuest'}
 							]
 						},
-						compatibility: {
+						datablockCompatibility: {
 							label: 'Compatible with',
 							value: 'pq',
 							options: [

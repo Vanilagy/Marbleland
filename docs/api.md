@@ -392,7 +392,7 @@ Contains metadata about a level.
 	lovedCount: number,
 
 	hasCustomCode: boolean,
-	compatibility: 'mbg' | 'mbw' | 'pq' // Which variant of Marble Blast this level will run in
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq' // Which variant of Marble Blast this level's datablocks are compatible with
 }
 ```
 
