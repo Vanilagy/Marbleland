@@ -1,5 +1,8 @@
 # Version history
 
+## 1.4.16
+- Fixed thumbnail name matching
+
 ## 1.4.15
 - Added logic to recover state after data loss
 

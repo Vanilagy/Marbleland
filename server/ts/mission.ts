@@ -141,10 +141,12 @@ export class Mission {
 		// Add the mission itself
 		this.dependencies.add(this.relativePath);
 
-		// Add the mission thumbnail
-		let fileNames = await Util.getFullFileNames(Util.removeExtension(missionFileName), path.join(this.baseDirectory, missionDirectory));
+		// Add all mission images
+		let fileNames = await Util.getFullFileNames(Util.removeExtension(missionFileName) + '.', path.join(this.baseDirectory, missionDirectory));
 		let thumbnailPaths = fileNames.filter(x => IMAGE_EXTENSIONS.includes(path.extname(x).toLowerCase()));
-		for (let thumbnailPath of thumbnailPaths) this.dependencies.add(path.posix.join(missionDirectory, thumbnailPath));
+		for (let thumbnailPath of thumbnailPaths) {
+			this.dependencies.add(path.posix.join(missionDirectory, thumbnailPath));
+		}
 
 		let startsWith = Util.removeExtension(this.relativePath);
 		// Create a list of potential candidates for the thumbnail file name

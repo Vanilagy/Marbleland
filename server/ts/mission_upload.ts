@@ -191,7 +191,7 @@ export class MissionUpload {
 
 			// Include all files as a dependency who start with the .mis file name and end with an image extension. So, level.mis would cause the inclusion of level.png, level.jpg and also level.prev.png and things like that.
 			let fileName = Util.getFileName(filePath);
-			if (fileName.toLowerCase().startsWith(Util.removeExtension(Util.getFileName(group.misFile.name).toLowerCase())) && IMAGE_EXTENSIONS.includes(path.extname(fileName.toLowerCase()))) {
+			if (fileName.toLowerCase().startsWith(Util.removeExtension(Util.getFileName(group.misFile.name).toLowerCase()) + '.') && IMAGE_EXTENSIONS.includes(path.extname(fileName.toLowerCase()))) {
 				group.normalizedDirectory.set(path.posix.join('missions', fileName), this.zip.files[filePath]);
 			}
 		}
