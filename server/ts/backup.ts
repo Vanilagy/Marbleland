@@ -116,7 +116,9 @@ const doBackup = async () => {
 			try {
 				// Commit that thing
 				await execShellCommand('git commit -m "Automated commit"', config.backupRepositoryPath);
-			} catch (e) {}
+			} catch (e) {
+				console.error("Error committing:", e);
+			}
 	
 			// Push to the remote specified. The remote path should include authorization if necessary.
 			console.info(`Pushing...`);

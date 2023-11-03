@@ -19,7 +19,7 @@ Marbleland tries to solve these issues by being a central hub for all custom lev
 ## API
 Marbleland also provides a RESTful API for full programmatic interfacing with its features.
 
-Check out the docs [here.](docs/api.md)
+Check out the docs [here](docs/api.md).
 
 ## Implementation
 Marbleland's frontend was built using Vue.js and its backend using Node. When custom levels are imported/uploaded, an asset dependency tree is constructed by scanning the .mis file for the required files, and then scanning those files for their dependencies. This way, all assets needed to correctly run the custom level can be identified and included in the .zip. Marbleland currently identifies the mission file and thumbnails, interiors, interior textures, sky materials, TSStatic shapes, custom datablock shapes, shape materials, music and sounds as level dependencies. .mis and .dts file parsing is done using the parsers used in the [webport](https://github.com/Vanilagy/MarbleBlast), and .dif parsing uses RandomityGuy's [hxDif](https://github.com/RandomityGuy/hxDIF) library. Additionally, the custom code used in the .mis file is detected through his [hxTorquescript](https://github.com/RandomityGuy/hxTorqueScript) library.
@@ -50,5 +50,7 @@ To set this up, you can configure a few values in `server/data/config.json`:
 - `backupRepositoryRemote` specifies the URI of the remote repository which will be used when pushing. You need to make sure you are authorized to push by either including authentication with the URI or configuring your SSH keys. 
 - `backupPeriod` specifies the number of seconds between periodic backups. 
 - `backupPushSizeLimit` specifies the maximum size of a push to the remote (often, that size is limited).
+
+Keep in mind that your global git name and email also need to be set for this to work.
 
 The public backups for https://marbleland.vaniverse.io/ can be found [here](https://github.com/Vanilagy/MarblelandBackups/).
