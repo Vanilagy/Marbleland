@@ -6,7 +6,7 @@ import hxDif from '../lib/hxDif';
 import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
 import { Config } from './config';
-import { datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
+import { config, datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
 import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
@@ -515,7 +515,8 @@ export class Mission {
 			lovedByYou,
 			hasPrevImage: this.getPrevImagePath() !== null,
 			missionInfo: this.info as any,
-			dependencies: this.getFilteredDependencies('none', false)
+			dependencies: this.getFilteredDependencies('none', false),
+			playInfo: Util.chooseGamesByDatablockCompatibility(config.games, this.datablockCompatibility)
 		});
 	}
 

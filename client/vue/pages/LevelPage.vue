@@ -19,6 +19,9 @@
 					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" mode="level" @download="incrementDownloads">Download level</download-button>
 					<love-button style="flex: 0 1 auto" :levelOrPackInfo="levelInfo"></love-button>
 				</div>
+				<div class="buttonContainer">
+					<play-button :playInfo="levelInfo.playInfo" style="flex: 1 1 auto;" :id="levelInfo.id" mode="level" @download="incrementDownloads">Play level</play-button>
+				</div>
 				<p class="additionalInfo">
 					Downloads: {{ levelInfo.downloads }}<br>
 					Loves: {{ levelInfo.lovedCount }}<br>
@@ -31,6 +34,7 @@
 			</aside>
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
+					<img src="/assets/svg/bar_chart_24dp.svg" title="Leaderboards" @click="toggleLBs" class="basicIcon">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
 					<!--<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">-->
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
@@ -40,12 +44,46 @@
 				<template v-if="!editing">
 					<h1>{{ levelInfo.name }}</h1>
 					<h2 v-if="levelInfo.artist">by {{ levelInfo.artist }}</h2>
-					<h3 v-if="levelInfo.desc">Description</h3>
-					<p class="regularParagraph description" v-html="description"></p>
-					<h3>Details</h3>
-					<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
-					<h3 v-if="levelInfo.remarks">Remarks</h3>
-					<p class="regularParagraph remarks" v-if="levelInfo.remarks" v-html="remarks"></p>
+					<template v-if="!showLBs">
+						<h3 v-if="levelInfo.desc">Description</h3>
+						<p class="regularParagraph description" v-html="description"></p>
+						<h3>Details</h3>
+						<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
+						<h3 v-if="levelInfo.remarks">Remarks</h3>
+						<p class="regularParagraph remarks" v-if="levelInfo.remarks" v-html="remarks"></p>
+					</template>
+					<template v-if="showLBs">
+						<h3>Leaderboards</h3>
+						<dropdown-component v-model="currentLBs" :options="lbDef"></dropdown-component>
+						<br/>
+						<br/>
+						<table>
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Name</th>
+									<th>Score</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>1</td>
+									<td>RandomityGuy</td>
+									<td>3.456</td>
+								</tr>
+								<tr>
+									<td>2</td>
+									<td>Randomity</td>
+									<td>3.567</td>
+								</tr>
+								<tr>
+									<td>3</td>
+									<td>Rando</td>
+									<td>3.789</td>
+								</tr>
+							</tbody>
+						</table>
+					</template>
 				</template>
 				<div v-show="editing" :class="{ disabled: submittingEdit }">
 					<h1>Edit metadata</h1>
@@ -122,12 +160,14 @@
 import { defineComponent } from 'vue';
 import { CommentInfo, ExtendedLevelInfo, Modification, PackInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
+import PlayButton from '../components/PlayButton.vue';
 import ProfileBanner from '../components/ProfileBanner.vue';
 import InfoBanner from '../components/InfoBanner.vue';
 import PackAdder from '../components/PackAdder.vue';
 import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import CommentElement from '../components/CommentElement.vue';
+import DropdownComponent from '../components/DropdownComponent.vue';
 import LoveButton from '../components/LoveButton.vue';
 import Loader from '../components/Loader.vue';
 import { Util } from '../../ts/util';
@@ -147,7 +187,9 @@ const MISSION_INFO_REGEX = /((?:[a-zA-Z]|\$|_)(?:\w|\d|\$|_)*)( *= *)("((?:[^"\\
 
 export default defineComponent({
 	components: {
+		DropdownComponent,
 		DownloadButton,
+		PlayButton,
 		ProfileBanner,
 		InfoBanner,
 		PackAdder,
@@ -163,6 +205,7 @@ export default defineComponent({
 		return {
 			levelInfo: null as ExtendedLevelInfo,
 			editing: false,
+			showLBs: false,
 			submittingEdit: false,
 			/** Is true when we're currently waiting for the server to delete this level. */
 			deleting: false,
@@ -176,7 +219,15 @@ export default defineComponent({
 			editor: null as CodeJar,
 			missionInfoCodeProblems: '',
 			hasDownloaded: false,
-			acknowledgedDeletionConsequences: false
+			acknowledgedDeletionConsequences: false,
+			currentLBs: 'webport',
+			lbDef: [{
+				name: "webport",
+				label: "Webport"
+			}, {
+				name: "marbleblast",
+				label: "marbleblast.com"
+			}]
 		};
 	},
 	async mounted() {
@@ -364,6 +415,9 @@ export default defineComponent({
 				this.acknowledgedDeletionConsequences = false;
 				(this.$refs.deleteConfirmationModal as any).show();
 			}
+		},
+		toggleLBs() {
+			this.showLBs = !this.showLBs;
 		},
 		closeDeleteConfirmationModal() {
 			(this.$refs.deleteConfirmationModal as any).hide();
