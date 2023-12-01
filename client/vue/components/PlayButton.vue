@@ -1,9 +1,9 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;" class="notSelectable">
-		<button-with-icon icon="/assets/svg/play_circle.svg" @click="play(playInfo[0].id)" style="border-radius: 0px; background-color: #004d00;"><slot></slot></button-with-icon>
+		<button-with-icon icon="/assets/svg/play_circle.svg" @click="play(playInfo[0].id)" style="border-radius: 0px; background-color: var(--play-color);"><slot></slot></button-with-icon>
 		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore basicIcon" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
 		<div v-if="expanded">
-			<p v-for="game of games" :key="game.name" @click="play(game.name)" v-html="game.label" style="background-color: #004d00;"></p>
+			<p v-for="game of games" :key="game.name" @click="play(game.name)" v-html="game.label" style="background-color: var(--play-color);"></p>
 		</div>
 	</div>
 </template>
@@ -38,8 +38,7 @@ export default defineComponent({
 		/** Start playing the game in new window */
 		play(id: string) {
 			let chosen = this.playInfo.find(game => game.id === id);
-			let formatted = chosen.playUrlFormat.replace(/\{id\}/g, this.id.toString());
-			window.open(formatted, '_blank');
+			window.open(chosen.playUrl, '_blank');
 		}
 	},
 	components: {
@@ -82,7 +81,7 @@ p {
 }
 
 p:hover {
-	border: 2px solid var(--background-2);
+	border: 2px solid var(--play-color-hover);
 }
 
 p:active {

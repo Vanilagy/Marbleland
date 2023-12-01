@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import Datastore from 'nedb-promises';
 import { Config } from "./config";
-import { GameDefinition } from "../../shared/types";
+import { GameDefinition, LeaderboardDefinition } from "../../shared/types";
 
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
 export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
@@ -15,7 +15,8 @@ export let config: {
 	backupRepositoryRemote: string,
 	backupPeriod: number,
 	backupPushSizeLimit: number,
-	games: GameDefinition[]
+	games: GameDefinition[],
+	leaderboardSources: LeaderboardDefinition[],
 };
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {

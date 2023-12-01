@@ -57,32 +57,7 @@
 						<dropdown-component v-model="currentLBs" :options="lbDef"></dropdown-component>
 						<br/>
 						<br/>
-						<table>
-							<thead>
-								<tr>
-									<th>#</th>
-									<th>Name</th>
-									<th>Score</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>1</td>
-									<td>RandomityGuy</td>
-									<td>3.456</td>
-								</tr>
-								<tr>
-									<td>2</td>
-									<td>Randomity</td>
-									<td>3.567</td>
-								</tr>
-								<tr>
-									<td>3</td>
-									<td>Rando</td>
-									<td>3.789</td>
-								</tr>
-							</tbody>
-						</table>
+						<level-leaderboards/>
 					</template>
 				</template>
 				<div v-show="editing" :class="{ disabled: submittingEdit }">
@@ -170,6 +145,7 @@ import CommentElement from '../components/CommentElement.vue';
 import DropdownComponent from '../components/DropdownComponent.vue';
 import LoveButton from '../components/LoveButton.vue';
 import Loader from '../components/Loader.vue';
+import LevelLeaderboards from '../components/LevelLeaderboards.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
@@ -199,7 +175,8 @@ export default defineComponent({
 		Loader,
 		Head,
 		LoveButton,
-		Modal
+		Modal,
+		LevelLeaderboards
 	},
 	data() {
 		return {
@@ -220,14 +197,8 @@ export default defineComponent({
 			missionInfoCodeProblems: '',
 			hasDownloaded: false,
 			acknowledgedDeletionConsequences: false,
-			currentLBs: 'webport',
-			lbDef: [{
-				name: "webport",
-				label: "Webport"
-			}, {
-				name: "marbleblast",
-				label: "marbleblast.com"
-			}]
+			currentLBs: '',
+			lbDef: null as {name: string, label: string}[]
 		};
 	},
 	async mounted() {
@@ -246,6 +217,13 @@ export default defineComponent({
 
 			let levelInfo = await response.json() as ExtendedLevelInfo;
 			this.levelInfo = levelInfo;
+			this.lbDef = this.levelInfo.leaderboardInfo.map(lb => {
+				return {
+					name: lb.id,
+					label: lb.name,
+				}
+			});
+			this.currentLBs = this.lbDef[0].name;
 		}
 
 		// Incase the level search doesn't include this level yet, make it refresh
