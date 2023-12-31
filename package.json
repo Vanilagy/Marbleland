@@ -42,6 +42,7 @@
     "mitt": "2.1.0",
     "nedb": "1.8.0",
     "nedb-promises": "4.1.2",
+    "node-fetch": "^2.7.0",
     "node-rsa": "^1.1.1",
     "performance-now": "2.1.0",
     "serialize-javascript": "5.0.0",
@@ -57,5 +58,8 @@
     "webpack-cli": "4.6.0",
     "webpack-node-externals": "2.5.2",
     "webpackbar": "5.0.0-3"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.6.10"
   }
 }

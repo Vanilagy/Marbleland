@@ -19,7 +19,7 @@
 					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" mode="level" @download="incrementDownloads">Download level</download-button>
 					<love-button style="flex: 0 1 auto" :levelOrPackInfo="levelInfo"></love-button>
 				</div>
-				<div class="buttonContainer">
+				<div v-if="levelInfo.playInfo.length > 0" class="buttonContainer">
 					<play-button :playInfo="levelInfo.playInfo" style="flex: 1 1 auto;" :id="levelInfo.id" mode="level" @download="incrementDownloads">Play level</play-button>
 				</div>
 				<p class="additionalInfo">
@@ -34,7 +34,7 @@
 			</aside>
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
-					<img src="/assets/svg/bar_chart_24dp.svg" title="Leaderboards" @click="toggleLBs" class="basicIcon">
+					<img v-if="levelInfo.leaderboardInfo.length > 0" src="/assets/svg/bar_chart_24dp.svg" title="Leaderboards" @click="toggleLBs" class="basicIcon">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
 					<!--<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">-->
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
@@ -54,10 +54,10 @@
 					</template>
 					<template v-if="showLBs">
 						<h3>Leaderboards</h3>
-						<dropdown-component v-model="currentLBs" :options="lbDef"></dropdown-component>
-						<br/>
-						<br/>
-						<level-leaderboards/>
+						<div class="lbButtonContainer">
+							<div class="lbButton notSelectable" v-for="lb in levelInfo.leaderboardInfo" :key="lb.id" :class="{ selected: lb === currentLBs}" @click="setLeaderboards(lb)">{{ lb.name }}</div>
+						</div>
+						<level-leaderboards :scores="currentLeaderboardScores"/>
 					</template>
 				</template>
 				<div v-show="editing" :class="{ disabled: submittingEdit }">
@@ -133,7 +133,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { CommentInfo, ExtendedLevelInfo, Modification, PackInfo } from '../../../shared/types';
+import { CommentInfo, ExtendedLevelInfo, LeaderboardDefinition, LeaderboardScore, Modification, PackInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
 import PlayButton from '../components/PlayButton.vue';
 import ProfileBanner from '../components/ProfileBanner.vue';
@@ -156,6 +156,7 @@ import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS } from '../../../shared/constants';
 import { CodeJar } from "codejar";
 import { guessGameType, guessModification } from "../../../shared/classification";
 import Modal from '../components/Modal.vue';
+import node_fetch from 'node-fetch';
 
 const COUNT_DOWN_MODES = ['collection', 'elimination', 'gemMadness', 'ghosts', 'hunt', 'king', 'mega', 'party', 'props', 'seek', 'snowball', 'snowballsOnly', 'spooky', 'steal', 'tag', 'training'];
 
@@ -197,8 +198,8 @@ export default defineComponent({
 			missionInfoCodeProblems: '',
 			hasDownloaded: false,
 			acknowledgedDeletionConsequences: false,
-			currentLBs: '',
-			lbDef: null as {name: string, label: string}[]
+			currentLBs: null as LeaderboardDefinition,
+			currentLeaderboardScores: [] as LeaderboardScore[]
 		};
 	},
 	async mounted() {
@@ -217,14 +218,19 @@ export default defineComponent({
 
 			let levelInfo = await response.json() as ExtendedLevelInfo;
 			this.levelInfo = levelInfo;
-			this.lbDef = this.levelInfo.leaderboardInfo.map(lb => {
-				return {
-					name: lb.id,
-					label: lb.name,
-				}
-			});
-			this.currentLBs = this.lbDef[0].name;
 		}
+		if (this.$store.state.leaderboardsPreload) {
+			this.currentLeaderboardScores = this.$store.state.leaderboardsPreload;
+			this.$store.state.leaderboardsPreload = null;
+		} else {
+			if (this.levelInfo.leaderboardInfo.length > 0) {
+				let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.levelInfo.leaderboardInfo[0].id}`);
+				let jsonData = await resp.json();
+				this.currentLeaderboardScores = jsonData.scores;
+			}
+		}
+
+		this.currentLBs = this.levelInfo.leaderboardInfo[0];
 
 		// Incase the level search doesn't include this level yet, make it refresh
 		Search.checkForRefresh(this.levelInfo.id);
@@ -265,6 +271,14 @@ export default defineComponent({
 		
 		let mission = Mission.fromDoc(doc);
 		this.levelInfo = await mission.createExtendedLevelInfo(this.$store.state.loggedInAccount?.id);
+
+		if (this.levelInfo.leaderboardInfo.length > 0) {
+			let lbQuery = this.levelInfo.leaderboardInfo[0].queryUrl;
+
+			let resp = await node_fetch(lbQuery);
+			let jsonData = await resp.json() as any;
+			this.$store.state.leaderboardsPreload = jsonData.scores as LeaderboardScore[];
+		}
 
 		this.$store.state.levelPreload = this.levelInfo;
 	},
@@ -393,9 +407,6 @@ export default defineComponent({
 				this.acknowledgedDeletionConsequences = false;
 				(this.$refs.deleteConfirmationModal as any).show();
 			}
-		},
-		toggleLBs() {
-			this.showLBs = !this.showLBs;
 		},
 		closeDeleteConfirmationModal() {
 			(this.$refs.deleteConfirmationModal as any).hide();
@@ -527,6 +538,16 @@ export default defineComponent({
 			// Note that the count might not always be 100% matching due to IP timeouts on the server
 			this.levelInfo.downloads++;
 			this.hasDownloaded = true;
+		},
+		toggleLBs() {
+			this.showLBs = !this.showLBs;
+		},
+		async setLeaderboards(lb: LeaderboardDefinition) {
+			this.currentLBs = lb;
+
+			let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.currentLBs.id}`);
+			let jsonData = await resp.json();
+			this.currentLeaderboardScores = jsonData.scores;
 		}
 	},
 	watch: {
@@ -735,6 +756,50 @@ h3 {
 }
 .deleteLevelButton:active {
 	background: rgb(218, 76, 105) !important;
+}
+
+.lbButtonContainer {
+	display: flex;
+	padding-left: 5px;
+	gap: 10px;
+	border-top-left-radius: 5px;
+	width: 50%;
+	padding-top: 5px;
+	padding-right: 5px;
+	border-top-right-radius: 5px;
+}
+
+.lbButton {
+	background: var(--background-1);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	cursor: pointer;
+	border: 2px solid transparent;
+	box-sizing: border-box;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+	padding-left: 20px;
+	padding-right: 20px;
+	opacity: 0.75;
+}
+
+.lbButton:hover {
+	border: 2px solid var(--background-1);
+	background:var(--background-2);
+}
+
+.lbButton:active {
+	background:var(--background-color);
+}
+
+.lbButton.selected {
+	background: var(--background-2);
+	opacity: 1;
+}
+
+.lbButton.selected:hover {
+	border: 2px solid transparent;
 }
 </style>
 

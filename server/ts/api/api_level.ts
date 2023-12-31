@@ -2,11 +2,12 @@ import * as express from 'express';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
+import fetch from 'node-fetch';
 import jszip from 'jszip';
 import { LevelInfo, PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
 import { CommentDoc, getCommentInfosForLevel } from "../comment";
-import { db, keyValue, mbcryptRsaKey} from "../globals";
+import { config, db, keyValue, mbcryptRsaKey} from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { MissionUpload, ongoingUploads } from "../mission_upload";
 import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
@@ -525,6 +526,28 @@ export const initLevelApi = () => {
 		await db.missions.update({ _id: levelId }, missionDoc);
 
 		res.end();
+	});
+
+	// Fetches the specified leaderboards for the level
+	app.get('/api/level/:levelId/leaderboards/:leaderboardId', async (req, res) => {
+		let levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
+
+		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let mission = Mission.fromDoc(doc);
+
+		let leaderboardId = req.params.leaderboardId;
+		let lbQueryInfo = Util.chooseDataByDatablockCompatibility(config.leaderboardSources, mission.datablockCompatibility);
+		let query = lbQueryInfo.find(x => x.id === leaderboardId);
+		if (query === undefined) {
+			res.status(400).send("400\nLevel does not contain the specified leaderboard.");
+			return null;
+		}
+
+		let resp = await fetch(query.queryUrl.replace('{id}', levelId.toString()));
+		let json = await resp.json();
+
+		res.send(json);	
 	});
 };
 

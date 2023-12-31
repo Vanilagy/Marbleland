@@ -505,16 +505,20 @@ export class Mission {
 
 		let lovedByYou = this.lovedBy.includes(requesterId);
 
-		let playInfo = Util.chooseDataByDatablockCompatibility(config.games, this.datablockCompatibility);
-		playInfo.forEach(game => {
-			game.playUrl = game.playUrl.replace('{id}', this.id.toString());
+		let playInfo = Util.chooseDataByDatablockCompatibility(config.games, this.datablockCompatibility).map(game => {
+			return {
+				...game,
+				playUrl: game.playUrl.replace('{id}', this.id.toString()),
+			};
 		});
 
-		let lbQueryInfo = Util.chooseDataByDatablockCompatibility(config.leaderboardSources, this.datablockCompatibility);
-		lbQueryInfo.forEach(game => {
-			game.queryUrl = game.queryUrl.replace('{id}', this.id.toString());
+		let lbQueryInfo = Util.chooseDataByDatablockCompatibility(config.leaderboardSources, this.datablockCompatibility).map(query => {
+			return {
+				...query,
+				queryUrl: query.queryUrl.replace('{id}', this.id.toString())
+			};
 		});
-
+		
 		return Object.assign(levelInfo, {
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
 			remarks: this.remarks,

@@ -22,6 +22,13 @@ export type DataDefinition<T extends string> = {
 export type GameDefinition = DataDefinition<"playUrl">;
 export type LeaderboardDefinition = DataDefinition<'queryUrl'>;
 
+export interface LeaderboardScore {
+	username: string,
+	score: number,
+	score_type: 'time' | 'score',
+	placement: number
+}
+
 /** Contains metadata about a level. */
 export interface LevelInfo {
 	id: number,
