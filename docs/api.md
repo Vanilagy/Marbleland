@@ -104,6 +104,22 @@ Returns the raw MissionData ScriptObject of the .mis file as a `Record<string, s
 
 ### `GET` /api/level/{level-id}/packs
 Returns a list of packs a given level appears in as an array of [PackInfo](#packinfo).
+
+### `GET` /api/level/{level-id}/leaderboards/{leaderboards-id}
+Returns the specified leaderboards for the given level in sorted order.
+
+**Response body:**
+```typescript
+{
+	scores: {
+		username: string,
+		score: number,
+		score_type: 'time' | 'score',
+		placement: number
+	}[]
+}
+```
+
 ### `POST` /api/level/upload
 **Requires [authentication](#authentication).** Uploads a .zip archive containing a level and primes it for submission.
 
@@ -409,7 +425,31 @@ LevelInfo & {
 	lovedByYou: boolean, // Indicates if the logged-in user has loved the level
 	hasPrevImage: boolean,
 	missionInfo: Record<string, string>, // All the properties of the .mis file's MissionInfo element
-	dependencies: string[] // The list of files (assets) the given level depends on
+	dependencies: string[], // The list of files (assets) the given level depends on
+	playInfo: GameDefinition[], // Contains the definitions of the games the level can be played on
+	leaderboardInfo: LeaderboardDefinition[] // Contains the definitions of the leaderboards available for the level
+}
+```
+
+### GameDefinition
+Contains the definition of a game the level can be played on
+```typescript
+{
+	id: string,
+	name: string,
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
+	playUrl: string, // The direct link to play the level in the defined game
+}
+```
+
+### LeaderboardDefinition
+Contains the definition of a leaderboard source for levels.
+```typescript
+{
+	id: string,
+	name: string,
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
+	queryUrl: string, // The leaderboard endpoint that can be used to query the leaderboard for the level
 }
 ```
 
@@ -524,4 +564,47 @@ Format of key.txt: (replace RSAKEYRSAKEY... with your RSA key)
 # -----BEGIN AES KEY-----
 # < SHA256 hash of any plaintext password to be used as aes key, remove the brackets >
 # -----END AES KEY-----
+```
+
+# Defining Playable Games and Leaderboard sources
+Marbleland supports the ability to launch the game directly into the level of your choice by the use of the Play button. It also provides a view of the leaderboards available for the level.
+They are defined in the `server/data/config.json` file having the structure.
+```typescript
+{
+	games: GameDefinition[],
+	leaderboardSources: LeaderboardDefinition[]
+}
+```
+
+The `queryUrl` of the leaderboard definition contains the endpoint of the leaderboards which should be queried by the server to fetch the scores.
+The response of the server should be in the format of:
+```typescript
+{
+	scores: {
+		username: string,
+		score: number,
+		score_type: 'time' | 'score',
+		placement: number
+	}[]
+}
+```
+
+Example configuration values:
+```json
+    "games": [
+        {
+            "id": "webport",
+            "name": "Webport",
+            "playUrl": "https://marbleblast.vaniverse.io/?play={id}",
+            "datablockCompatibility": "mbw"
+        }
+    ],
+    "leaderboardSources": [
+        {
+            "id": "marbleblast",
+            "name": "marbleblast.com",
+            "queryUrl": "https://marbleblast.com/pq/leader/api/Score/GetMarblelandScoresApi.php?missionId={id}",
+            "datablockCompatibility": "pq"
+        }
+    ]
 ```
