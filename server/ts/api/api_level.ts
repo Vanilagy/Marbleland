@@ -4,6 +4,7 @@ import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
 import fetch from 'node-fetch';
 import jszip from 'jszip';
+import { z } from 'zod';
 import { LevelInfo, PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
 import { CommentDoc, getCommentInfosForLevel } from "../comment";
@@ -16,6 +17,17 @@ import { compressAndSendImage, executeWithIpTimeout, ipTimeouts } from "./api";
 import { Util } from '../util';
 import { MissionZipStream } from '../zip';
 import { MBPakFile } from '../mbcrypt/mbcrypt';
+
+const lbEndpointScoreSchema = z.object({
+    username: z.string(),
+    score: z.number(),
+    score_type: z.union([z.literal('time'), z.literal('score')]),
+    placement: z.number()
+});
+
+const lbEndpointResponseSchema = z.object({
+    scores: z.array(lbEndpointScoreSchema)
+});
 
 /** Verifies that the accessed level actually exists. */
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
@@ -544,10 +556,17 @@ export const initLevelApi = () => {
 			return null;
 		}
 
-		let resp = await fetch(query.queryUrl.replace('{id}', levelId.toString()));
-		let json = await resp.json();
+		try {
+			let resp = await fetch(query.queryUrl.replace('{id}', levelId.toString()));
+			let json = await resp.json();
 
-		res.send(json);	
+			let respParsed = lbEndpointResponseSchema.parse(json);
+			respParsed.scores.sort((a, b) => a.placement - b.placement); // Sort the scores in place anyway, make sure we always return sorted
+			res.send(respParsed); // Just send it as it is, it's validated
+		} catch (e) {
+			res.status(400).send("400\nEndpoint schema did not return in the expected format.");
+			return null;
+		}
 	});
 };
 

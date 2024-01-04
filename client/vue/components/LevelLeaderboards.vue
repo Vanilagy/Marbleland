@@ -14,9 +14,9 @@
 				<td>{{ record.score }}</td>
 			</tr>
     	</tbody>
-		<tbody v-if="leaderboardsView.length === 0">
+		<tbody v-if="status !== ''">
 			<tr>
-				<td colspan="3">No scores yet</td>
+				<td colspan="3">{{ status }}</td>
 			</tr>
 		</tbody>
     </table>
@@ -38,7 +38,8 @@ export default defineComponent({
         ButtonWithIcon
 	},
 	props: {
-		scores: Array as PropType<LeaderboardScore[]>
+		scores: Array as PropType<LeaderboardScore[]>,
+		status: String as PropType<string>
 	},
     data() {
         return {

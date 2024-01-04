@@ -57,7 +57,7 @@
 						<div class="lbButtonContainer">
 							<div class="lbButton notSelectable" v-for="lb in levelInfo.leaderboardInfo" :key="lb.id" :class="{ selected: lb === currentLBs}" @click="setLeaderboards(lb)">{{ lb.name }}</div>
 						</div>
-						<level-leaderboards :scores="currentLeaderboardScores"/>
+						<level-leaderboards :scores="currentLeaderboardScores" :status="lbStatusMessage"/>
 					</template>
 				</template>
 				<div v-show="editing" :class="{ disabled: submittingEdit }">
@@ -199,7 +199,9 @@ export default defineComponent({
 			hasDownloaded: false,
 			acknowledgedDeletionConsequences: false,
 			currentLBs: null as LeaderboardDefinition,
-			currentLeaderboardScores: [] as LeaderboardScore[]
+			currentLeaderboardScores: [] as LeaderboardScore[],
+			lbUpdateToken: 0,
+			lbStatusMessage: ''
 		};
 	},
 	async mounted() {
@@ -224,9 +226,19 @@ export default defineComponent({
 			this.$store.state.leaderboardsPreload = null;
 		} else {
 			if (this.levelInfo.leaderboardInfo.length > 0) {
-				let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.levelInfo.leaderboardInfo[0].id}`);
-				let jsonData = await resp.json();
-				this.currentLeaderboardScores = jsonData.scores;
+				this.lbStatusMessage = 'Fetching scores';
+				try {
+					let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.levelInfo.leaderboardInfo[0].id}`);
+					let jsonData = await resp.json();
+					this.currentLeaderboardScores = jsonData.scores;
+					if (this.currentLeaderboardScores.length === 0) {
+						this.lbStatusMessage = 'No scores yet';
+					} else {
+						this.lbStatusMessage = '';
+					}
+				} catch (e) {
+					this.lbStatusMessage = 'An error occurred while fetching scores';
+				}
 			}
 		}
 
@@ -544,10 +556,25 @@ export default defineComponent({
 		},
 		async setLeaderboards(lb: LeaderboardDefinition) {
 			this.currentLBs = lb;
+			this.currentLeaderboardScores = [];
+			this.lbStatusMessage = 'Fetching scores';
+			let nextToken = this.lbUpdateToken + 1;
+			this.lbUpdateToken++;
 
-			let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.currentLBs.id}`);
-			let jsonData = await resp.json();
-			this.currentLeaderboardScores = jsonData.scores;
+			try {
+				let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.currentLBs.id}`);
+				let jsonData = await resp.json();
+				if (nextToken != this.lbUpdateToken) return;
+				this.currentLeaderboardScores = jsonData.scores;
+				if (this.currentLeaderboardScores.length === 0) {
+					this.lbStatusMessage = 'No scores yet';
+				} else {
+					this.lbStatusMessage = '';
+				}
+			} catch (e) {
+				if (nextToken != this.lbUpdateToken) return;
+				this.lbStatusMessage = 'An error occurred while fetching scores';
+			}
 		}
 	},
 	watch: {
