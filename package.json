@@ -33,6 +33,7 @@
     "connect-history-api-fallback": "1.6.0",
     "copy-webpack-plugin": "8.1.1",
     "css-loader": "5.2.0",
+    "custom-protocol-check": "^1.4.0",
     "express": "5.0.0-alpha.8",
     "fs-extra": "9.1.0",
     "html-webpack-plugin": "5.3.1",

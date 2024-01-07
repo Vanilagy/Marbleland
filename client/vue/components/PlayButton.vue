@@ -12,6 +12,7 @@
 import { defineComponent, PropType } from 'vue';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 import { GameDefinition } from '../../../shared/types';
+import customProtocolCheck from 'custom-protocol-check';
 
 export default defineComponent({
 	props: {
@@ -38,7 +39,17 @@ export default defineComponent({
 		/** Start playing the game in new window */
 		play(id: string) {
 			let chosen = this.playInfo.find(game => game.id === id);
-			window.open(chosen.playUrl, '_blank');
+			if (!chosen.playUrl.startsWith('http')) { // Is a custom protocol
+				customProtocolCheck(chosen.playUrl, () => {
+					document.location.href = `../protocol-error/${chosen.id}`;
+				}, () => {
+					window.open(chosen.playUrl, '_blank');
+				}, 2000, () => {
+					document.location.href = `/protocol-error/${chosen.id}`;
+				});
+			} else {
+				window.open(chosen.playUrl, '_blank');
+			}
 		}
 	},
 	components: {
