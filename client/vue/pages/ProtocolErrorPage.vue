@@ -6,16 +6,19 @@
     <div v-if="$route.params.id !== 'pq'">
         <h1>Unsupported Protocol</h1>
         <p>
-            Your computer/device does not support the necessary protocol required for launching the game to play the specified level.
+            Your computer or device does not support the required protocol for launching the game to play the specified level.
         </p>
     </div>
     <div v-if="$route.params.id === 'pq'">
         <h1>Unable to launch PlatinumQuest</h1>
         <p>
-            Your computer or device does not support the required protocol required for launching PlatinumQuest to play the specified level. Support for launching PlatinumQuest is only available on Windows. 
+            Your computer or device does not support the required protocol for launching PlatinumQuest to play the specified level. Support for launching PlatinumQuest is only available on Windows. 
         </p>
         <p>
             If you are using Windows, kindly download the PlatinumQuest launcher from <a href="https://marbleblast.com/index.php/downloads/pq">here</a>. During installation, grant the required permissions for registry modifications to enable the necessary protocol. Alternatively, navigate to the launcher settings tab and select the option to re-register the protocol for a smooth experience.
+        </p>
+        <p>
+            You can also open PlatinumQuest and navigate to Community > Customs menu to access all the custom levels in-game.
         </p>
     </div>
 </template>

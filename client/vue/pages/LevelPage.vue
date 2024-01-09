@@ -564,7 +564,7 @@ export default defineComponent({
 			try {
 				let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.currentLBs.id}`);
 				let jsonData = await resp.json();
-				if (nextToken != this.lbUpdateToken) return;
+				if (nextToken !== this.lbUpdateToken) return;
 				this.currentLeaderboardScores = jsonData.scores;
 				if (this.currentLeaderboardScores.length === 0) {
 					this.lbStatusMessage = 'No scores yet';
@@ -572,7 +572,7 @@ export default defineComponent({
 					this.lbStatusMessage = '';
 				}
 			} catch (e) {
-				if (nextToken != this.lbUpdateToken) return;
+				if (nextToken !== this.lbUpdateToken) return;
 				this.lbStatusMessage = 'An error occurred while fetching scores';
 			}
 		}

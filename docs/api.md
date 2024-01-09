@@ -372,6 +372,49 @@ number[] // An array of level IDs to include in the pack
 ### `GET` /api/home/info
 Returns the necessary data for the Home page in the form of [HomeInfo](#homeinfo).
 
+# Defining Playable Games and Leaderboard sources
+Marbleland supports the ability to launch the game directly into the level of your choice by the use of the Play button. It also provides a view of the leaderboards available for the level.
+They are defined in the `server/data/config.json` file having the structure.
+```typescript
+{
+	games: GameDefinition[],
+	leaderboardSources: LeaderboardDefinition[]
+}
+```
+
+The `queryUrl` of the leaderboard definition contains the endpoint of the leaderboards which should be queried by the server to fetch the scores.
+The response of the server should be in the format of:
+```typescript
+{
+	scores: {
+		username: string,
+		score: number,
+		score_type: 'time' | 'score',
+		placement: number
+	}[]
+}
+```
+
+Example configuration values:
+```json
+    "games": [
+        {
+            "id": "webport",
+            "name": "Webport",
+            "playUrl": "https://marbleblast.vaniverse.io/?play={id}",
+            "datablockCompatibility": "mbw"
+        }
+    ],
+    "leaderboardSources": [
+        {
+            "id": "marbleblast",
+            "name": "marbleblast.com",
+            "queryUrl": "https://marbleblast.com/pq/leader/api/Score/GetMarblelandScoresApi.php?missionId={id}",
+            "datablockCompatibility": "pq"
+        }
+    ]
+```
+
 # Data types
 The following describes a set of object data types used in the API.
 ### LevelInfo
@@ -564,47 +607,4 @@ Format of key.txt: (replace RSAKEYRSAKEY... with your RSA key)
 # -----BEGIN AES KEY-----
 # < SHA256 hash of any plaintext password to be used as aes key, remove the brackets >
 # -----END AES KEY-----
-```
-
-# Defining Playable Games and Leaderboard sources
-Marbleland supports the ability to launch the game directly into the level of your choice by the use of the Play button. It also provides a view of the leaderboards available for the level.
-They are defined in the `server/data/config.json` file having the structure.
-```typescript
-{
-	games: GameDefinition[],
-	leaderboardSources: LeaderboardDefinition[]
-}
-```
-
-The `queryUrl` of the leaderboard definition contains the endpoint of the leaderboards which should be queried by the server to fetch the scores.
-The response of the server should be in the format of:
-```typescript
-{
-	scores: {
-		username: string,
-		score: number,
-		score_type: 'time' | 'score',
-		placement: number
-	}[]
-}
-```
-
-Example configuration values:
-```json
-    "games": [
-        {
-            "id": "webport",
-            "name": "Webport",
-            "playUrl": "https://marbleblast.vaniverse.io/?play={id}",
-            "datablockCompatibility": "mbw"
-        }
-    ],
-    "leaderboardSources": [
-        {
-            "id": "marbleblast",
-            "name": "marbleblast.com",
-            "queryUrl": "https://marbleblast.com/pq/leader/api/Score/GetMarblelandScoresApi.php?missionId={id}",
-            "datablockCompatibility": "pq"
-        }
-    ]
 ```
