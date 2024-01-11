@@ -7,9 +7,11 @@ import { Mission, MissionDoc } from './mission';
 class VerifierListener implements IASTVisitor {
 
     valid: boolean;
+    malicious: boolean;
 
     constructor() {
         this.valid = true;
+        this.malicious = false;
     }
 
     visitStmt(stmt: expr_Stmt): void {
@@ -62,14 +64,23 @@ class VerifierListener implements IASTVisitor {
     }
     visitAssignExpr(expr: expr_AssignExpr): void {
         this.valid = false;
+        let varName = expr.varExpr.name.lexeme.toLowerCase();
+        if (varName === "$lb" || varName.startsWith("$game::") || varName.startsWith("$crc"))
+            this.malicious = true;
         // console.log("Assignment Expression at " + expr.lineNo);
     }
     visitAssignOpExpr(expr: expr_AssignOpExpr): void {
         this.valid = false;
+        let varName = expr.varExpr.name.lexeme.toLowerCase();
+        if (varName === "$lb" || varName.startsWith("$game::") || varName.startsWith("$crc"))
+            this.malicious = true;
         // console.log("Assign Op Expression at " + expr.lineNo);
     }
     visitFuncCallExpr(expr: expr_FuncCallExpr): void {
         this.valid = false;
+        let fnName = expr.name.lexeme.toLowerCase();
+        if (["exec", "eval", "dump", "call", "tree", "winconsole", "dbgsetparameters", "telnetsetparameters"].includes(fnName))
+            this.malicious = true;
         // console.log("Function Call Expression at " + expr.lineNo);
     }
     visitSlotAccessExpr(expr: expr_SlotAccessExpr): void {
@@ -116,8 +127,8 @@ class VerifierListener implements IASTVisitor {
 }
 
 export class MissionVerifier {
-    public static async verifyNoCustomCode(mission: Mission) {
-        let missionText = (await fs.readFile(path.join(mission.baseDirectory, mission.relativePath))).toString();
+    public static async verifyNoCustomCode(mission?: Mission, misContents?: string) {
+        let missionText = mission !== null ? (await fs.readFile(path.join(mission.baseDirectory, mission.relativePath))).toString() : misContents;
 
         try {
             let x = new Scanner(missionText);
@@ -169,9 +180,15 @@ export class MissionVerifier {
                 }
             }
 
-            return verifier.valid;
+            return {
+                valid: verifier.valid,
+                malicious: verifier.malicious
+            };
         } catch (e) {
-            return false; // Yeah no-
+            return {
+                valid: false,
+                malicious: false
+            };// Yeah no-
         }
     }
 }
