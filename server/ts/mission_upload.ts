@@ -11,6 +11,7 @@ import { DtsFile, DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
+import { MissionVerifier } from './verifier';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -156,6 +157,12 @@ export class MissionUpload {
 		} catch (e) {
 			this.problems.add(`Could not parse ${group.misFilePath}.`);
 			return false;
+		}
+
+		// Check for malicious code
+		let result = await MissionVerifier.verifyNoCustomCode(null, text);
+		if (result.malicious) {
+			this.problems.add(`The mission ${group.misFilePath} contains malicious code.`);
 		}
 
 		await this.traverseMis(group, misFile.root); // Start scanning all elements in the .mis file to find possible dependencies

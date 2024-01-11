@@ -119,7 +119,7 @@ export class Mission {
 		await this.storeFileSizes();
 		this.scanSimGroupForMetadata(this.mis.root);
 		this.classify();
-		this.hasCustomCode = !(await MissionVerifier.verifyNoCustomCode(this));
+		this.hasCustomCode = !(((await MissionVerifier.verifyNoCustomCode(this)).valid));
 		this.datablockCompatibility = this.determineDatablockCompatibility();
 	}
 
