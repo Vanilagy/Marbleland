@@ -33,6 +33,7 @@
     "connect-history-api-fallback": "1.6.0",
     "copy-webpack-plugin": "8.1.1",
     "css-loader": "5.2.0",
+    "custom-protocol-check": "^1.4.0",
     "express": "5.0.0-alpha.8",
     "fs-extra": "9.1.0",
     "html-webpack-plugin": "5.3.1",
@@ -42,6 +43,7 @@
     "mitt": "2.1.0",
     "nedb": "1.8.0",
     "nedb-promises": "4.1.2",
+    "node-fetch": "^2.7.0",
     "node-rsa": "^1.1.1",
     "performance-now": "2.1.0",
     "serialize-javascript": "5.0.0",
@@ -56,6 +58,10 @@
     "webpack": "5.33.2",
     "webpack-cli": "4.6.0",
     "webpack-node-externals": "2.5.2",
-    "webpackbar": "5.0.0-3"
+    "webpackbar": "5.0.0-3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.6.10"
   }
 }

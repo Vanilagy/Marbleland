@@ -13,6 +13,22 @@ export enum Modification {
 	PlatinumQuest = "platinumquest"
 }
 
+export type DataDefinition<T extends string> = {
+	id: string,
+	name: string,
+	datablockCompatibility: Mission['datablockCompatibility'],
+} & { [K in T]: string };
+
+export type GameDefinition = DataDefinition<"playUrl">;
+export type LeaderboardDefinition = DataDefinition<'queryUrl'>;
+
+export interface LeaderboardScore {
+	username: string,
+	score: number,
+	score_type: 'time' | 'score',
+	placement: number
+}
+
 /** Contains metadata about a level. */
 export interface LevelInfo {
 	id: number,
@@ -58,7 +74,9 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	lovedByYou: boolean,
 	hasPrevImage: boolean,
 	missionInfo: Record<string, string>,
-	dependencies: string[]
+	dependencies: string[],
+	playInfo: GameDefinition[],
+	leaderboardInfo: LeaderboardDefinition[]
 }
 
 /** Contains metadata about a profile. */

@@ -2,11 +2,13 @@ import * as express from 'express';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
+import fetch from 'node-fetch';
 import jszip from 'jszip';
+import { z } from 'zod';
 import { LevelInfo, PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
 import { CommentDoc, getCommentInfosForLevel } from "../comment";
-import { db, keyValue, mbcryptRsaKey} from "../globals";
+import { config, db, keyValue, mbcryptRsaKey} from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { MissionUpload, ongoingUploads } from "../mission_upload";
 import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
@@ -15,6 +17,17 @@ import { compressAndSendImage, executeWithIpTimeout, ipTimeouts } from "./api";
 import { Util } from '../util';
 import { MissionZipStream } from '../zip';
 import { MBPakFile } from '../mbcrypt/mbcrypt';
+
+const lbEndpointScoreSchema = z.object({
+    username: z.string(),
+    score: z.number(),
+    score_type: z.union([z.literal('time'), z.literal('score')]),
+    placement: z.number()
+});
+
+const lbEndpointResponseSchema = z.object({
+    scores: z.array(lbEndpointScoreSchema)
+});
 
 /** Verifies that the accessed level actually exists. */
 const verifyLevelId = async (req: express.Request, res: express.Response) => {
@@ -525,6 +538,35 @@ export const initLevelApi = () => {
 		await db.missions.update({ _id: levelId }, missionDoc);
 
 		res.end();
+	});
+
+	// Fetches the specified leaderboards for the level
+	app.get('/api/level/:levelId/leaderboards/:leaderboardId', async (req, res) => {
+		let levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
+
+		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let mission = Mission.fromDoc(doc);
+
+		let leaderboardId = req.params.leaderboardId;
+		let lbQueryInfo = Util.chooseDataByDatablockCompatibility(config.leaderboardSources, mission.datablockCompatibility);
+		let query = lbQueryInfo.find(x => x.id === leaderboardId);
+		if (query === undefined) {
+			res.status(400).send("400\nLevel does not contain the specified leaderboard.");
+			return null;
+		}
+
+		try {
+			let resp = await fetch(query.queryUrl.replace('{id}', levelId.toString()));
+			let json = await resp.json();
+
+			let respParsed = lbEndpointResponseSchema.parse(json);
+			respParsed.scores.sort((a, b) => a.placement - b.placement); // Sort the scores in place anyway, make sure we always return sorted
+			res.send(respParsed); // Just send it as it is, it's validated
+		} catch (e) {
+			res.status(400).send("400\nEndpoint schema did not return in the expected format.");
+			return null;
+		}
 	});
 };
 

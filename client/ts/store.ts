@@ -1,5 +1,5 @@
 import { createStore } from "vuex";
-import { ExtendedLevelInfo, ExtendedPackInfo, ExtendedProfileInfo, ProfileInfo, SignInInfo } from "../../shared/types";
+import { ExtendedLevelInfo, ExtendedPackInfo, ExtendedProfileInfo, LeaderboardScore, ProfileInfo, SignInInfo } from "../../shared/types";
 
 export const createNewStore = () => {
 	return createStore({
@@ -122,7 +122,8 @@ export const createNewStore = () => {
 			// SSR stuff:
 			levelPreload: null as ExtendedLevelInfo,
 			packPreload: null as ExtendedPackInfo,
-			profilePreload: null as ExtendedProfileInfo
+			profilePreload: null as ExtendedProfileInfo,
+			leaderboardsPreload: null as LeaderboardScore[]
 		}
 	});
 };

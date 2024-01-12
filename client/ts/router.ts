@@ -12,6 +12,7 @@ import PackPage from '../vue/pages/PackPage.vue';
 import NotFoundPage from '../vue/pages/NotFoundPage.vue';
 import AboutUploadPage from '../vue/pages/AboutUploadPage.vue';
 import ChangePasswordPage from '../vue/pages/ChangePasswordPage.vue';
+import ProtocolErrorPage from '../vue/pages/ProtocolErrorPage.vue';
 
 const routes = [{
 	path: '/',
@@ -65,6 +66,10 @@ const routes = [{
 	path: '/change-password',
 	name: 'ChangePassword',
 	component: ChangePasswordPage
+}, {
+	path: '/protocol-error/:id',
+	name: 'ProtocolError',
+	component: ProtocolErrorPage
 }];
 
 const isServer = typeof window === 'undefined';
