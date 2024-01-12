@@ -79,7 +79,7 @@ class VerifierListener implements IASTVisitor {
     visitFuncCallExpr(expr: expr_FuncCallExpr): void {
         this.valid = false;
         let fnName = expr.name.lexeme.toLowerCase();
-        if (["exec", "eval", "dump", "call", "tree", "winconsole", "dbgsetparameters", "telnetsetparameters"].includes(fnName))
+        if (["exec", "eval", "dump", "call", "tree", "winconsole", "dbgsetparameters", "telnetsetparameters", "deletefile", "movefile", "deletevariables"].includes(fnName))
             this.malicious = true;
         // console.log("Function Call Expression at " + expr.lineNo);
     }
