@@ -12,6 +12,7 @@ import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
 import { MissionVerifier } from './verifier';
+import { MissionHasher } from './hasher';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -142,6 +143,14 @@ export class MissionUpload {
 		let misHash = crypto.createHash('sha256').update(text).digest('base64');
 		let existing = await db.missions.findOne({ misHash: misHash });
 		if (existing) {
+			this.problems.add(`Duplicate: Mission ${group.misFilePath} has already been uploaded.`);
+			return false;
+		}
+		
+		// Hash the AST for more rigorous duplicate detection
+		let astHash = await MissionHasher.hashMission(null, text);
+		let existingAst = await db.missions.findOne({ astHash: astHash });
+		if (existingAst) {
 			this.problems.add(`Duplicate: Mission ${group.misFilePath} has already been uploaded.`);
 			return false;
 		}
