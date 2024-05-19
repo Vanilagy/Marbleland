@@ -15,8 +15,12 @@ export class MissionHasher {
         let stmts = p.parse();
 
         // hash the AST
-        let hash = crypto.createHash('sha256').update(stmts.map((x) => this.hashStmt(x)).join('')).digest('base64');
-        return hash;
+        try {
+            let hash = crypto.createHash('sha256').update(stmts.map((x) => this.hashStmt(x)).join('')).digest('base64');
+            return hash;
+        } catch (e) {
+            return crypto.createHash('sha256').update(missionText).digest('base64'); // We failed to parse, just hash the mis file contents instead?
+        }
     }
 
     static hashStmt(stmt: expr_Stmt): string {
