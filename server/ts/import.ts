@@ -81,11 +81,14 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                             },
                             {
                                 misHash: mission.misHash
+                            },
+                            {
+                                astHash: mission.astHash
                             }
                         ] }) as MissionDoc[];
 
                         for (let duplicate of duplicatesArr) {
-                            if (duplicate.misHash !== mission.misHash) {
+                            if (duplicate.misHash !== mission.misHash && duplicate.astHash !== mission.astHash) {
                                 // We found a possible duplicate candidate.
                                 let mis1 = new MisParser((await fs.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString()).parse();
                                 let mis2 = mission.mis;
