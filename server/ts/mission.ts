@@ -696,6 +696,7 @@ export class Mission {
 		let cameraPathNodeRegEx = /camerapath\d+/i;
 
 		const updateResult = (datablock: string) => {
+			if (datablock === undefined) return;
 			datablock = datablock.toLowerCase();
 
 			if (result === 'mbg' && !datablocksMBG.includes(datablock)) {
@@ -718,6 +719,7 @@ export class Mission {
 				queue.push(...element.elements);
 			} else if (element._type === MissionElementType.StaticShape) {
 				if (
+					element.datablock && 
 					element.datablock.toLowerCase() === 'pathnode' &&
 					cameraPathNodeRegEx.test(element._name)
 				) {
