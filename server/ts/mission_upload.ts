@@ -11,6 +11,8 @@ import { DtsFile, DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
+import { MissionVerifier } from './verifier';
+import { MissionHasher } from './hasher';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -144,6 +146,14 @@ export class MissionUpload {
 			this.problems.add(`Duplicate: Mission ${group.misFilePath} has already been uploaded.`);
 			return false;
 		}
+		
+		// Hash the AST for more rigorous duplicate detection
+		let astHash = await MissionHasher.hashMission(null, text);
+		let existingAst = await db.missions.findOne({ astHash: astHash });
+		if (existingAst) {
+			this.problems.add(`Duplicate: Mission ${group.misFilePath} has already been uploaded.`);
+			return false;
+		}
 
 		if (!text.includes('//--- OBJECT WRITE BEGIN ---') || !text.includes('//--- OBJECT WRITE END ---')) {
 			this.problems.add(`${group.misFilePath} does not contain both "//--- OBJECT WRITE BEGIN ---" and "//--- OBJECT WRITE END ---", which are necessary for the level to behave correctly in the editor. Please add them around the outer MissionGroup element.`);
@@ -156,6 +166,12 @@ export class MissionUpload {
 		} catch (e) {
 			this.problems.add(`Could not parse ${group.misFilePath}.`);
 			return false;
+		}
+
+		// Check for malicious code
+		let result = await MissionVerifier.verifyNoCustomCode(null, text);
+		if (result.malicious) {
+			this.problems.add(`The mission ${group.misFilePath} contains malicious code.`);
 		}
 
 		await this.traverseMis(group, misFile.root); // Start scanning all elements in the .mis file to find possible dependencies
