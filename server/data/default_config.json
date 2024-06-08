@@ -4,5 +4,7 @@
 	"backupRepositoryPath": null,
 	"backupRepositoryRemote": null,
 	"backupPeriod": 86400,
-	"backupPushSizeLimit": 2147483648
+	"backupPushSizeLimit": 2147483648,
+	"games": [],
+	"leaderboardSources": []
 }
