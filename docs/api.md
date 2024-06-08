@@ -9,6 +9,7 @@ All of Marbleland's functionality can be accessed programatically through an API
 	- [Account](#account)
 	- [Pack](#pack)
 	- [Home](#home)
+- [Defining playable games and leaderboard sources](#defining-playable-games-and-leaderboard-sources)
 - [Data types](#data-types)
 - [MBPak Support](#mbpak-support)
 
@@ -372,7 +373,7 @@ number[] // An array of level IDs to include in the pack
 ### `GET` /api/home/info
 Returns the necessary data for the Home page in the form of [HomeInfo](#homeinfo).
 
-# Defining Playable Games and Leaderboard sources
+# Defining playable games and leaderboard sources
 Marbleland supports the ability to launch the game directly into the level of your choice by the use of the Play button. It also provides a view of the leaderboards available for the level.
 They are defined in the `server/data/config.json` file having the structure.
 ```typescript

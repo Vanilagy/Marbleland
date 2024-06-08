@@ -34,7 +34,7 @@
 			</aside>
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
-					<img v-if="levelInfo.leaderboardInfo.length > 0" src="/assets/svg/bar_chart_24dp.svg" title="Leaderboards" @click="toggleLBs" class="basicIcon">
+					<img v-if="levelInfo.leaderboardInfo.length > 0" :src="showLBs ? '/assets/svg/info_24dp_FILL0_wght400_GRAD0_opsz24 (1).svg' : '/assets/svg/bar_chart_24dp.svg'" :title="showLBs ? 'Show level info' : 'Show leaderboards'" @click="toggleLBs" class="basicIcon">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
 					<!--<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">-->
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
