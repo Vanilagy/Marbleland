@@ -226,23 +226,9 @@ export default defineComponent({
 			this.$store.state.leaderboardsPreload = null;
 		} else {
 			if (this.levelInfo.leaderboardInfo.length > 0) {
-				this.lbStatusMessage = 'Fetching scores';
-				try {
-					let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.levelInfo.leaderboardInfo[0].id}`);
-					let jsonData = await resp.json();
-					this.currentLeaderboardScores = jsonData.scores;
-					if (this.currentLeaderboardScores.length === 0) {
-						this.lbStatusMessage = 'No scores yet';
-					} else {
-						this.lbStatusMessage = '';
-					}
-				} catch (e) {
-					this.lbStatusMessage = 'An error occurred while fetching scores';
-				}
+				await this.setLeaderboards(this.levelInfo.leaderboardInfo[0]);
 			}
 		}
-
-		this.currentLBs = this.levelInfo.leaderboardInfo[0];
 
 		// Incase the level search doesn't include this level yet, make it refresh
 		Search.checkForRefresh(this.levelInfo.id);
