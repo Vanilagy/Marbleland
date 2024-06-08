@@ -543,7 +543,7 @@ export default defineComponent({
 		async setLeaderboards(lb: LeaderboardDefinition) {
 			this.currentLBs = lb;
 			this.currentLeaderboardScores = [];
-			this.lbStatusMessage = 'Fetching scores';
+			this.lbStatusMessage = 'Fetching scores...';
 			let nextToken = this.lbUpdateToken + 1;
 			this.lbUpdateToken++;
 
@@ -553,13 +553,13 @@ export default defineComponent({
 				if (nextToken !== this.lbUpdateToken) return;
 				this.currentLeaderboardScores = jsonData.scores;
 				if (this.currentLeaderboardScores.length === 0) {
-					this.lbStatusMessage = 'No scores yet';
+					this.lbStatusMessage = 'No scores yet.';
 				} else {
 					this.lbStatusMessage = '';
 				}
 			} catch (e) {
 				if (nextToken !== this.lbUpdateToken) return;
-				this.lbStatusMessage = 'An error occurred while fetching scores';
+				this.lbStatusMessage = 'An error has occurred while fetching scores.';
 			}
 		}
 	},
