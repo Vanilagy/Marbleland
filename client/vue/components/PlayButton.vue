@@ -1,6 +1,6 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;" class="notSelectable">
-		<button-with-icon icon="/assets/svg/play_circle.svg" @click="play(playInfo[0].id)" style="border-radius: 0px; background-color: var(--play-color);"><slot></slot></button-with-icon>
+		<button-with-icon icon="/assets/svg/play_circle.svg" @click="play(playInfo[0].id)" style="border-radius: 0px; background-color: var(--play-color); border-color: var(--play-color-hover);"><slot></slot></button-with-icon>
 		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore basicIcon" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
 		<div v-if="expanded">
 			<p v-for="game of games" :key="game.name" @click="play(game.name)" v-html="game.label" style="background-color: var(--play-color);"></p>
