@@ -52,7 +52,7 @@ export default defineComponent({
         };
 	},
 	computed: {
-		leaderboardsView() {
+		leaderboardsView(): { rank: number, name: string, score: string }[] {
 			return this.scores.slice(this.page * this.scoresPerPage, (this.page + 1) * this.scoresPerPage).map((record, i) => {
 				return {
 					rank: record.placement,
