@@ -792,6 +792,7 @@ h3 {
 	box-sizing: border-box;
 	border-top-left-radius: 5px;
 	border-top-right-radius: 5px;
+	white-space: nowrap;
 	padding-left: 20px;
 	padding-right: 20px;
 	opacity: 0.75;

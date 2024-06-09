@@ -1,5 +1,8 @@
 # Version history
 
+## 1.5.1
+- Fix styling
+
 ## 1.5.0
 - Added a "play" button to levels, which directly launches the level in a game of your choice
 - Leaderboards for levels can be viewed right on the level page
