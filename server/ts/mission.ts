@@ -6,7 +6,7 @@ import hxDif from '../lib/hxDif';
 import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
 import { Config } from './config';
-import { datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
+import { config, datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
 import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
@@ -505,6 +505,20 @@ export class Mission {
 
 		let lovedByYou = this.lovedBy.includes(requesterId);
 
+		let playInfo = Util.chooseDataByDatablockCompatibility(config.games, this.datablockCompatibility).map(game => {
+			return {
+				...game,
+				playUrl: game.playUrl.replace('{id}', this.id.toString()),
+			};
+		});
+
+		let lbQueryInfo = Util.chooseDataByDatablockCompatibility(config.leaderboardSources, this.datablockCompatibility).map(query => {
+			return {
+				...query,
+				queryUrl: query.queryUrl.replace('{id}', this.id.toString())
+			};
+		});
+		
 		return Object.assign(levelInfo, {
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
 			remarks: this.remarks,
@@ -515,7 +529,9 @@ export class Mission {
 			lovedByYou,
 			hasPrevImage: this.getPrevImagePath() !== null,
 			missionInfo: this.info as any,
-			dependencies: this.getFilteredDependencies('none', false)
+			dependencies: this.getFilteredDependencies('none', false),
+			playInfo: playInfo,
+			leaderboardInfo: lbQueryInfo
 		});
 	}
 

@@ -51,6 +51,8 @@ export default defineComponent({
 	--background-2: rgb(220, 220, 220);
 	--level-panel-bottom-background: rgba(240, 240, 240, 0.9);
 	--panel-skeleton-animation-background: rgb(250, 250, 250);
+	--play-color: rgb(191, 219, 254);
+	--play-color-hover: rgb(96, 165, 250);
 }
 
 :root.dark {
@@ -61,6 +63,8 @@ export default defineComponent({
 	--background-2: rgb(65, 65, 65);
 	--level-panel-bottom-background: rgba(49, 49, 49, 0.9);
 	--panel-skeleton-animation-background: rgb(40, 40, 40);
+	--play-color: rgb(29, 78, 216);
+	--play-color-hover: rgb(30, 64, 175);
 }
 
 hr {

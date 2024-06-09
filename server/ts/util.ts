@@ -4,6 +4,8 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Config } from './config';
 import { DirectoryStructure } from './globals';
+import { DataDefinition, GameDefinition } from '../../shared/types';
+import { Mission } from './mission';
 
 export class Util {
 	/** Gets the index of a substring like String.prototype.indexOf, but only if that index lies outside of string literals. */
@@ -293,6 +295,22 @@ export class Util {
 				image.dispose();
 			});
 		});
+	}
+
+	/** Choose data playable by the given datablockCompatibility i.e filters the data whose datablocks are compatible with that of datablockCompatibility */
+	static chooseDataByDatablockCompatibility<T extends string>(games: DataDefinition<T>[], datablockCompatibility: Mission["datablockCompatibility"]) {
+		// PQ levels can only run on PQ
+		// MBW levels can run on both PQ and MBW
+		// MBG levels can run on all
+		let selected: DataDefinition<T>[] = [];
+		let compatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[datablockCompatibility];
+		for (const game of games) {
+			let gameCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[game.datablockCompatibility];
+			if (gameCompatibilityLevel >= compatibilityLevel) {
+				selected.push(game);
+			}
+		}
+		return selected;
 	}
 }
 
