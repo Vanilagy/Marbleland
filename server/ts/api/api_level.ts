@@ -556,15 +556,21 @@ export const initLevelApi = () => {
 			return null;
 		}
 
-		try {
-			let resp = await fetch(query.queryUrl.replace('{id}', levelId.toString()));
-			let json = await resp.json();
+		let json: any;
 
+		try {
+			json = await fetch(query.queryUrl.replace('{id}', levelId.toString())).then(x => x.json());
+		} catch (e) {
+			res.status(502).send("502\nLeaderboard endpoint response failed.");
+			return null;
+		}
+
+		try {
 			let respParsed = lbEndpointResponseSchema.parse(json);
 			respParsed.scores.sort((a, b) => a.placement - b.placement); // Sort the scores in place anyway, make sure we always return sorted
 			res.send(respParsed); // Just send it as it is, it's validated
 		} catch (e) {
-			res.status(400).send("400\nEndpoint schema did not return in the expected format.");
+			res.status(502).send("502\nEndpoint schema did not return in the expected format.");
 			return null;
 		}
 	});
