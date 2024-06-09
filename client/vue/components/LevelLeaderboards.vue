@@ -62,19 +62,21 @@ export default defineComponent({
 
 <style scoped>
 .container {
-	height: 400px;
+	max-height: 400px;
+	border-radius: 5px;
 	overflow-y: auto;
 }
 table {
     width: 100%;
     background: var(--background-1);
-    border-radius: 5px;
 	table-layout: fixed;
+	border-collapse: collapse;
 }
 thead {
     background: var(--background-2);
 	position: sticky;
 	top: 0px;
+	box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.25);
 }
 thead tr th:first-child {
 	width: 10%;
