@@ -223,6 +223,7 @@ export default defineComponent({
 		}
 		if (this.$store.state.leaderboardsPreload) {
 			this.currentLeaderboardScores = this.$store.state.leaderboardsPreload;
+			this.currentLBs = this.levelInfo.leaderboardInfo[0] ?? null;
 			this.$store.state.leaderboardsPreload = null;
 		} else {
 			if (this.levelInfo.leaderboardInfo.length > 0) {
