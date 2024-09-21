@@ -14,6 +14,7 @@ import { getCommentInfosForLevel } from './comment';
 import { MUTABLE_MISSION_INFO_FIELDS } from '../../shared/constants';
 import { guessGameType, guessModification } from '../../shared/classification';
 import { MissionVerifier } from './verifier';
+import { MissionHasher } from './hasher';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.dds'];
@@ -33,6 +34,7 @@ export interface MissionDoc {
 	gems: number,
 	hasEasterEgg: boolean,
 	misHash: string,
+	astHash: string,
 	addedAt: number,
 	addedBy: number,
 	remarks: string,
@@ -59,6 +61,7 @@ export class Mission {
 	gems: number = 0;
 	hasEasterEgg: boolean = false;
 	misHash: string;
+	astHash: string;
 	/** Remember the paths that have already been visited to avoid exploring already known parts of the dependency tree again. */
 	visitedPaths = new Set<string>();
 	id: number;
@@ -98,6 +101,7 @@ export class Mission {
 		mission.gems = doc.gems;
 		mission.hasEasterEgg = doc.hasEasterEgg;
 		mission.misHash = doc.misHash;
+		mission.astHash = doc.astHash;
 		mission.addedAt = doc.addedAt;
 		mission.addedBy = doc.addedBy;
 		mission.remarks = doc.remarks;
@@ -131,6 +135,10 @@ export class Mission {
 		// Hash the mission text for easy duplicate detection later on
 		let misHash = crypto.createHash('sha256').update(missionText).digest('base64');
 		this.misHash = misHash;
+
+		// Hash the AST for more rigorous duplicate detection
+		let astHash = await MissionHasher.hashMission(null, missionText);
+		this.astHash = astHash;
 	}
 
 	/** Finds all the dependencies of this mission. */
@@ -443,6 +451,7 @@ export class Mission {
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg,
 			misHash: this.misHash,
+			astHash: this.astHash,
 			addedAt: this.addedAt,
 			addedBy: this.addedBy,
 			remarks: this.remarks,
@@ -621,6 +630,10 @@ export class Mission {
 		let misHash = crypto.createHash('sha256').update(missionText).digest('base64');
 		this.misHash = misHash;
 
+		// Update the AST hash
+		let astHash = await MissionHasher.hashMission(this, missionText);
+		this.astHash = astHash;
+
 		// Write the new .mis to disk
 		await fs.writeFile(path.join(this.baseDirectory, this.relativePath), missionText);
 		await this.storeFileSizes();
@@ -699,6 +712,7 @@ export class Mission {
 		let cameraPathNodeRegEx = /camerapath\d+/i;
 
 		const updateResult = (datablock: string) => {
+			if (datablock === undefined) return;
 			datablock = datablock.toLowerCase();
 
 			if (result === 'mbg' && !datablocksMBG.includes(datablock)) {
@@ -721,6 +735,7 @@ export class Mission {
 				queue.push(...element.elements);
 			} else if (element._type === MissionElementType.StaticShape) {
 				if (
+					element.datablock && 
 					element.datablock.toLowerCase() === 'pathnode' &&
 					cameraPathNodeRegEx.test(element._name)
 				) {
