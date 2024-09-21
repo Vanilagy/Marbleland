@@ -70,6 +70,7 @@ export default defineComponent({
 					method: 'POST'
 				});
 
+				this.$store.state.acknowledgedGuidelines = true;
 				this.$router.push({ name: 'Upload' });
 			} catch (e) {
 				console.error(e);
