@@ -22,7 +22,7 @@
 		<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
 	</ul>
 	<footer @click="showVersionHistory">
-		Marbleland v1.5.1
+		Marbleland v1.6.0
 	</footer>
 </template>
 

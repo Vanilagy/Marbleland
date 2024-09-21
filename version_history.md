@@ -1,5 +1,9 @@
 # Version history
 
+## 1.6.0
+- Added explicit content guidelindes which uploaded levels need to follow
+- Added more advanced, AST-based duplicate level checking
+
 ## 1.5.1
 - Fix styling
 
