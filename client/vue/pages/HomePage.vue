@@ -10,17 +10,17 @@
 	<p>
 		Every Marble Blast game has a "data" folder that contains all the levels, images, sounds and so on - this is also where you'll have to install custom levels. Levels downloaded from Marbleland come in a folder structure compatible with that of Marble Blast's "data" folder. Extract the downloaded .zip and drag all of its contents into your game's data folder (merging the two folders). If it asks you to replace any files, replace them.<br><br>
 		The location of this data folder depends on how you installed the game, but it's usually found in these places:<br><br>
-		<b>On Windows:</b>
-		<ul>
-			<li><b>MBG:</b> %LocalAppData%\VirtualStore\Program Files (x86)\Marble Blast Gold\marble\data</li>
-			<li><b>PQ:</b> %AppData%\PlatinumQuest\platinum\data</li>
-		</ul>
-		<b>On Mac:</b>
-		<ul>
-			<li><b>MBG:</b> /Applications/MarbleBlast Gold/MarbleBlastGold.app/marble/data (show package contents)</li>
-			<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
-		</ul>
 	</p>
+	<b>On Windows:</b>
+	<ul>
+		<li><b>MBG:</b> %LocalAppData%\VirtualStore\Program Files (x86)\Marble Blast Gold\marble\data</li>
+		<li><b>PQ:</b> %AppData%\PlatinumQuest\platinum\data</li>
+	</ul>
+	<b>On Mac:</b>
+	<ul>
+		<li><b>MBG:</b> /Applications/MarbleBlast Gold/MarbleBlastGold.app/marble/data (show package contents)</li>
+		<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
+	</ul>
 	<footer @click="showVersionHistory">
 		Marbleland v1.5.1
 	</footer>

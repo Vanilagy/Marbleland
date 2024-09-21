@@ -122,7 +122,7 @@ Returns the specified leaderboards for the given level in sorted order.
 ```
 
 ### `POST` /api/level/upload
-**Requires [authentication](#authentication).** Uploads a .zip archive containing a level and primes it for submission.
+**Requires [authentication](#authentication).** Uploads a .zip archive containing a level and primes it for submission. Note that uploading through the API implies you have read and agreed to the Marbleland content guidelines.
 
 **Request body:** The raw data of the .zip file with `Content-Type: application/zip`.
 
@@ -295,6 +295,20 @@ size | `number` | If set, resizes the avatar image to a square with side lengths
 **Requires [authentication](#authentication).** Sets the biography for a given account.
 
 **Request body:** The new biography as a `string` with `Content-Type: text/plain`.
+
+### `POST` /api/account/change-password
+**Requires [authentication](#authentication).** Changes the password of the authenticated account.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+    currentPassword: string,
+    newPassword: string
+}
+```
+
+### `POST` /api/account/acknowledge-guidelines
+**Requires [authentication](#authentication).** Acknowledges the upload content guidelines for the authenticated account.
 
 ## Pack
 ### `GET` /api/pack/list

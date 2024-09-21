@@ -112,6 +112,7 @@ export default defineComponent({
 				// User successfully signed in! Set values and route accordingly.
 				this.$store.state.loggedInAccount = json.signInInfo.profile;
 				this.$store.state.ownPacks = json.signInInfo.packs;
+				this.$store.state.acknowledgedGuidelines = json.signInInfo.acknowledgedGuidelines;
 				if (this.type === 'signUp') this.$store.state.nextInfoBannerMessage = "Account created successfully!";
 				this.$router.replace({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
 			}

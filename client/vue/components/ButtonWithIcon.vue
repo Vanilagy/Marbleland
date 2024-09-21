@@ -26,6 +26,8 @@ export default defineComponent({
 	cursor: pointer;
 	box-sizing: border-box;
 	border-radius: 5px;
+	padding: 0 16px;
+	white-space: nowrap;
 }
 
 .mainButton:hover {

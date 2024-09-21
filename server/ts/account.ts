@@ -20,7 +20,8 @@ export interface AccountDoc {
 		lastUsed: number
 	}[],
 	bio: string,
-	moderator?: boolean
+	moderator?: boolean,
+	acknowledgedGuidelines?: boolean
 }
 
 export const generateNewAccessToken = () => {
@@ -139,6 +140,7 @@ export const getSignInInfo = async (doc: AccountDoc): Promise<SignInInfo> => {
 
 	return {
 		profile: profileInfo,
-		packs: packs.map(x => ({ id: x._id, name: x.name, levelIds: x.levels }))
+		packs: packs.map(x => ({ id: x._id, name: x.name, levelIds: x.levels })),
+		acknowledgedGuidelines: doc.acknowledgedGuidelines ?? false
 	};
 };

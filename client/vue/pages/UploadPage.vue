@@ -6,12 +6,21 @@
 	<template v-if="$store.state.loggedInAccount">
 		<h1>Upload levels</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
+		<p class="contentGuidelines" @click="$router.push('/content-guidelines')">Content guidelines</p>
 		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
-		<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
-		<div v-if="!uploading" class="dropArea" @drop.prevent="dropFile" @dragover.prevent="" @dragenter="dragEntered = true" @dragleave="dragEntered = false" :style="{ 'borderColor': dragEntered? 'var(--text-color)' : '' }">
-			<img src="/assets/svg/download_black_24dp.svg" class="basicIcon">
-			<p>Or drop .zip here</p>
+		<a href="/content-guidelines" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->	
+		<div v-if="!$store.state.acknowledgedGuidelines">
+			<p class="acceptContentGuidelinesNotice">
+				In order to upload levels, you must first read and accept the <span @click="$router.push('/content-guidelines')">content guidelines</span>.
+			</p>
 		</div>
+		<template v-else>
+			<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
+			<div v-if="!uploading" class="dropArea" @drop.prevent="dropFile" @dragover.prevent="" @dragenter="dragEntered = true" @dragleave="dragEntered = false" :style="{ 'borderColor': dragEntered? 'var(--text-color)' : '' }">
+				<img src="/assets/svg/download_black_24dp.svg" class="basicIcon">
+				<p>Or drop .zip here</p>
+			</div>
+		</template>
 		<progress-bar class="progressBar" :loaded="uploadLoaded" :total="uploadTotal" :state="uploadState" v-if="uploading" :class="{ disabled: successResponse }"></progress-bar>
 		<div v-if="problems.length > 0" class="problemContainer">
 			<h3>There are problems with your levels that prevent them from being uploaded:</h3>
@@ -303,6 +312,34 @@ h3 {
 
 .learnMore:hover {
 	opacity: 1.0;
+	text-decoration: underline;
+}
+
+.contentGuidelines {
+	width: 150px;
+	margin: auto;
+	font-size: 14px;
+	opacity: 0.5;
+	text-align: center;
+	cursor: pointer;
+}
+
+.contentGuidelines:hover {
+	opacity: 1.0;
+	text-decoration: underline;
+}
+
+.acceptContentGuidelinesNotice {
+	text-align: center;
+	margin-top: 50px;
+}
+
+.acceptContentGuidelinesNotice span {
+	cursor: pointer;
+	font-weight: bold;
+}
+
+.acceptContentGuidelinesNotice span:hover {
 	text-decoration: underline;
 }
 

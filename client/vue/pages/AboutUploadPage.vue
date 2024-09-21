@@ -9,6 +9,9 @@
 	<p>
 		Marbleland allows you to upload a single level or multiple at once (batch upload). You'll need to upload a .zip archive that contains everything custom you made for your level that isn't already included in the base game (PlatinumQuest). More specifically, it needs to have the following files: For each level, please include the level itself (in form of a .mis mission file), an image thumbnail for it and all the required custom interiors (.difs) you made for it. Should you have used custom textures, skies, shapes or sounds, you'll need to include those as well. You can throw all these files into a .zip archive without any required directory structure - Marbleland will figure it out automatically.
 	</p>
+	<p>
+		Levels you upload must follow our <span @click="$router.push('/content-guidelines')" class="contentGuidelinesLink">content guidelines</span>.
+	</p>
 
 	<h3>Understanding the process</h3>
 	<p>
@@ -71,5 +74,14 @@ export default defineComponent({
 h1 {
 	text-align: center;
 	margin: 30px 0px;
+}
+
+.contentGuidelinesLink {
+	cursor: pointer;
+	font-weight: bold;
+}
+
+.contentGuidelinesLink:hover {
+	text-decoration: underline;
 }
 </style>

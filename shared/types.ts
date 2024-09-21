@@ -102,7 +102,9 @@ export interface SignInInfo {
 		id: number,
 		name: string,
 		levelIds: number[]
-	}[]
+	}[],
+	/** Whether the user has acknowledged the content guidelines. */	
+	acknowledgedGuidelines: boolean
 }
 
 /** Contains metadata about a pack. */

@@ -68,7 +68,8 @@ export const initAccountApi = () => {
 			passwordHash: hash,
 			created: Date.now(),
 			tokens: [],
-			bio: ''
+			bio: '',
+			acknowledgedGuidelines: false
 		};
 
 		let newToken = generateNewAccessToken();
@@ -269,6 +270,20 @@ export const initAccountApi = () => {
 		// Update the password hash
 		let hash = await bcrypt.hash(req.body.newPassword, 8);
 		doc.passwordHash = hash;
+		await db.accounts.update({ _id: doc._id }, doc);
+
+		res.end();
+	});
+
+	// Acknowledge the content guidelines
+	app.post('/api/account/acknowledge-guidelines', async (req, res) => {
+		let { doc } = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		doc.acknowledgedGuidelines = true;
 		await db.accounts.update({ _id: doc._id }, doc);
 
 		res.end();

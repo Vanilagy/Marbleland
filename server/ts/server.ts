@@ -48,6 +48,7 @@ export const generateHTML = async (req: express.Request, res: express.Response) 
 		let signInInfo = await getSignInInfo(accountDoc);
 		store.state.loggedInAccount = signInInfo.profile;
 		store.state.ownPacks = signInInfo.packs;
+		store.state.acknowledgedGuidelines = signInInfo.acknowledgedGuidelines;
 		setTokenCookie(res, token); // Update its expiration date
 	}
 

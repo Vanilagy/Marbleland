@@ -13,6 +13,7 @@ import NotFoundPage from '../vue/pages/NotFoundPage.vue';
 import AboutUploadPage from '../vue/pages/AboutUploadPage.vue';
 import ChangePasswordPage from '../vue/pages/ChangePasswordPage.vue';
 import ProtocolErrorPage from '../vue/pages/ProtocolErrorPage.vue';
+import ContentGuidelinesPage from "../vue/pages/ContentGuidelinesPage.vue";
 
 const routes = [{
 	path: '/',
@@ -62,6 +63,10 @@ const routes = [{
 	path: '/about-upload',
 	name: 'AboutUpload',
 	component: AboutUploadPage
+}, {
+	path: '/content-guidelines',
+	name: 'ContentGuidelines',
+	component: ContentGuidelinesPage
 }, {
 	path: '/change-password',
 	name: 'ChangePassword',

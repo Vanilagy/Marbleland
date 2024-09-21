@@ -109,6 +109,7 @@ export const createNewStore = () => {
 			},
 			/** Stores the profile info of the own, currently logged-in account. */
 			loggedInAccount: null as ProfileInfo,
+			acknowledgedGuidelines: false,
 			/** Stoers a list of all own packs. */
 			ownPacks: null as SignInInfo["packs"],
 			/** Used to update images accordingly. */
