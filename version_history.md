@@ -1,5 +1,9 @@
 # Version history
 
+## 1.6.1
+- Stop the leaderboard query URL from leaking to the client
+- Remove leaderboard request from server prefetch
+
 ## 1.6.0
 - Added explicit content guidelindes which uploaded levels need to follow
 - Added more advanced, AST-based duplicate level checking

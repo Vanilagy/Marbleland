@@ -485,7 +485,7 @@ LevelInfo & {
 	missionInfo: Record<string, string>, // All the properties of the .mis file's MissionInfo element
 	dependencies: string[], // The list of files (assets) the given level depends on
 	playInfo: GameDefinition[], // Contains the definitions of the games the level can be played on
-	leaderboardInfo: LeaderboardDefinition[] // Contains the definitions of the leaderboards available for the level
+	leaderboardInfo: ReducedLeaderboardDefinition[] // Contains the definitions of the leaderboards available for the level
 }
 ```
 
@@ -509,6 +509,12 @@ Contains the definition of a leaderboard source for levels.
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
 	queryUrl: string, // The leaderboard endpoint that can be used to query the leaderboard for the level
 }
+```
+
+### ReducedLeaderboardDefinition
+Describes an available leaderboard for the frontend. Reduced in order not to leak the query URL, which is only known by the server.
+```typescript
+Pick<LeaderboardDefinition, 'id' | 'name'>
 ```
 
 ### PackInfo

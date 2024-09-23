@@ -133,7 +133,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { CommentInfo, ExtendedLevelInfo, LeaderboardDefinition, LeaderboardScore, Modification, PackInfo } from '../../../shared/types';
+import { CommentInfo, ExtendedLevelInfo, ReducedLeaderboardDefinition, LeaderboardScore, Modification, PackInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
 import PlayButton from '../components/PlayButton.vue';
 import ProfileBanner from '../components/ProfileBanner.vue';
@@ -198,7 +198,7 @@ export default defineComponent({
 			missionInfoCodeProblems: '',
 			hasDownloaded: false,
 			acknowledgedDeletionConsequences: false,
-			currentLBs: null as LeaderboardDefinition,
+			currentLBs: null as ReducedLeaderboardDefinition,
 			currentLeaderboardScores: [] as LeaderboardScore[],
 			lbUpdateToken: 0,
 			lbStatusMessage: ''
@@ -270,14 +270,6 @@ export default defineComponent({
 		
 		let mission = Mission.fromDoc(doc);
 		this.levelInfo = await mission.createExtendedLevelInfo(this.$store.state.loggedInAccount?.id);
-
-		if (this.levelInfo.leaderboardInfo.length > 0) {
-			let lbQuery = this.levelInfo.leaderboardInfo[0].queryUrl;
-
-			let resp = await node_fetch(lbQuery);
-			let jsonData = await resp.json() as any;
-			this.$store.state.leaderboardsPreload = jsonData.scores as LeaderboardScore[];
-		}
 
 		this.$store.state.levelPreload = this.levelInfo;
 	},
@@ -541,7 +533,7 @@ export default defineComponent({
 		toggleLBs() {
 			this.showLBs = !this.showLBs;
 		},
-		async setLeaderboards(lb: LeaderboardDefinition) {
+		async setLeaderboards(lb: ReducedLeaderboardDefinition) {
 			this.currentLBs = lb;
 			this.currentLeaderboardScores = [];
 			this.lbStatusMessage = 'Fetching scores...';

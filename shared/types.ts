@@ -13,14 +13,15 @@ export enum Modification {
 	PlatinumQuest = "platinumquest"
 }
 
-export type DataDefinition<T extends string> = {
+export type DataDefinitionBase = {
 	id: string,
 	name: string,
 	datablockCompatibility: Mission['datablockCompatibility'],
-} & { [K in T]: string };
+};
 
-export type GameDefinition = DataDefinition<"playUrl">;
-export type LeaderboardDefinition = DataDefinition<'queryUrl'>;
+export type GameDefinition = DataDefinitionBase & { playUrl: string };
+export type LeaderboardDefinition = DataDefinitionBase & { queryUrl: string };
+export type ReducedLeaderboardDefinition = Pick<LeaderboardDefinition, 'id' | 'name'>;
 
 export interface LeaderboardScore {
 	username: string,
@@ -76,7 +77,7 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	missionInfo: Record<string, string>,
 	dependencies: string[],
 	playInfo: GameDefinition[],
-	leaderboardInfo: LeaderboardDefinition[]
+	leaderboardInfo: ReducedLeaderboardDefinition[]
 }
 
 /** Contains metadata about a profile. */
