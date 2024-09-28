@@ -1,5 +1,8 @@
 # Version history
 
+## 1.7.0
+- Allow direct folder upload
+
 ## 1.6.2
 - Added extension-format conformity validation for level upload
 

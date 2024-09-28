@@ -15,10 +15,13 @@
 			</p>
 		</div>
 		<template v-else>
-			<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="select" :class="{ disabled: uploading }">Select .zip to upload</button-with-icon>
+			<div class="uploadButtons">
+				<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="selectFile" :class="{ disabled: uploading }">Select .zip</button-with-icon>
+				<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="selectFolder" :class="{ disabled: uploading }">Select folder</button-with-icon>
+			</div>
 			<div v-if="!uploading" class="dropArea" @drop.prevent="dropFile" @dragover.prevent="" @dragenter="dragEntered = true" @dragleave="dragEntered = false" :style="{ 'borderColor': dragEntered? 'var(--text-color)' : '' }">
 				<img src="/assets/svg/download_black_24dp.svg" class="basicIcon">
-				<p>Or drop .zip here</p>
+				<p>Or drop files here</p>
 			</div>
 		</template>
 		<progress-bar class="progressBar" :loaded="uploadLoaded" :total="uploadTotal" :state="uploadState" v-if="uploading" :class="{ disabled: successResponse }"></progress-bar>
@@ -105,7 +108,7 @@ export default defineComponent({
 	},
 	methods: {
 		/** Show a file dialog that allows the user to select a .zip file, then upload it to the server. */
-		select() {
+		selectFile() {
 			let fileInput = document.createElement('input');
 			fileInput.setAttribute('type', 'file');
 			fileInput.setAttribute('accept', 'application/zip');
@@ -113,10 +116,22 @@ export default defineComponent({
 
 			fileInput.addEventListener('change', () => {
 				let file = fileInput.files[0];
-				if (file) this.uploadFile(file);
+				if (file) this.uploadZipFile(file);
 			});
 		},
-		uploadFile(file: File) {
+		selectFolder() {
+			let fileInput = document.createElement('input');
+			fileInput.setAttribute('type', 'file');
+			fileInput.setAttribute('webkitdirectory', '');
+			fileInput.click();
+
+			fileInput.addEventListener('change', () => {
+				if (fileInput.files.length > 0) {
+					this.uploadFiles([...fileInput.files]);
+				}
+			});
+		},
+		uploadZipFile(file: File) {
 			if (!file.name.endsWith('.zip')) {
 				alert("You can only upload .zip files.");
 				return;
@@ -131,6 +146,32 @@ export default defineComponent({
 			request.open('POST', '/api/level/upload', true);
 			request.setRequestHeader('Content-Type', 'application/zip');
 			request.withCredentials = true;
+			request.send(file);
+
+			this.handleUpload(request);
+		},
+		uploadFiles(files: File[]) {
+			let totalSizeSum = files.reduce((sum, file) => sum + file.size, 0);
+			if (totalSizeSum > 100e6) {
+				alert("The total size of the files you selected is too large (max 100 MB).");
+				return;
+			}
+
+			let formData = new FormData();
+			for (let file of files) formData.append('files', file);
+
+			let request = new XMLHttpRequest();
+			request.open('POST', '/api/level/upload', true);
+			request.withCredentials = true;
+			request.send(formData);
+
+			this.handleUpload(request);
+		},
+		handleUpload(request: XMLHttpRequest) {
+			this.resetUpload();
+			this.uploading = true;
+			this.problems = [];
+			this.uploadState = 'neutral';
 
 			request.upload.onprogress = (ev) => {
 				this.uploadLoaded = ev.loaded;
@@ -161,12 +202,6 @@ export default defineComponent({
 					this.remarks = Array(json.missions.length).fill('');
 				}
 			};
-
-			request.send(file);
-			this.resetUpload();
-			this.uploading = true;
-			this.problems = [];
-			this.uploadState = 'neutral';
 		},
 		resetUpload() {
 			this.uploadLoaded = 0;
@@ -225,17 +260,46 @@ export default defineComponent({
 				alert("There was an error submitting your level. This is either because of a bug or because you waited too long to submit after initially uploading your .zip. If you want to try again, refresh this page.");
 			}
 		},
-		dropFile(e: DragEvent) {
+		async dropFile(e: DragEvent) {
 			this.dragEntered = false;
-			let files = e.dataTransfer.files;
+			let files: File[] = [];
 
-			if (files.length !== 1) {
-				alert("You must drop exactly one file.");
-				return;
+			const readEntry = async (entry: FileSystemEntry) => {
+				if (entry.isFile) {
+					let file = await new Promise<File>((resolve) => {
+						(entry as FileSystemFileEntry).file(resolve);
+					});
+					files.push(file);
+				} else if (entry.isDirectory) {
+					let reader = (entry as FileSystemDirectoryEntry).createReader();
+
+					while (true) {
+						let entries = await new Promise<FileSystemEntry[]>((resolve) => {
+							reader.readEntries(resolve);
+						});
+						if (entries.length === 0) break;
+
+						for (let entry of entries) {
+							await readEntry(entry);
+						}
+					}
+				}
+			};
+
+			for (let item of e.dataTransfer.items) {
+				let entry = item.webkitGetAsEntry();
+				if (!entry) continue;
+
+				await readEntry(entry);
 			}
 
-			let file = files[0];
-			this.uploadFile(file);
+			if (files.length === 0) return;
+
+			if (files.length === 1 && files[0].type === 'application/zip') {
+				this.uploadZipFile(files[0]);
+			} else {
+				this.uploadFiles(files);
+			}
 		}
 	}
 });
@@ -341,6 +405,17 @@ h3 {
 
 .acceptContentGuidelinesNotice span:hover {
 	text-decoration: underline;
+}
+
+.uploadButtons {
+	display: flex;
+	gap: 16px;
+	justify-content: center;
+}
+
+.uploadButtons > .button {
+	margin-left: 0;
+	margin-right: 0;
 }
 
 .dropArea {

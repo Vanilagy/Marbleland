@@ -4,6 +4,7 @@ import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
 import fetch from 'node-fetch';
 import jszip from 'jszip';
+import multer from 'multer';
 import { z } from 'zod';
 import { LevelInfo, PackInfo } from "../../../shared/types";
 import { authorize } from "../account";
@@ -239,8 +240,10 @@ export const initLevelApi = () => {
 		res.send(packInfos);
 	});
 
+	const upload = multer();
+
 	// Upload a level archive. This doesn't yet submit it, but causes the processing/verification step.
-	app.post('/api/level/upload', async (req, res) => {
+	app.post('/api/level/upload', upload.any(), async (req, res) => {
 		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
@@ -254,10 +257,19 @@ export const initLevelApi = () => {
 		let zip: jszip;
 		let upload: MissionUpload;
 
-		try {
-			zip = await jszip.loadAsync(req.body);
-		} catch (e) {
-			problems.push("The uploaded file couldn't be unzipped.");
+		if (req.headers['content-type'].startsWith('multipart/form-data')) {
+			zip = new jszip();
+
+			// Simply create a zip from the uploaded files
+			for (let file of req.files as Express.Multer.File[]) {
+				zip.file(file.originalname, file.buffer);
+			}
+		} else {
+			try {
+				zip = await jszip.loadAsync(req.body);
+			} catch (e) {
+				problems.push("The uploaded file couldn't be unzipped.");
+			}
 		}
 
 		if (zip) {
