@@ -12,6 +12,7 @@ import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
 import { MissionHasher } from './hasher';
+import { MagickFormat } from '@imagemagick/magick-wasm';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -185,10 +186,15 @@ export class MissionUpload {
 		let imageFound = false;
 
 		for (let filePath in this.zip.files) {
+			let isValidImage = false;
+
 			if (!imageFound && potentialNames.includes(filePath.toLowerCase())) {
 				imageFound = true;
 
 				let buffer = await this.zip.files[filePath].async('nodebuffer');
+				isValidImage ||= await this.checkImage(filePath, buffer);
+				if (!isValidImage) continue;
+
 				let dimensions = await Util.getImageDimensions(buffer);
 
 				if (Math.max(dimensions.width, dimensions.height) < 128) {
@@ -201,6 +207,9 @@ export class MissionUpload {
 			// Include all files as a dependency who start with the .mis file name and end with an image extension. So, level.mis would cause the inclusion of level.png, level.jpg and also level.prev.png and things like that.
 			let fileName = Util.getFileName(filePath);
 			if (fileName.toLowerCase().startsWith(Util.removeExtension(Util.getFileName(group.misFile.name).toLowerCase()) + '.') && IMAGE_EXTENSIONS.includes(path.extname(fileName.toLowerCase()))) {
+				isValidImage ||= await this.checkImage(filePath); // Due to short circuiting, this won't recheck the image if it's already been validated above
+				if (!isValidImage) continue;
+
 				group.normalizedDirectory.set(path.posix.join('missions', fileName), this.zip.files[filePath]);
 			}
 		}
@@ -300,6 +309,11 @@ export class MissionUpload {
 					// The dependency was found in the archive, so add it to the normalized directory
 					found = this.zip.files[name];
 					group.normalizedDirectory.set(path.posix.join(relativeDirectory, fileName2), this.zip.files[name]);
+
+					if (IMAGE_EXTENSIONS.includes(path.extname(name.toLowerCase()))) {
+						// If it's an image, check it
+						await this.checkImage(name);
+					}
 				} else {
 					// The dependency was found more than once and we aren't sure which one is meant, so abort.
 					this.problems.add(`The dependency ${dependency}, required by ${requiredBy}, could not be uniquely resolved to a file in the archive.`);
@@ -353,6 +367,11 @@ export class MissionUpload {
 				continue;
 			}
 
+			if (path.extname(found.name.toLowerCase()) !== '.dif') {
+				this.problems.add(`Interior file ${dependency} has the wrong file extension; it must be .dif.`);
+				// We don't need abort here as it's still a valid interior file internally
+			}
+
 			// Go over all materials and add them as dependencies
 			for (let interior of dif.interiors.concat(dif.subObjects)) {
 				let usedMaterials = new Set(interior.surfaces.map(x => x.textureIndex));
@@ -375,6 +394,11 @@ export class MissionUpload {
 			if (!result) continue;
 
 			let { found, relativeDirectory } = result;
+
+			if (path.extname(found.name.toLowerCase()) !== '.dml') {
+				this.problems.add(`Sky file ${dependency} has the wrong file extension; it must be .dml.`);
+				continue;
+			}
 
 			// Read in the .dml
 			let dmlText = await found.async('text');
@@ -406,6 +430,11 @@ export class MissionUpload {
 				continue;
 			}
 
+			if (path.extname(found.name.toLowerCase()) !== '.dts') {
+				this.problems.add(`Shape file ${dependency} has the wrong file extension; it must be .dts.`);
+				// We don't need to abort here as it's still a valid shape file internally
+			}
+
 			// Go over all materials and register them as dependencies
 			for (let matName of dtsFile.matNames) {
 				let result2 = await this.registerDependency(group, path.posix.join(relativeDirectory, matName), 'extension-agnostic', dependency, IMAGE_EXTENSIONS.concat(['.ifl']));
@@ -426,6 +455,47 @@ export class MissionUpload {
 				}
 			}
 		}
+	}
+
+	async checkImage(filePath: string, buffer?: Buffer): Promise<boolean> {
+		if (!buffer) {
+			buffer = await this.zip.files[filePath].async('nodebuffer');
+		}
+
+		let extension = path.extname(filePath).toLowerCase();
+		if (!IMAGE_EXTENSIONS.includes(extension)) {
+			this.problems.add(`Image ${filePath} has an unsupported extension. Only ${new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(IMAGE_EXTENSIONS)} are allowed.`);
+			return false;
+		}
+
+		let imageFormat: MagickFormat;
+
+		try {
+			imageFormat = await Util.getImageFormat(buffer);
+		} catch (e) {
+			this.problems.add(`Image ${filePath} couldn't be read and is likely invalid.`);
+			return false;
+		}
+		
+		// Check that the extension matches the actual format. This is vital as Torque uses the extension to pick the decoder
+		if ((extension === '.jpg' || extension === '.jpeg') && !(imageFormat === MagickFormat.Jpg || imageFormat === MagickFormat.Jpeg)) {
+			this.problems.add(`Image ${filePath} has the wrong extension: Internally, it is a ${imageFormat.toUpperCase()} file.`);
+			return false;
+		}
+		if (extension === '.png' && imageFormat !== MagickFormat.Png) {
+			this.problems.add(`Image ${filePath} has the wrong extension: Internally, it is a ${imageFormat.toUpperCase()} file.`);
+			return false;
+		}
+		if (extension === '.bmp' && imageFormat !== MagickFormat.Bmp) {
+			this.problems.add(`Image ${filePath} has the wrong extension: Internally, it is a ${imageFormat.toUpperCase()} file.`);
+			return false;
+		}
+		if (extension === '.dds' && imageFormat !== MagickFormat.Dds) {
+			this.problems.add(`Image ${filePath} has the wrong extension: Internally, it is a ${imageFormat.toUpperCase()} file.`);
+			return false;
+		}
+
+		return true;
 	}
 
 	hasExpired() {

@@ -1,6 +1,6 @@
 <template>
 	<h1>Welcome to Marbleland</h1>
-	<h2>A custom level sharing platform for Marble Blast</h2>
+	<h2>The custom level sharing platform for Marble Blast</h2>
 	<div class="actions">
 		<home-action v-for="action of actions" :key="action.name" :icon="action.icon" :name="action.name" :description="action.description" :path="action.path"></home-action>		
 	</div>
@@ -22,7 +22,7 @@
 		<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
 	</ul>
 	<footer @click="showVersionHistory">
-		Marbleland v1.6.1
+		Marbleland v1.6.2
 	</footer>
 </template>
 

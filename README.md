@@ -1,7 +1,7 @@
 <img src="client/assets/img/favicon.png" width=100>
 
 # Marbleland
-A custom level sharing platform for Marble Blast, allowing you to browse, download and upload custom levels and level packs.<br>https://marbleland.vaniverse.io/
+The custom level sharing platform for Marble Blast, allowing you to browse, download and upload custom levels and level packs.<br>https://marbleland.vaniverse.io/
 
 <img src="client/assets/img/homepage.jpg" width=640>
 

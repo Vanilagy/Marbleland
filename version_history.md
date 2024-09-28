@@ -1,5 +1,8 @@
 # Version history
 
+## 1.6.2
+- Added extension-format conformity validation for level upload
+
 ## 1.6.1
 - Stop the leaderboard query URL from leaking to the client
 - Remove leaderboard request from server prefetch

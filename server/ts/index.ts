@@ -37,7 +37,9 @@ const init = async () => {
 	fs.ensureDirSync(path.join(__dirname, 'storage/pack_thumbnails'));
 	await initGlobals();
 
-	await initializeImageMagick();
+	const wasmLocation = path.join(__dirname, '../node_modules/@imagemagick/magick-wasm/dist/magick.wasm');
+	const wasmBytes = fs.readFileSync(wasmLocation);
+	await initializeImageMagick(wasmBytes);
 	
 	let argv = minimist(process.argv.slice(2));
 

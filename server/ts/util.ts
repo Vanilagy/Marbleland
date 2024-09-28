@@ -1,5 +1,4 @@
-import { ImageMagick } from '@imagemagick/magick-wasm';
-import { MagickFormat } from '@imagemagick/magick-wasm/magick-format';
+import { ImageMagick, MagickFormat } from '@imagemagick/magick-wasm';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { DirectoryStructure } from './globals';
@@ -274,25 +273,46 @@ export class Util {
 
 	/** Convert any image format (even niche stuff like BMP and DDS) to a PNG image buffer. */
 	static nicheFormatToPng(nicheBuffer: Buffer) {
-		return new Promise<Buffer>(resolve => {
-			ImageMagick.read(nicheBuffer, image => {
-				image.write(data => {
-					resolve(Buffer.from(data));
-					image.dispose();
-				}, MagickFormat.Png);
-			});
+		return new Promise<Buffer>((resolve, reject) => {
+			try {
+				ImageMagick.read(nicheBuffer, image => {
+					image.write(MagickFormat.Png, data => {
+						resolve(Buffer.from(data));
+						image.dispose();
+					});
+				});
+			} catch (e) {
+				reject(e);
+			}
 		});
 	}
 
 	static getImageDimensions(buffer: Buffer) {
-		return new Promise<{ width: number, height: number }>(resolve => {
-			ImageMagick.read(buffer, image => {
-				resolve({
-					width: image.width,
-					height: image.height
+		return new Promise<{ width: number, height: number }>((resolve, reject) => {
+			try {
+				ImageMagick.read(buffer, image => {
+					resolve({
+						width: image.width,
+						height: image.height
+					});
+					image.dispose();
 				});
-				image.dispose();
-			});
+			} catch (e) {
+				reject(e);
+			}
+		});
+	}
+
+	static getImageFormat(buffer: Buffer) {
+		return new Promise<MagickFormat>((resolve, reject) => {
+			try {
+				ImageMagick.read(buffer, image => {
+					resolve(image.format);
+					image.dispose();
+				});
+			} catch (e) {
+				reject(e);
+			}
 		});
 	}
 

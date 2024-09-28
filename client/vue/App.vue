@@ -1,12 +1,12 @@
 <template>
 	<Head>
 		<title>Marbleland</title>
-		<meta name="description" content="Marbleland is a custom level sharing platform for Marble Blast on which you can find, download, upload and share levels and level packs.">
+		<meta name="description" content="Marbleland is the custom level sharing platform for Marble Blast on which you can find, download, upload and share levels and level packs.">
 		<meta name="og:title" content="Marbleland">
 		<meta name="og:site_name" content="Marbleland">
 		<meta name="og:type" content="website">
 		<meta name="og:url" :content="origin + $route.path">
-		<meta name="og:description" content="Marbleland is a custom level sharing platform for Marble Blast on which you can find, download, upload and share levels and level packs.">
+		<meta name="og:description" content="Marbleland is the custom level sharing platform for Marble Blast on which you can find, download, upload and share levels and level packs.">
 		<meta name="og:image" :content="origin + '/assets/img/favicon.png'">
 	</Head>
 	<navigation-bar></navigation-bar>
