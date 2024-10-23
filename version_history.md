@@ -1,5 +1,8 @@
 # Version history
 
+## 1.7.1
+- Fixed file resolution logic in certain cases
+
 ## 1.7.0
 - Allow direct folder upload
 

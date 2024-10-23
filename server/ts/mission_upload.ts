@@ -292,13 +292,11 @@ export class MissionUpload {
 
 		// Then, check the archive and see if it contains the dependency
 		for (let name in this.zip.files) {
-			let matches: boolean;
 			let fileName2 = name.slice(name.lastIndexOf('/') + 1); // We ignore the path completely because we assume the archive to be "flattened"
+			let matches = fileName2.toLowerCase() === fileName.toLowerCase();
 
-			if (matchType === 'exact') {
-				matches = fileName2.toLowerCase() === fileName.toLowerCase();
-			} else {
-				matches = fileName2.toLowerCase() === fileName.toLowerCase() + path.extname(fileName2.toLowerCase());
+			if (matchType === 'extension-agnostic') {
+				matches ||= fileName2.toLowerCase() === fileName.toLowerCase() + path.extname(fileName2.toLowerCase()); 
 			}
 
 			// Also check if the extension is permitted

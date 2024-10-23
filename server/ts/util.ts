@@ -202,7 +202,7 @@ export class Util {
 
 	/** Tries to find a file in a given list of base directories. The things that need to be "found" here can be the file's extension (might not be known, only
 	 * the part before) or the subdirectory (within the base directory) that the file lies in.
-	 * @param fileName The file name (without path and possibly without extension of the file we want to fine.
+	 * @param fileName The file name (without path and possibly without extension) of the file we want to find.
 	 * @param relativePath The path relative to the base directories in which we want to start the search.
 	 * @param baseDirectories A list of base directories used for actually finding the file. Will always return the match from the first base directory in which
 	 * a match was found.
@@ -218,8 +218,12 @@ export class Util {
 		let lowerCase = fileName.toLowerCase();
 
 		for (let file of concatted) {
-			if (Util.removeExtension(file).toLowerCase() === lowerCase && (!permittedExtensions || permittedExtensions.includes(path.extname(file).toLowerCase())))
-				return path.posix.join(relativePath, file);
+			// Check if the name matches
+			if (file.toLowerCase() !== lowerCase && Util.removeExtension(file).toLowerCase() !== lowerCase) continue;
+			// Check if the extension is permitted
+			if (permittedExtensions && !permittedExtensions.includes(path.extname(file).toLowerCase())) continue;
+
+			return path.posix.join(relativePath, file);
 		}
 
 		let slashIndex = relativePath.lastIndexOf('/');
