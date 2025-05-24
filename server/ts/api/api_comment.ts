@@ -1,4 +1,4 @@
-import { authorize } from "../account";
+import { authorize, isSuspended } from "../account";
 import { CommentDoc, getCommentInfosForLevel } from "../comment";
 import { db } from "../globals";
 import { app } from "../server";
@@ -9,6 +9,11 @@ export const initCommentApi = () => {
 		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
 			return;
 		}
 

@@ -21,7 +21,9 @@ export interface AccountDoc {
 	}[],
 	bio: string,
 	moderator?: boolean,
-	acknowledgedGuidelines?: boolean
+	acknowledgedGuidelines?: boolean,
+	suspended?: boolean,
+	suspensionReason?: string
 }
 
 export const generateNewAccessToken = () => {
@@ -91,6 +93,11 @@ export const authorize = async (req: express.Request) => {
 	return { doc, token: tokenString };
 };
 
+/** Checks if an account is suspended. Returns true if suspended, false if allowed. */
+export const isSuspended = (doc: AccountDoc): boolean => {
+	return !!doc.suspended;
+};
+
 /** Generates the profile info for a given account. */
 export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 	let hasAvatar = await fs.pathExists(path.join(__dirname, `storage/avatars/${doc._id}.jpg`));
@@ -99,7 +106,9 @@ export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 		id: doc._id,
 		username: doc.username,
 		hasAvatar,
-		isModerator: !!doc.moderator
+		isModerator: !!doc.moderator,
+		isSuspended: !!doc.suspended,
+		suspensionReason: doc.suspensionReason
 	};
 };
 

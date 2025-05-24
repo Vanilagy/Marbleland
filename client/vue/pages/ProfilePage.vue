@@ -21,7 +21,13 @@
 		<p class="moderatorBadge" v-if="profileInfo.isModerator">Moderator</p>
 		<template v-if="!editingBio || !hasOwnershipPermissions">
 			<p class="bio" :class="{ emptyBio: !profileInfo.bio }" v-html="bio"></p>
-			<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio basicIcon" title="Edit bio" v-if="hasOwnershipPermissions" @click="editingBio = true">
+			<div class="bioActions" v-if="hasOwnershipPermissions">
+				<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio basicIcon" title="Edit bio" @click="editingBio = true">
+				<template v-if="!isOwnProfile && !profileInfo.isModerator">
+					<img v-if="!profileInfo.isSuspended" src="/assets/svg/gavel_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" class="suspendIcon basicIcon" title="Suspend account" @click="showSuspendConfirmation">
+					<img v-else src="/assets/svg/healing_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" class="unsuspendIcon basicIcon" title="Unsuspend account" @click="unsuspendAccount">
+				</template>
+			</div>
 		</template>
 		<template v-else>
 			<textarea class="bioTextarea basicTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
@@ -33,11 +39,61 @@
 			Pack downloads: <strong>{{ packDownloads }}</strong><br>
 			Pack loves: <strong>{{ packLoves }}</strong>
 		</p>
-		<h3>Uploaded levels ({{ profileInfo.uploadedLevels.length }})</h3>
-		<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
-		<h3>Created packs ({{ profileInfo.createdPacks.length }})</h3>
-		<panel-list mode="pack" :entries="profileInfo.createdPacks" :defaultCount="4" noEntriesNotice="This user has yet to create any packs."></panel-list>
+		<template v-if="profileInfo.isSuspended">
+			<div class="suspendedBanner">
+				<h2>This account has been suspended</h2>
+				<p v-if="profileInfo.suspensionReason"><strong>Reason:</strong> {{ profileInfo.suspensionReason }}</p>
+				<p>This user's content is no longer available.</p>
+				<p class="snarkMessage">Don't be like this user.</p>
+			</div>
+		</template>
+		<template v-else>
+			<h3>Uploaded levels ({{ profileInfo.uploadedLevels.length }})</h3>
+			<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
+			<h3>Created packs ({{ profileInfo.createdPacks.length }})</h3>
+			<panel-list mode="pack" :entries="profileInfo.createdPacks" :defaultCount="4" noEntriesNotice="This user has yet to create any packs."></panel-list>
+		</template>
+		
 	</div>
+
+	<Modal ref="suspendConfirmationModal">
+		<h2 class="suspendModalHeading">CAUTION: You're about to suspend "{{ profileInfo?.username }}"</h2>
+		<hr />
+		<div class="suspendModalBody">
+			<p>Account suspension will permanently:</p>
+			<ul>
+				<li><strong>Delete all levels</strong> uploaded by this user</li>
+				<li><strong>Delete all packs</strong> created by this user</li>
+				<li><strong>Delete all comments</strong> posted by this user</li>
+				<li><strong>Block all future actions</strong> from this account</li>
+			</ul>
+			<p><strong>This action cannot be undone.</strong> The content will be permanently lost.</p>
+
+			<p>Suspension reason (will be displayed publicly):</p>
+			<textarea class="basicTextarea suspensionReasonTextarea" v-model="suspensionReason" placeholder="Concisely describe why this account has been suspended..." maxlength="500" rows="3"></textarea>
+
+			<div class="suspendModalCheckboxContainer">
+				<input type="checkbox" id="suspendAcknowledgement" class="basicCheckbox" v-model="acknowledgedSuspensionConsequences">
+				<label for="suspendAcknowledgement" class="notSelectable">
+					<em>I understand the consequences of account suspension</em>
+				</label>
+			</div>
+
+			<div v-if="acknowledgedSuspensionConsequences" class="usernameConfirmation">
+				<p>Please type the username "<strong>{{ profileInfo?.username }}</strong>" to confirm:</p>
+				<input type="text" class="basicTextInput" v-model="usernameConfirmation" :placeholder="profileInfo?.username">
+			</div>
+		</div>
+		<hr />
+		<div class="suspendModalButtons">
+			<ButtonWithIcon v-if="canSuspend" class="suspendAccountButton" @click="suspendAccount">
+				Suspend Account
+			</ButtonWithIcon>
+			<ButtonWithIcon @click="closeSuspendConfirmationModal">
+				Cancel
+			</ButtonWithIcon>
+		</div>
+	</Modal>
 </template>
 
 <script lang="ts">
@@ -48,6 +104,7 @@ import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import PackPanel from '../components/PackPanel.vue';
 import Loader from '../components/Loader.vue';
+import Modal from '../components/Modal.vue';
 import { Util } from '../../ts/util';
 import { Head } from '@vueuse/head';
 import { db } from '../../../server/ts/globals';
@@ -59,7 +116,10 @@ export default defineComponent({
 		return {
 			profileInfo: null as ExtendedProfileInfo,
 			editingBio: false,
-			notFound: false
+			notFound: false,
+			acknowledgedSuspensionConsequences: false,
+			usernameConfirmation: '',
+			suspensionReason: ''
 		};
 	},
 	async mounted() {
@@ -118,6 +178,14 @@ export default defineComponent({
 		},
 		packLoves(): number {
 			return this.profileInfo.createdPacks.reduce((a, b) => a + b.lovedCount, 0);
+		},
+		isOwnProfile(): boolean {
+			return this.profileInfo?.id === this.$store.state.loggedInAccount?.id;
+		},
+		canSuspend(): boolean {
+			return this.acknowledgedSuspensionConsequences && 
+			       this.usernameConfirmation === this.profileInfo?.username &&
+			       this.suspensionReason.trim().length > 0;
 		}
 	},
 	methods: {
@@ -161,6 +229,51 @@ export default defineComponent({
 					'Content-Type': 'text/plain'
 				}
 			});
+		},
+		showSuspendConfirmation() {
+			this.acknowledgedSuspensionConsequences = false;
+			this.usernameConfirmation = '';
+			this.suspensionReason = '';
+			(this.$refs.suspendConfirmationModal as any).show();
+		},
+		closeSuspendConfirmationModal() {
+			(this.$refs.suspendConfirmationModal as any).hide();
+		},
+		async suspendAccount() {
+			this.closeSuspendConfirmationModal();
+
+			let response = await fetch(`/api/account/${this.profileInfo.id}/suspend`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					reason: this.suspensionReason.trim()
+				})
+			});
+
+			if (response.ok) {
+				alert(`Account "${this.profileInfo.username}" has been suspended successfully.`);
+				// Reload the page to fetch updated content
+				window.location.reload();
+			} else {
+				alert("Something went wrong while suspending the account.");
+			}
+		},
+		async unsuspendAccount() {
+			if (!confirm(`Are you sure you want to unsuspend "${this.profileInfo.username}"? This will not restore any content that got deleted during suspension.`)) return;
+
+			let response = await fetch(`/api/account/${this.profileInfo.id}/unsuspend`, {
+				method: 'POST'
+			});
+
+			if (response.ok) {
+				alert(`Account "${this.profileInfo.username}" has been unsuspended successfully.`);
+				// Reload the page to fetch updated content
+				window.location.reload();
+			} else {
+				alert("Something went wrong while unsuspending the account.");
+			}
 		}
 	},
 	components: {
@@ -169,7 +282,8 @@ export default defineComponent({
 		ButtonWithIcon,
 		PackPanel,
 		Loader,
-		Head
+		Head,
+		Modal
 	}
 });
 </script>
@@ -245,15 +359,28 @@ h1 {
 	font-style: italic;
 }
 
-.editBio {
-	opacity: 0.25 !important;
-	cursor: pointer;
-	display: block;
-	margin: auto;
+.bioActions {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 5px;
 }
 
-.editBio:hover {
+.editBio, .suspendIcon, .unsuspendIcon {
+	opacity: 0.25 !important;
+	cursor: pointer;
+}
+
+.editBio:hover, .suspendIcon:hover, .unsuspendIcon:hover {
 	opacity: 0.75 !important;
+}
+
+.suspendIcon {
+	filter: hue-rotate(320deg) saturate(2);
+}
+
+.unsuspendIcon {
+	filter: hue-rotate(120deg) saturate(1.5);
 }
 
 .bioTextarea {
@@ -307,5 +434,88 @@ h3 {
 
 .stats strong {
 	float: right;
+}
+
+.suspendedBanner {
+	text-align: center;
+	background: rgba(220, 20, 60, 0.1);
+	border: 2px solid rgba(220, 20, 60, 0.3);
+	border-radius: 10px;
+	padding: 20px;
+	margin: 20px 0;
+}
+
+.suspendedBanner h2 {
+	color: crimson;
+	margin: 0 0 10px 0;
+}
+
+.suspendedBanner p {
+	margin: 0;
+	opacity: 0.8;
+}
+
+.snarkMessage {
+	font-style: italic;
+	opacity: 0.6 !important;
+	font-size: 14px;
+	margin-top: 8px !important;
+}
+
+.suspensionReasonTextarea {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+
+.suspendModalHeading {
+	text-align: center;
+	color: crimson;
+	margin: 0;
+	margin-bottom: 10px;
+	font-weight: normal;
+	font-size: 18px;
+}
+
+.suspendModalBody {
+	font-size: 14px;
+	margin-bottom: 10px;
+}
+
+.suspendModalCheckboxContainer {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 15px 0;
+}
+
+.usernameConfirmation {
+	margin-top: 15px;
+}
+
+.usernameConfirmation p {
+	margin-bottom: 5px;
+}
+
+.usernameConfirmation input {
+	width: 100%;
+}
+
+.suspendModalButtons {
+	display: flex;
+	gap: 10px;
+}
+
+.suspendAccountButton {
+	background: crimson !important;
+	color: white !important;
+}
+
+.suspendAccountButton:hover {
+	border-color: rgb(218, 76, 105) !important;
+}
+
+.suspendAccountButton:active {
+	background: rgb(218, 76, 105) !important;
 }
 </style>

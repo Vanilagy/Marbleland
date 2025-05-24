@@ -1,6 +1,6 @@
 import * as fs from 'fs-extra';
 import { PackInfo } from "../../../shared/types";
-import { authorize } from "../account";
+import { authorize, isSuspended } from "../account";
 import { db } from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPackThumbnailPath, createPack } from "../pack";
@@ -28,6 +28,11 @@ export const initPackApi = () => {
 		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
 			return;
 		}
 
@@ -101,6 +106,11 @@ export const initPackApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
@@ -159,6 +169,11 @@ export const initPackApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
@@ -192,6 +207,11 @@ export const initPackApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
@@ -203,12 +223,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		await db.packs.remove({ _id: packDoc._id }, {});
-
-		// Try/catch 'cause we don't want the thing to die just because there was no thumbnail file
-		try {
-			await fs.unlink(getPackThumbnailPath(packDoc)); // Delete the pack thumbnail too
-		} catch {}
+		await deleteSinglePack(packDoc._id);
 
 		res.end();
 	});
@@ -218,6 +233,11 @@ export const initPackApi = () => {
 		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
 			return;
 		}
 
@@ -244,6 +264,11 @@ export const initPackApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
@@ -265,4 +290,17 @@ const clearIpTimeouts = (packId: number) => {
 	for (let [key] of ipTimeouts) {
 		if (key.endsWith('pack' + packId)) ipTimeouts.delete(key);
 	}
+};
+
+/** Deletes a single pack and handles all cleanup (removing thumbnail, etc.) */
+export const deleteSinglePack = async (packId: number) => {
+	let packDoc = await db.packs.findOne({ _id: packId }) as PackDoc;
+	if (!packDoc) return;
+
+	await db.packs.remove({ _id: packId }, {});
+
+	// Delete pack thumbnail
+	try {
+		await fs.unlink(getPackThumbnailPath(packDoc));
+	} catch {}
 };

@@ -16,7 +16,7 @@
 	</ul>
 
 	<h3>Enforcement</h3>
-	<p>If a level doesn't follow these guidelines, <b>it will be deleted</b>. Regular and repeat offenses will lead to <b>account deletion</b>. These guidelines are judged and enforced by the moderators and they will use their discretion and common sense when handling edge cases.</p>
+	<p>If a level doesn't follow these guidelines, <b>it will be deleted</b>. Regular and repeat offenses will lead to <b>account suspension</b>. These guidelines are judged and enforced by the moderators and they will use their discretion and common sense when handling edge cases.</p>
 
 	<h3>Level quality</h3>
 	<p>Beyond what is stated above, there is no guideline on the quality of your levels. Measuring quality is subjective and Marbleland wants to be an inviting platform for all level creators, beginner to expert. That being said, we encourage you to put love into your levels to ensure they provide a fun and enjoyable experience for others.</p>

@@ -7,7 +7,7 @@ import jszip from 'jszip';
 import multer from 'multer';
 import { z } from 'zod';
 import { LevelInfo, PackInfo } from "../../../shared/types";
-import { authorize } from "../account";
+import { authorize, isSuspended } from "../account";
 import { CommentDoc, getCommentInfosForLevel } from "../comment";
 import { config, db, keyValue, mbcryptRsaKey} from "../globals";
 import { MissionDoc, Mission } from "../mission";
@@ -250,6 +250,11 @@ export const initLevelApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		/** A list of problems with the upload, will be populated later. */
 		let problems: string[] = [];
 		/** A list of warnings regarding the upload. Warnings won't prevent submission. */
@@ -327,6 +332,11 @@ export const initLevelApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		let upload = ongoingUploads.get(req.body.uploadId);
 		if (!upload) {
 			res.status(400).end();
@@ -380,6 +390,11 @@ export const initLevelApi = () => {
 		let { doc: accountDoc } = await authorize(req);
 		if (!accountDoc) {
 			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(accountDoc)) {
+			res.status(403).send("403\nAccount is suspended.");
 			return;
 		}
 
@@ -443,6 +458,11 @@ export const initLevelApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
@@ -454,22 +474,7 @@ export const initLevelApi = () => {
 			return;
 		}
 
-		await db.missions.remove({ _id: levelId }, {});
-
-		// Remove the level from all packs that contained it
-		let packDocs = await db.packs.find({ levels: levelId }) as PackDoc[];
-		for (let packDoc of packDocs) {
-			packDoc.levels = packDoc.levels.filter(x => x !== levelId);
-			await db.packs.update({ _id: packDoc._id }, packDoc);
-			createPackThumbnail(packDoc);
-		}
-
-		// Delete all comments for this level
-		await db.comments.remove({ forType: 'level', for: levelId }, { multi: true });
-
-		// Delete the level's folder if there are no other levels that reside in it
-		let canDeleteDirectory = !(await db.missions.findOne({ baseDirectory: missionDoc.baseDirectory }));
-		if (canDeleteDirectory) await fs.remove(missionDoc.baseDirectory);
+		await deleteSingleLevel(levelId);
 
 		res.end();
 	});
@@ -479,6 +484,11 @@ export const initLevelApi = () => {
 		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
 			return;
 		}
 
@@ -516,6 +526,11 @@ export const initLevelApi = () => {
 			return;
 		}
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
@@ -535,6 +550,11 @@ export const initLevelApi = () => {
 		let { doc } = await authorize(req);
 		if (!doc) {
 			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
 			return;
 		}
 
@@ -594,4 +614,27 @@ export const incrementLevelDownloads = (doc: MissionDoc, req: express.Request) =
 		doc.downloads = (doc.downloads ?? 0) + 1;
 		await db.missions.update({ _id: doc._id }, doc);
 	});
+};
+
+/** Deletes a single level and handles all cleanup (removing from packs, deleting comments, etc.) */
+export const deleteSingleLevel = async (levelId: number) => {
+	let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+	if (!missionDoc) return;
+
+	await db.missions.remove({ _id: levelId }, {});
+
+	// Remove the level from all packs that contained it
+	let packDocs = await db.packs.find({ levels: levelId }) as PackDoc[];
+	for (let packDoc of packDocs) {
+		packDoc.levels = packDoc.levels.filter(x => x !== levelId);
+		await db.packs.update({ _id: packDoc._id }, packDoc);
+		createPackThumbnail(packDoc);
+	}
+
+	// Delete all comments for this level
+	await db.comments.remove({ forType: 'level', for: levelId }, { multi: true });
+
+	// Delete the level's folder if there are no other levels that reside in it
+	let canDeleteDirectory = !(await db.missions.findOne({ baseDirectory: missionDoc.baseDirectory }));
+	if (canDeleteDirectory) await fs.remove(missionDoc.baseDirectory);
 };

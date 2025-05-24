@@ -227,6 +227,14 @@ a:visited {
 	opacity: 0.75;
 }
 
+.suspendedMessage {
+	text-align: center;
+	color: crimson;
+	font-weight: bold;
+	margin: 50px 20px;
+	font-size: 18px;
+}
+
 :root.dark .basicCheckbox:checked::after {
 	opacity: 1;
 	filter: invert(1);

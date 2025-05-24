@@ -65,6 +65,11 @@ export default defineComponent({
 				return;
 			}
 
+			if (this.$store.state.loggedInAccount.isSuspended) {
+				alert("You can't love levels. You're suspended!");
+				return;
+			}
+
 			if (this.enabled) {
 				this.levelOrPackInfo.lovedByYou = false;
 				this.levelOrPackInfo.lovedCount--;

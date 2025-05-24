@@ -1,5 +1,8 @@
 # Version history
 
+## 1.8.0
+- Added account suspension system for moderators
+
 ## 1.7.1
 - Fixed file resolution logic in certain cases
 

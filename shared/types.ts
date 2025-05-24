@@ -85,7 +85,9 @@ export interface ProfileInfo {
 	id: number,
 	username: string,
 	hasAvatar: boolean,
-	isModerator: boolean
+	isModerator: boolean,
+	isSuspended?: boolean,
+	suspensionReason?: string
 }
 
 /** Contains metadata about a profile, as well as additional data to display on the Profile page. */

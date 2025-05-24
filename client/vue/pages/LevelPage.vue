@@ -38,7 +38,7 @@
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
 					<!--<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">-->
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
-					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount" @click="$refs.packAdder.show()" class="basicIcon">
+					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" @click="$refs.packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
 				<template v-if="!editing">
@@ -83,7 +83,7 @@
 			<panel-list mode="pack" :entries="levelInfo.packs" :defaultCount="4" noEntriesNotice="This level doesn't appear in any packs."></panel-list>
 		</template>
 		<h3 style="margin-bottom: 10px;">Comments ({{ levelInfo.comments.length }})</h3>
-		<template v-if="$store.state.loggedInAccount">
+		<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended">
 			<textarea class="basicTextarea commentBox" placeholder="Write a public comment" v-model.trim="commentInput" maxlength="2000" :class="{ disabled: sendingComment }"></textarea>
 			<button-with-icon icon="/assets/svg/comment_black_24dp.svg" class="commentButton" :class="{ disabled: !canComment || sendingComment }" @click="comment">Comment</button-with-icon>
 		</template>

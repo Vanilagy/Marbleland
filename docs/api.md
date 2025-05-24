@@ -124,7 +124,7 @@ Returns the specified leaderboards for the given level in sorted order.
 ### `POST` /api/level/upload
 **Requires [authentication](#authentication).** Uploads a .zip archive containing a level and primes it for submission. Note that uploading through the API implies you have read and agreed to the Marbleland content guidelines.
 
-**Request body:** The raw data of the .zip file with `Content-Type: application/zip`.
+**Request body:** The raw data of the .zip file with `Content-Type: application/zip`, or multipart form data with `Content-Type: multipart/form-data` containing the files to upload.
 
 **Response body:**
 ```typescript
@@ -309,6 +309,36 @@ size | `number` | If set, resizes the avatar image to a square with side lengths
 
 ### `POST` /api/account/acknowledge-guidelines
 **Requires [authentication](#authentication).** Acknowledges the upload content guidelines for the authenticated account.
+
+### `POST` /api/account/{account-id}/suspend
+**Requires [authentication](#authentication) and moderator privileges.** Suspends the specified account. This will:
+- Mark the account as suspended
+- Delete all levels, packs, and comments created by the user
+- Prevent the user from performing any actions while suspended
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	reason: string // Required. The reason for suspension (max 500 characters). Will be displayed publicly on the user's profile.
+}
+```
+
+**Response body:**
+```typescript
+{
+	success: boolean
+}
+```
+
+### `POST` /api/account/{account-id}/unsuspend
+**Requires [authentication](#authentication) and moderator privileges.** Removes the suspension from the specified account. Note that this does not restore any previously deleted content.
+
+**Response body:**
+```typescript
+{
+	success: boolean
+}
+```
 
 ## Pack
 ### `GET` /api/pack/list
@@ -565,7 +595,9 @@ Contains metadata about a profile.
 	id: number,
 	username: string,
 	hasAvatar: boolean,
-	isModerator: boolean
+	isModerator: boolean,
+	isSuspended?: boolean,
+	suspensionReason?: string
 }
 ```
 

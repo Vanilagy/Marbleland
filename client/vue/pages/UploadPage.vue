@@ -3,7 +3,7 @@
 		<title>Upload levels - Marbleland</title>
 		<meta name="og:title" content="Upload levels">
 	</Head>
-	<template v-if="$store.state.loggedInAccount">
+	<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended">
 		<h1>Upload levels</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<p class="contentGuidelines" @click="$router.push('/content-guidelines')">Content guidelines</p>
@@ -61,6 +61,7 @@
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit" :class="{ disabled: createNewPack && !(newPackName && newPackDescription) }">{{ successResponse.missions.length > 1? `Submit all ${successResponse.missions.length} levels` : "Submit level" }}</button-with-icon>
 		</div>
 	</template>
+	<p v-else-if="$store.state.loggedInAccount && $store.state.loggedInAccount.isSuspended" class="suspendedMessage">Your account has been suspended and cannot upload any levels.</p>
 	<p v-else class="notSignedIn">You need to be signed in to upload a level.</p>
 </template>
 
