@@ -10,6 +10,7 @@
 		<button-with-icon icon="/assets/svg/login_black_24dp.svg" class="submitButton" :class="{ disabled: !canSubmit }" @click="submit">
 			{{ (type === 'signUp')? 'Create account' : 'Sign in' }}
 		</button-with-icon>
+		<p v-if="type === 'signUp'" class="verificationNotice">You will need to verify your email address.</p>
 	</div>
 	<p v-else class="alreadySignedIn">You're already signed in!</p>
 </template>
@@ -169,5 +170,13 @@ input {
 	width: 100%;
 	text-align: center;
 	font-size: 14px;
+}
+
+.verificationNotice {
+	margin: 15px auto 0;
+	width: 300px;
+	text-align: center;
+	font-size: 13px;
+	opacity: 0.5;
 }
 </style>
