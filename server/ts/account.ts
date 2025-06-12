@@ -7,6 +7,8 @@ import { ExtendedProfileInfo, LevelInfo, PackInfo, ProfileInfo, SignInInfo } fro
 import { Mission, MissionDoc } from './mission';
 import { getPackInfo, PackDoc } from './pack';
 import { ORIGIN } from '../../shared/constants';
+import { deleteSingleLevel } from './api/api_level';
+import { deleteSinglePack } from './api/api_pack';
 
 /** The representation of an account in the database. */
 export interface AccountDoc {
@@ -120,6 +122,36 @@ export const authorize = async (req: express.Request) => {
 export const isSuspended = (doc: AccountDoc): boolean => {
 	return !!doc.suspended;
 };
+
+export const suspendAccount = async (doc: AccountDoc, suspensionReason: string) => {
+	if (doc.moderator) {
+		throw new Error('Cannot suspend moderators.');
+	}
+
+	if (doc.suspended) {
+		return;
+	}
+
+	// Suspend the account
+	doc.suspended = true;
+	doc.suspensionReason = suspensionReason;
+	await db.accounts.update({ _id: doc._id }, doc);
+
+	// Delete all levels by the user
+	let missionDocs = await db.missions.find({ addedBy: doc._id }) as MissionDoc[];
+	for (let missionDoc of missionDocs) {
+		await deleteSingleLevel(missionDoc._id);
+	}
+
+	// Delete all packs by the user
+	let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+	for (let packDoc of packDocs) {
+		await deleteSinglePack(packDoc._id);
+	}
+
+	// Delete all comments by the user
+	await db.comments.remove({ author: doc._id }, { multi: true });
+}
 
 /** Generates the profile info for a given account. */
 export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {

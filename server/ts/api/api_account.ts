@@ -2,14 +2,10 @@ import sharp from "sharp";
 import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, sendPasswordResetEmail, PendingRegistrationDoc } from "../account";
+import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, sendPasswordResetEmail, PendingRegistrationDoc, suspendAccount } from "../account";
 import { db, keyValue } from "../globals";
 import { app } from "../server";
 import { tryAssociatingOldUserData } from "../recovery";
-import { MissionDoc } from "../mission";
-import { PackDoc } from "../pack";
-import { deleteSingleLevel } from "./api_level";
-import { deleteSinglePack } from "./api_pack";
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
@@ -490,24 +486,7 @@ export const initAccountApi = () => {
 		}
 
 		// Suspend the account
-		targetAccountDoc.suspended = true;
-		targetAccountDoc.suspensionReason = req.body.reason.trim();
-		await db.accounts.update({ _id: targetAccountDoc._id }, targetAccountDoc);
-
-		// Delete all levels by the user
-		let missionDocs = await db.missions.find({ addedBy: targetAccountDoc._id }) as MissionDoc[];
-		for (let missionDoc of missionDocs) {
-			await deleteSingleLevel(missionDoc._id);
-		}
-
-		// Delete all packs by the user
-		let packDocs = await db.packs.find({ createdBy: targetAccountDoc._id }) as PackDoc[];
-		for (let packDoc of packDocs) {
-			await deleteSinglePack(packDoc._id);
-		}
-
-		// Delete all comments by the user
-		await db.comments.remove({ author: targetAccountDoc._id }, { multi: true });
+		await suspendAccount(targetAccountDoc, req.body.reason.trim());
 
 		res.send({ success: true });
 	});

@@ -2,7 +2,7 @@ import { Mission, MissionDoc } from "./mission";
 import { config, db, initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import { initApi } from "./api/api";
-import { AccountDoc, isEmailVerificationEnabled } from "./account";
+import { AccountDoc, isEmailVerificationEnabled, suspendAccount } from "./account";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as minimist from 'minimist';
@@ -121,6 +121,25 @@ const init = async () => {
 		}
 
 		await fs.writeFile('gold_levels.json', JSON.stringify(result));
+
+		process.exit();
+	} else if (argv._[0] === 'delete-accounts') {
+		const accountIds = argv._.slice(1).map(x => Number(x));
+
+		for (const id of accountIds) {
+			const account = await db.accounts.findOne({ _id: id }) as AccountDoc;
+			if (!account) {
+				continue;
+			}
+
+			await suspendAccount(account, 'Asshole, probably');
+
+			await db.accounts.remove({ _id: id }, {});
+
+			console.log(`Deleted account with ID ${id}`);
+		}
+
+		process.exit();
 	} else {
 		// Usual path, boot up the API and HTTP server.
 		initApi();
