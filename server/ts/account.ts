@@ -26,7 +26,9 @@ export interface AccountDoc {
 	suspended?: boolean,
 	suspensionReason?: string,
 	emailVerified?: boolean,
-	verificationToken?: string
+	verificationToken?: string,
+	passwordResetToken?: string,
+	passwordResetExpires?: number
 }
 
 /** The representation of a pending registration in the database. */
@@ -180,7 +182,7 @@ export const sendVerificationEmail = async (email: string, username: string, tok
 		throw new Error('Email verification is not configured');
 	}
 
-	const verificationUrl = `${ORIGIN}/api/account/verify-email?token=${token}`;
+	const verificationUrl = `${ORIGIN}/api/account/verify-email?token=${encodeURIComponent(token)}`;
 	
 	const isSignIn = context === 'signIn';
 	const greeting = `Hey ${username},`;
@@ -196,7 +198,6 @@ export const sendVerificationEmail = async (email: string, username: string, tok
 <html>
 <head>
 	<meta charset="UTF-8">
-	<title>Verify your Marbleland account</title>
 </head>
 <body>
 	<p>${greeting}</p>
@@ -232,6 +233,57 @@ export const sendVerificationEmail = async (email: string, username: string, tok
 	if (!response.ok) {
 		const errorText = await response.text();
 		throw new Error(`Failed to send verification email: ${response.status} ${errorText}`);
+	}
+};
+
+export const sendPasswordResetEmail = async (email: string, username: string, token: string) => {
+	if (!isEmailVerificationEnabled()) {
+		throw new Error('Email verification is not configured');
+	}
+
+	const resetUrl = `${ORIGIN}/reset-password?token=${encodeURIComponent(token)}`;
+	
+	const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+</head>
+<body>
+	<p>Hey ${username},</p>
+	<p>You requested a password reset. Click the link below to set a new password:</p>
+	<p><a href="${resetUrl}">Reset password</a></p>
+	<p>This link will expire in 1 hour.</p>
+	<p>If you didn't request this password reset, you can safely ignore this email.</p>
+	<p>Best regards,<br>The Marbleland Team</p>
+</body>
+</html>
+	`;
+
+	const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+		method: 'POST',
+		headers: {
+			'Accept': 'application/json',
+			'Content-Type': 'application/json',
+			'api-key': config.brevoApiKey!
+		},
+		body: JSON.stringify({
+			sender: {
+				name: config.brevoSenderName,
+				email: config.brevoSenderEmail
+			},
+			to: [{
+				email: email,
+				name: username
+			}],
+			subject: 'Reset your Marbleland password',
+			htmlContent: emailHtml
+		})
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new Error(`Failed to send password reset email: ${response.status} ${errorText}`);
 	}
 };
 

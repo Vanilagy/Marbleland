@@ -328,6 +328,54 @@ size | `number` | If set, resizes the avatar image to a square with side lengths
 }
 ```
 
+### `POST` /api/account/forgot-password
+Requests a password reset for an account by email address. A password reset link will be sent to the email if an account with that email exists.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	email: string
+}
+```
+
+**Response body:**
+```typescript
+{
+	// On error
+	status: 'error',
+	reason: string
+} | {
+	// On success (always returns success for security, even if email doesn't exist)
+	status: 'success',
+	message: string // "If an account with this email exists, a password reset link has been sent."
+}
+```
+
+### `POST` /api/account/reset-password
+Resets the password for an account using a valid reset token received via email. Upon successful reset, the user will be automatically signed in.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	token: string, // The reset token from the email
+	password: string // The new password
+}
+```
+
+**Response body:**
+```typescript
+{
+	// On error
+	status: 'error',
+	reason: string
+} | {
+	// On successful password reset
+	status: 'success',
+	token: string,
+	signInInfo: SignInInfo
+}
+```
+
 ### `POST` /api/account/acknowledge-guidelines
 **Requires [authentication](#authentication).** Acknowledges the upload content guidelines for the authenticated account.
 

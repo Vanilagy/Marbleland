@@ -2,7 +2,7 @@ import sharp from "sharp";
 import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, PendingRegistrationDoc } from "../account";
+import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, sendPasswordResetEmail, PendingRegistrationDoc } from "../account";
 import { db, keyValue } from "../globals";
 import { app } from "../server";
 import { tryAssociatingOldUserData } from "../recovery";
@@ -544,5 +544,106 @@ export const initAccountApi = () => {
 		await db.accounts.update({ _id: targetAccountDoc._id }, targetAccountDoc);
 
 		res.send({ success: true });
+	});
+
+	// Request password reset
+	app.post('/api/account/forgot-password', async (req, res) => {
+		const { email } = req.body as { email: string };
+		
+		if (!email) {
+			res.status(400).send({ status: 'error', reason: 'Email is required' });
+			return;
+		}
+		
+		if (!isEmailVerificationEnabled()) {
+			res.status(400).send({ status: 'error', reason: 'Password reset is not available' });
+			return;
+		}
+		
+		if (!emailRegEx.test(email)) {
+			res.status(400).send({ status: 'error', reason: 'Invalid email format' });
+			return;
+		}
+		
+		const doc = await db.accounts.findOne({ email: email }) as AccountDoc;
+		if (!doc) {
+			// Don't reveal if email exists or not for security
+			res.status(200).send({ status: 'success', message: 'If an account with this email exists, a password reset link has been sent.' });
+			return;
+		}
+		
+		// Generate reset token and expiration
+		const resetToken = generateVerificationToken();
+		const expires = Date.now() + (60 * 60 * 1000); // 1 hour
+		
+		try {
+			await sendPasswordResetEmail(doc.email, doc.username, resetToken);
+			
+			doc.passwordResetToken = resetToken;
+			doc.passwordResetExpires = expires;
+			await db.accounts.update({ _id: doc._id }, doc);
+			
+			res.status(200).send({ 
+				status: 'success', 
+				message: 'If an account with this email exists, a password reset link has been sent.' 
+			});
+		} catch (error) {
+			console.error('Failed to send password reset email:', error);
+			res.status(500).send({ 
+				status: 'error', 
+				reason: 'Failed to send password reset email. Please try again.' 
+			});
+		}
+	});
+
+	// Reset password with token
+	app.post('/api/account/reset-password', async (req, res) => {
+		const { token, password } = req.body as { token: string; password: string };
+		
+		if (!token || !password) {
+			res.status(400).send({ status: 'error', reason: 'Token and password are required' });
+			return;
+		}
+		
+		if (password.length < 8) {
+			res.status(400).send({ status: 'error', reason: 'Password must be at least 8 characters long' });
+			return;
+		}
+		
+		const doc = await db.accounts.findOne({ passwordResetToken: token }) as AccountDoc;
+		if (!doc) {
+			res.status(400).send({ status: 'error', reason: 'Invalid or expired reset token' });
+			return;
+		}
+		
+		// Check if token is expired
+		if (!doc.passwordResetExpires || Date.now() > doc.passwordResetExpires) {
+			res.status(400).send({ status: 'error', reason: 'Invalid or expired reset token' });
+			return;
+		}
+		
+		// Hash new password
+		const hash = await bcrypt.hash(password, 8);
+		
+		// Let's log the user in
+
+		const newToken = generateNewAccessToken();
+		doc.tokens.push({
+			value: newToken,
+			lastUsed: Date.now()
+		});
+		
+		// Update account
+		doc.passwordHash = hash;
+		delete doc.passwordResetToken;
+		delete doc.passwordResetExpires;
+		await db.accounts.update({ _id: doc._id }, doc);
+		
+		setTokenCookie(res, newToken);
+		res.status(200).send({ 
+			status: 'success', 
+			token: newToken, 
+			signInInfo: await getSignInInfo(doc) 
+		});
 	});
 };

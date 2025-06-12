@@ -1,5 +1,8 @@
 # Version history
 
+## 1.10.0
+- Added "Forgot password"
+
 ## 1.9.0
 - Added email verification system
 - Added support page

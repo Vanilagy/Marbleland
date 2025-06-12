@@ -11,6 +11,9 @@
 			{{ (type === 'signUp')? 'Create account' : 'Sign in' }}
 		</button-with-icon>
 		<p v-if="type === 'signUp'" class="verificationNotice">You will need to verify your email address.</p>
+		<p v-if="type === 'signIn'" class="forgotPassword">
+			<a href="#" @click.prevent="goToForgotPassword">Forgot password?</a>
+		</p>
 	</div>
 	<p v-else class="alreadySignedIn">You're already signed in!</p>
 </template>
@@ -132,6 +135,9 @@ export default defineComponent({
 				if (this.type === 'signUp') this.$store.state.nextInfoBannerMessage = "Account created successfully!";
 				this.$router.replace({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
 			}
+		},
+		goToForgotPassword() {
+			this.$router.push({ name: 'ForgotPassword' });
 		}
 	}
 });
@@ -178,5 +184,23 @@ input {
 	text-align: center;
 	font-size: 13px;
 	opacity: 0.5;
+}
+
+.forgotPassword {
+	margin: 15px auto 0;
+	width: 300px;
+	text-align: center;
+	font-size: 13px;
+}
+
+.forgotPassword a {
+	color: inherit;
+	opacity: 0.5;
+	text-decoration: none;
+}
+
+.forgotPassword a:hover {
+	opacity: 1;
+	text-decoration: underline;
 }
 </style>

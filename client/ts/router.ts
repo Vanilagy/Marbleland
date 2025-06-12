@@ -15,6 +15,8 @@ import ChangePasswordPage from '../vue/pages/ChangePasswordPage.vue';
 import ProtocolErrorPage from '../vue/pages/ProtocolErrorPage.vue';
 import ContentGuidelinesPage from "../vue/pages/ContentGuidelinesPage.vue";
 import EmailVerificationPage from '../vue/pages/EmailVerificationPage.vue';
+import ForgotPasswordPage from '../vue/pages/ForgotPasswordPage.vue';
+import ResetPasswordPage from '../vue/pages/ResetPasswordPage.vue';
 import SupportPage from '../vue/pages/SupportPage.vue';
 
 const routes = [{
@@ -41,6 +43,14 @@ const routes = [{
 	path: '/verify-email',
 	name: 'EmailVerification',
 	component: EmailVerificationPage
+}, {
+	path: '/forgot-password',
+	name: 'ForgotPassword',
+	component: ForgotPasswordPage
+}, {
+	path: '/reset-password',
+	name: 'ResetPassword',
+	component: ResetPasswordPage
 }, {
 	path: '/profile/:id',
 	name: 'Profile',
