@@ -17,13 +17,17 @@ export let config: {
 	backupPushSizeLimit: number,
 	games: GameDefinition[],
 	leaderboardSources: LeaderboardDefinition[],
+	brevoApiKey: string | null,
+	brevoSenderEmail: string | null,
+	brevoSenderName: string | null,
 };
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {
 	missions: Datastore,
 	accounts: Datastore,
 	packs: Datastore,
-	comments: Datastore
+	comments: Datastore,
+	pendingRegistrations: Datastore
 } = {} as any;
 export let structureMBG: DirectoryStructure;
 export let structurePQ: DirectoryStructure;
@@ -67,6 +71,7 @@ export const initGlobals = async () => {
 	fs.ensureFileSync(path.join(__dirname, 'storage/accounts.db'));
 	fs.ensureFileSync(path.join(__dirname, 'storage/packs.db'));
 	fs.ensureFileSync(path.join(__dirname, 'storage/comments.db'));
+	fs.ensureFileSync(path.join(__dirname, 'storage/pending_registrations.db'));
 
 	db.missions = Datastore.create({ filename: path.join(__dirname, 'storage/missions.db'), autoload: true });
 	db.missions.persistence.setAutocompactionInterval(1000 * 60 * 60); // Once an hour
@@ -76,6 +81,8 @@ export const initGlobals = async () => {
 	db.packs.persistence.setAutocompactionInterval(1000 * 60 * 60);
 	db.comments = Datastore.create({ filename: path.join(__dirname, 'storage/comments.db'), autoload: true });
 	db.comments.persistence.setAutocompactionInterval(1000 * 60 * 60);
+	db.pendingRegistrations = Datastore.create({ filename: path.join(__dirname, 'storage/pending_registrations.db'), autoload: true });
+	db.pendingRegistrations.persistence.setAutocompactionInterval(1000 * 60 * 60);
 
 	let pqStructurePath = path.join(__dirname, 'data/structure_pq.json');
 	let exists = fs.existsSync(pqStructurePath);

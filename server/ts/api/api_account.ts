@@ -2,7 +2,7 @@ import sharp from "sharp";
 import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended } from "../account";
+import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, PendingRegistrationDoc } from "../account";
 import { db, keyValue } from "../globals";
 import { app } from "../server";
 import { tryAssociatingOldUserData } from "../recovery";
@@ -62,34 +62,141 @@ export const initAccountApi = () => {
 
 		// Generate the password hash
 		let hash = await bcrypt.hash(q.password, 8);
-		let id = keyValue.get('accountId');
-		keyValue.set('accountId', id + 1);
 
-		let doc: AccountDoc = {
-			_id: id,
-			email: q.email,
-			username: q.username,
-			passwordHash: hash,
-			created: Date.now(),
-			tokens: [],
-			bio: '',
-			acknowledgedGuidelines: false
-		};
+		if (isEmailVerificationEnabled()) {
+			// Create pending registration instead of account. We do this so we don't pollute the account ID space and
+			// block emails or usernames.
+			try {
+				const pendingDoc: PendingRegistrationDoc = {
+					_id: generateVerificationToken(),
+					email: q.email,
+					username: q.username,
+					passwordHash: hash,
+					created: Date.now(),
+					verificationToken: generateVerificationToken()
+				};
 
+				await db.pendingRegistrations.insert(pendingDoc);
+				await sendVerificationEmail(pendingDoc.email, pendingDoc.username, pendingDoc.verificationToken, 'signUp');
+
+				res.status(200).send({ 
+					status: 'success', 
+					requiresVerificationForEmail: pendingDoc.email,
+					message: 'Account created. Please check your email to verify your account.' 
+				});
+			} catch (error) {
+				console.error('Failed to send verification email:', error);
+
+				res.status(500).send({ 
+					status: 'error', 
+					reason: 'Failed to send verification email. Please try again.' 
+				});
+			}
+		} else {
+			// Email verification disabled, create account immediately and log in
+			let id = keyValue.get('accountId');
+			keyValue.set('accountId', id + 1);
+			let newToken = generateNewAccessToken();
+
+			let doc: AccountDoc = {
+				_id: id,
+				email: q.email,
+				username: q.username,
+				passwordHash: hash,
+				created: Date.now(),
+				tokens: [{ value: newToken, lastUsed: Date.now() }],
+				bio: '',
+				acknowledgedGuidelines: false
+			};
+
+			await db.accounts.insert(doc);
+			await tryAssociatingOldUserData(doc.username, doc._id);
+
+			setTokenCookie(res, newToken);
+			res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
+		}
+	});
+
+	app.get('/api/account/verify-email', async (req, res) => {
+		const token = req.query.token as string;
+		if (!token) {
+			res.status(400).send({ status: 'error', reason: 'Missing verification token' });
+			return;
+		}
+
+		// First check if this is a pending registration
+		const pendingDoc = await db.pendingRegistrations.findOne({ verificationToken: token }) as PendingRegistrationDoc;
+		let accountDoc: AccountDoc;
+		
+		if (pendingDoc) {
+			// Check if username or email is already taken in the accounts table
+			const existingByUsername = await db.accounts.findOne({ username: pendingDoc.username }) as AccountDoc;
+			if (existingByUsername) {
+				await db.pendingRegistrations.remove({ _id: pendingDoc._id }, {});
+				res.status(400).send({ status: 'error', reason: 'Username is already taken. Please register again with a different username.' });
+				return;
+			}
+
+			const existingByEmail = await db.accounts.findOne({ email: pendingDoc.email }) as AccountDoc;
+			if (existingByEmail) {
+				await db.pendingRegistrations.remove({ _id: pendingDoc._id }, {});
+				res.status(400).send({ status: 'error', reason: 'Email is already taken. Please register again with a different email address.' });
+				return;
+			}
+
+			const accountId = keyValue.get('accountId');
+			keyValue.set('accountId', accountId + 1);
+
+			// Create the actual account
+			accountDoc = {
+				_id: accountId,
+				email: pendingDoc.email,
+				username: pendingDoc.username,
+				passwordHash: pendingDoc.passwordHash,
+				created: pendingDoc.created,
+				tokens: [],
+				bio: '',
+				acknowledgedGuidelines: false,
+				emailVerified: true
+			};
+			await db.accounts.insert(accountDoc);
+			
+			await db.pendingRegistrations.remove({ _id: pendingDoc._id }, {});
+		} else {
+			// Check if this is an existing unverified account
+			const existingAccount = await db.accounts.findOne({ verificationToken: token }) as AccountDoc;
+			if (!existingAccount) {
+				res.status(400).send({ status: 'error', reason: 'Invalid verification token' });
+				return;
+			}
+			
+			if (existingAccount.emailVerified) {
+				res.status(400).send({ status: 'error', reason: 'Email already verified' });
+				return;
+			}
+
+			// Update account to verified
+			existingAccount.emailVerified = true;
+			existingAccount.verificationToken = undefined;
+			await db.accounts.update({ _id: existingAccount._id }, { $set: { emailVerified: true }, $unset: { verificationToken: 1 } });
+			
+			accountDoc = existingAccount;
+		}
+
+		// Generate access token and log them in
 		let newToken = generateNewAccessToken();
-		doc.tokens.push({
+		accountDoc.tokens.push({
 			value: newToken,
 			lastUsed: Date.now()
 		});
 
-		await db.accounts.insert(doc);
+		await db.accounts.update({ _id: accountDoc._id }, { $set: { tokens: accountDoc.tokens } });
+		await tryAssociatingOldUserData(accountDoc.username, accountDoc._id);
 
-		await tryAssociatingOldUserData(doc.username, doc._id);
-
-		// Send sign in info back
 		setTokenCookie(res, newToken);
-		res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
+		res.redirect(`/profile/${accountDoc._id}`);
 	});
+
 
 	// Checks if a given token is still valid. If so, returns the sign in info for the corresponding account.
 	app.get('/api/account/check-token', async (req, res) => {
@@ -119,6 +226,32 @@ export const initAccountApi = () => {
 				status: 'error',
 				reason: 'Incorrect password.'
 			});
+			return;
+		}
+
+		if (isEmailVerificationEnabled() && !doc.emailVerified) {
+			// User needs to still verify email before logging in
+
+			doc.verificationToken = generateVerificationToken();
+			await db.accounts.update({ _id: doc._id }, { $set: { verificationToken: doc.verificationToken } });
+
+			try {
+				await sendVerificationEmail(doc.email, doc.username, doc.verificationToken, 'signIn');
+
+				res.status(400).send({
+					status: 'error',
+					reason: 'Please verify your email address. A verification email has been sent.',
+					requiresVerificationForEmail: doc.email
+				});
+			} catch (error) {
+				console.error('Failed to send verification email:', error);
+
+				res.status(500).send({
+					status: 'error',
+					reason: 'Failed to send verification email.'
+				});
+			}
+
 			return;
 		}
 

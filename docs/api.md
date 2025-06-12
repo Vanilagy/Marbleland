@@ -236,10 +236,15 @@ Registers a new account.
 	status: 'error',
 	reason: string
 } | {
-	// On successful account creation
+	// On successful account creation (when email verification is disabled)
 	status: 'success',
 	token: string,
 	signInInfo: SignInInfo
+} | {
+	// When email verification is required
+	status: 'success',
+	requiresVerificationForEmail: string, // The email address that needs verification
+	message: string
 }
 ```
 
@@ -265,11 +270,27 @@ Sign in to an existing account.
 	status: 'success',
 	token: string,
 	signInInfo: SignInInfo
+} | {
+	// When email verification is required before sign-in
+	status: 'error',
+	reason: string,
+	requiresVerificationForEmail: string // The email address that needs verification
 }
 ```
 
 ### `POST` /api/account/sign-out
 **Requires [authentication](#authentication).** Signs out a previously signed-in account by invalidating its token.
+
+### `GET` /api/account/verify-email
+Verifies an email address using a token received via email during account registration or sign-in. This endpoint handles both pending registrations and existing unverified accounts.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+token* | `string` | The verification token sent via email.
+
+**Response:** Redirects to the user's profile page on successful verification, or returns an error response.
 
 ### `POST` /api/account/check-token
 **Requires [authentication](#authentication).** Checks the validity of a token specified in the Authorization header. If it is valid, returns [SignInInfo](#signininfo) for the corresponding account.

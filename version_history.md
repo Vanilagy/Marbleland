@@ -1,5 +1,9 @@
 # Version history
 
+## 1.9.0
+- Added email verification system
+- Added support page
+
 ## 1.8.0
 - Added account suspension system for moderators
 

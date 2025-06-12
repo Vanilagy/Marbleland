@@ -14,6 +14,8 @@ import AboutUploadPage from '../vue/pages/AboutUploadPage.vue';
 import ChangePasswordPage from '../vue/pages/ChangePasswordPage.vue';
 import ProtocolErrorPage from '../vue/pages/ProtocolErrorPage.vue';
 import ContentGuidelinesPage from "../vue/pages/ContentGuidelinesPage.vue";
+import EmailVerificationPage from '../vue/pages/EmailVerificationPage.vue';
+import SupportPage from '../vue/pages/SupportPage.vue';
 
 const routes = [{
 	path: '/',
@@ -35,6 +37,10 @@ const routes = [{
 	path: '/sign-in',
 	name: 'SignIn',
 	component: SignInPage
+}, {
+	path: '/verify-email',
+	name: 'EmailVerification',
+	component: EmailVerificationPage
 }, {
 	path: '/profile/:id',
 	name: 'Profile',
@@ -75,6 +81,10 @@ const routes = [{
 	path: '/protocol-error/:id',
 	name: 'ProtocolError',
 	component: ProtocolErrorPage
+}, {
+	path: '/support',
+	name: 'Support',
+	component: SupportPage
 }];
 
 const isServer = typeof window === 'undefined';

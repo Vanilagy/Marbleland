@@ -2,6 +2,7 @@ import { Mission, MissionDoc } from "./mission";
 import { config, db, initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import { initApi } from "./api/api";
+import { AccountDoc, isEmailVerificationEnabled } from "./account";
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as minimist from 'minimist';
@@ -36,6 +37,24 @@ const init = async () => {
 	fs.ensureDirSync(path.join(__dirname, 'storage/avatars'));
 	fs.ensureDirSync(path.join(__dirname, 'storage/pack_thumbnails'));
 	await initGlobals();
+
+	// Log out unverified users if email verification is enabled. This forces them to log in again and verify their email
+	if (isEmailVerificationEnabled()) {
+		const allUsers = await db.accounts.find({}) as AccountDoc[];
+		
+		let loggedOutCount = 0;
+		for (const user of allUsers) {
+			if (!user.emailVerified && user.tokens.length > 0) {
+				// Log 'em out
+				await db.accounts.update({ _id: user._id }, { $set: { tokens: [] } });
+				loggedOutCount++;
+			}
+		}
+		
+		if (loggedOutCount > 0) {
+			console.log(`Logged out ${loggedOutCount} unverified users.`);
+		}
+	}
 
 	const wasmLocation = path.join(__dirname, '../node_modules/@imagemagick/magick-wasm/dist/magick.wasm');
 	const wasmBytes = fs.readFileSync(wasmLocation);

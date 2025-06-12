@@ -101,8 +101,23 @@ export default defineComponent({
 				status: 'success' | 'error',
 				reason?: string,
 				token?: string,
-				signInInfo?: SignInInfo
+				signInInfo?: SignInInfo,
+				requiresVerificationForEmail?: string,
+				message?: string
 			};
+
+			// Check if email verification is required
+			if (json.requiresVerificationForEmail) {
+				this.$router.push({ 
+					name: 'EmailVerification', 
+					query: { 
+						email: json.requiresVerificationForEmail,
+						source: this.type
+					} 
+				});
+
+				return;
+			}
 
 			if (json.status === 'error') {
 				// There was an error, show the issue

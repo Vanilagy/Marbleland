@@ -1,11 +1,12 @@
 import * as crypto from 'crypto';
-import { db } from './globals';
+import { db, config } from './globals';
 import * as express from 'express';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { ExtendedProfileInfo, LevelInfo, PackInfo, ProfileInfo, SignInInfo } from '../../shared/types';
 import { Mission, MissionDoc } from './mission';
 import { getPackInfo, PackDoc } from './pack';
+import { ORIGIN } from '../../shared/constants';
 
 /** The representation of an account in the database. */
 export interface AccountDoc {
@@ -23,11 +24,31 @@ export interface AccountDoc {
 	moderator?: boolean,
 	acknowledgedGuidelines?: boolean,
 	suspended?: boolean,
-	suspensionReason?: string
+	suspensionReason?: string,
+	emailVerified?: boolean,
+	verificationToken?: string
+}
+
+/** The representation of a pending registration in the database. */
+export interface PendingRegistrationDoc {
+	_id: string,
+	email: string,
+	username: string,
+	passwordHash: string,
+	created: number,
+	verificationToken: string
 }
 
 export const generateNewAccessToken = () => {
 	return crypto.randomBytes(32).toString('base64');
+};
+
+export const generateVerificationToken = () => {
+	return crypto.randomBytes(32).toString('base64');
+};
+
+export const isEmailVerificationEnabled = () => {
+	return config.brevoApiKey && config.brevoSenderEmail;
 };
 
 export const TOKEN_TTL = 1000 * 60 * 60 * 24 * 30; // Tokens expire after 30 days of no use
@@ -153,3 +174,64 @@ export const getSignInInfo = async (doc: AccountDoc): Promise<SignInInfo> => {
 		acknowledgedGuidelines: doc.acknowledgedGuidelines ?? false
 	};
 };
+
+export const sendVerificationEmail = async (email: string, username: string, token: string, context: 'signUp' | 'signIn' = 'signUp') => {
+	if (!isEmailVerificationEnabled()) {
+		throw new Error('Email verification is not configured');
+	}
+
+	const verificationUrl = `${ORIGIN}/api/account/verify-email?token=${token}`;
+	
+	const isSignIn = context === 'signIn';
+	const greeting = `Hey ${username},`;
+	const mainMessage = isSignIn 
+		? `Your account still requires email verification before you can sign in. Please verify your email address by clicking the link below:`
+		: `Thank you for creating your Marbleland account! To complete your registration, please verify your email address by clicking the link below:`;
+	const disclaimerMessage = isSignIn
+		? `If you didn't trigger this action, you can safely ignore this email.`
+		: `If you didn't create this account, you can safely ignore this email.`;
+	
+	const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Verify your Marbleland account</title>
+</head>
+<body>
+	<p>${greeting}</p>
+	<p>${mainMessage}</p>
+	<p><a href="${verificationUrl}">Verify account</a></p>
+	<p>${disclaimerMessage}</p>
+	<p>Best regards,<br>The Marbleland Team</p>
+</body>
+</html>
+	`;
+
+	const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+		method: 'POST',
+		headers: {
+			'Accept': 'application/json',
+			'Content-Type': 'application/json',
+			'api-key': config.brevoApiKey!
+		},
+		body: JSON.stringify({
+			sender: {
+				name: config.brevoSenderName,
+				email: config.brevoSenderEmail
+			},
+			to: [{
+				email: email,
+				name: username
+			}],
+			subject: 'Verify your Marbleland account',
+			htmlContent: emailHtml
+		})
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new Error(`Failed to send verification email: ${response.status} ${errorText}`);
+	}
+};
+

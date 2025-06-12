@@ -6,5 +6,8 @@
 	"backupPeriod": 86400,
 	"backupPushSizeLimit": 2147483648,
 	"games": [],
-	"leaderboardSources": []
+	"leaderboardSources": [],
+	"brevoApiKey": null,
+	"brevoSenderEmail": null,
+	"brevoSenderName": null
 }

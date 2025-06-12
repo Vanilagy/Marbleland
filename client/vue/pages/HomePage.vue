@@ -21,9 +21,12 @@
 		<li><b>MBG:</b> /Applications/MarbleBlast Gold/MarbleBlastGold.app/marble/data (show package contents)</li>
 		<li><b>PQ:</b> /Applications/PlatinumQuest.app/platinum/data (show package contents)</li>
 	</ul>
-	<footer @click="showVersionHistory">
-		Marbleland v1.8.0
-	</footer>
+	<div class="footer-container">
+		<div class="version" @click="showVersionHistory">
+			Marbleland v1.9.0
+		</div>
+		<router-link to="/support" class="support-button">Support</router-link>
+	</div>
 </template>
 
 <script lang="ts">
@@ -114,17 +117,33 @@ h3 {
 	margin-top: 25px;
 }
 
-footer {
-	width: 110px;
-	margin: auto;
+.footer-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 30px;
 	margin-top: 30px;
-	text-align: center;
+}
+
+.version {
 	font-size: 12px;
 	opacity: 0.333;
 	cursor: pointer;
 }
 
-footer:hover {
+.version:hover {
+	opacity: 1.0;
+	text-decoration: underline;
+}
+
+.support-button {
+	font-size: 12px;
+	opacity: 0.333;
+	text-decoration: none;
+	color: inherit;
+}
+
+.support-button:hover {
 	opacity: 1.0;
 	text-decoration: underline;
 }
