@@ -9,5 +9,6 @@
 	"leaderboardSources": [],
 	"brevoApiKey": null,
 	"brevoSenderEmail": null,
-	"brevoSenderName": null
+	"brevoSenderName": null,
+	"userCheckApiKey": null
 }

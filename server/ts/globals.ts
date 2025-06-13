@@ -20,6 +20,7 @@ export let config: {
 	brevoApiKey: string | null,
 	brevoSenderEmail: string | null,
 	brevoSenderName: string | null,
+	userCheckApiKey: string | null,
 };
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {

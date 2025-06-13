@@ -3,7 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, sendPasswordResetEmail, PendingRegistrationDoc, suspendAccount } from "../account";
-import { db, keyValue } from "../globals";
+import { config, db, keyValue } from "../globals";
 import { app } from "../server";
 import { tryAssociatingOldUserData } from "../recovery";
 
@@ -38,6 +38,23 @@ export const initAccountApi = () => {
 		if (existing) {
 			res.status(400).send({ status: 'error', reason: "Email already in use." });
 			return;
+		}
+
+		if (config.userCheckApiKey) {
+			// Let's hit the UserCheck API to see if the email is disposable
+			const domain = q.email.split('@')[1];
+			const result = await fetch('https://api.usercheck.com/domain/' + encodeURIComponent(domain), {
+				headers: {
+					'Authorization': `Bearer ${config.userCheckApiKey}`
+				}
+			}).then(x => x.json()) as {
+				disposable: boolean
+			};
+
+			if (result.disposable) {
+				res.status(400).send({ status: 'error', reason: "Looks like your email is disposable. To prevent spam, disposable emails are not allowed." });
+				return;
+			}
 		}
 
 		existing = await db.accounts.findOne({ username: q.username });

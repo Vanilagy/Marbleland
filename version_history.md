@@ -1,5 +1,8 @@
 # Version history
 
+## 1.10.1
+- Forbid disposable email addresses
+
 ## 1.10.0
 - Added "Forgot password"
 
