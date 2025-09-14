@@ -27,9 +27,7 @@ InBoundsTrigger
 OutOfBoundsTrigger
 HelpTrigger
 SpawnTrigger
-PathTrigger
 EventConnectionTrigger
-GemLight
 BounceParticle
 MarbleBounceEmitter
 TrailParticle
@@ -72,7 +70,6 @@ CustomMegaMarble
 GotGemSfx
 OpponentGemSfx
 GotAllGemsSfx
-staticgem
 GemItem
 GemItemBlue
 GemItemRed
@@ -224,14 +221,12 @@ glass_18shape
 clear
 Dusk
 Wintry
-GravityTrigger
-AlterGravityTrigger
-GravityWellTrigger
-GravityPointTrigger
 BezierHandle
 CheckpointSfx
 CheckpointTrigger
 checkPoint
+Checkpoint_MBXP
+Checkpoint_MBU
 DestinationTrigger
 TeleportTrigger
 TeleportSound
@@ -255,7 +250,6 @@ __FHiderMarblePack1
 __FHiderMegaMarble3D
 __FHiderMegaMarbleMidP
 __FHiderMegaMarblePack1
-kingTrigger
 collectionRing
 MPEmitterNode
 MPPowerupNode
