@@ -1,5 +1,8 @@
 # Version history
 
+## 1.10.2
+- Fixed BMP2 and BMP3 image files not being accepted
+
 ## 1.10.1
 - Forbid disposable email addresses
 

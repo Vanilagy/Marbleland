@@ -484,7 +484,7 @@ export class MissionUpload {
 			this.problems.add(`Image ${filePath} has the wrong extension: Internally, it is a ${imageFormat.toUpperCase()} file.`);
 			return false;
 		}
-		if (extension === '.bmp' && imageFormat !== MagickFormat.Bmp) {
+		if (extension === '.bmp' && imageFormat !== MagickFormat.Bmp && imageFormat !== MagickFormat.Bmp2 && imageFormat !== MagickFormat.Bmp3) {
 			this.problems.add(`Image ${filePath} has the wrong extension: Internally, it is a ${imageFormat.toUpperCase()} file.`);
 			return false;
 		}

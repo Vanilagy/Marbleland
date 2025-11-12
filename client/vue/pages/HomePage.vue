@@ -23,7 +23,7 @@
 	</ul>
 	<div class="footer-container">
 		<div class="version" @click="showVersionHistory">
-			Marbleland v1.10.1
+			Marbleland v1.10.2
 		</div>
 		<router-link to="/support" class="support-button">Support</router-link>
 	</div>
