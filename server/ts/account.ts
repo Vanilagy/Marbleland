@@ -156,11 +156,13 @@ export const suspendAccount = async (doc: AccountDoc, suspensionReason: string) 
 /** Generates the profile info for a given account. */
 export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 	let hasAvatar = await fs.pathExists(path.join(__dirname, `storage/avatars/${doc._id}.jpg`));
+	let levelCount = await db.missions.count({ addedBy: doc._id });
 
 	return {
 		id: doc._id,
 		username: doc.username,
 		hasAvatar,
+		levelCount,
 		isModerator: !!doc.moderator,
 		isSuspended: !!doc.suspended,
 		suspensionReason: doc.suspensionReason

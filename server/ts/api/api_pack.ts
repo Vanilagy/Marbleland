@@ -35,6 +35,13 @@ export const initPackApi = () => {
 			res.status(403).send("403\nAccount is suspended.");
 			return;
 		}
+		
+		// Check if the user has at least one created level
+		let createdLevelCount = await db.missions.count({ addedBy: doc._id });
+		if (createdLevelCount === 0) {
+			res.status(403).send("403\nYou need to create at least one level before you can create a pack.");
+			return;
+		}
 
 		let packDoc = await createPack(doc, req.body.name, req.body.description);
 
