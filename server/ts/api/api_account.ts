@@ -508,6 +508,41 @@ export const initAccountApi = () => {
 		res.send({ success: true });
 	});
 
+	// Toggle curator status
+    app.post('/api/account/:accountId/set-curator', async (req, res) => {
+        let { doc } = await authorize(req);
+        if (!doc) {
+            res.status(401).send("401\nInvalid token.");
+            return;
+        }
+
+        // Only moderators can grant curator status
+        if (!doc.moderator) {
+            res.status(403).send("403\nForbidden.");
+            return;
+        }
+
+        let targetId = Number(req.params.accountId);
+        if (!Number.isInteger(targetId)) {
+            res.status(400).end();
+            return;
+        }
+
+        let targetAccount = await db.accounts.findOne({ _id: targetId }) as AccountDoc;
+        if (!targetAccount) {
+            res.status(404).send("404\nAccount not found.");
+            return;
+        }
+
+        // Set the status based on the body (true/false)
+        let isCurator = !!req.body.isCurator;
+        
+        targetAccount.curator = isCurator;
+        await db.accounts.update({ _id: targetAccount._id }, targetAccount);
+
+        res.send({ success: true, isCurator: targetAccount.curator });
+    });
+
 	// Unsuspend an account
 	app.post('/api/account/:accountId/unsuspend', async (req, res) => {
 		let { doc } = await authorize(req);

@@ -42,3 +42,5 @@ export const MUTABLE_MISSION_INFO_FIELDS = [
 
 	'menucamerafov'
 ];
+
+export const FEATURE_SCORE_THRESHOLD = 1;

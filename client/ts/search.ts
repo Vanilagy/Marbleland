@@ -69,6 +69,7 @@ export abstract class Search {
 			if (filter.gameType.value !== 'all' && info.gameType !== filter.gameType.value) return false;
 			if (filter.hasGems.value !== 'all' && (info.gems > 0) !== (filter.hasGems.value === 'yes')) return false;
 			if (filter.hasEasterEgg.value !== 'all' && info.hasEasterEgg !== (filter.hasEasterEgg.value === 'yes')) return false;
+			if (filter.isFeatured.value !== 'all' && info.isFeatured !== (filter.isFeatured.value === 'yes')) return false;
 			outer:
 			if (filter.gameMode.value !== 'all') {
 				if (filter.gameMode.value === 'null' && !info.gameMode) break outer;

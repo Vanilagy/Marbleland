@@ -80,6 +80,15 @@ export const createNewStore = () => {
 								{ name: 'yes', label: 'Yes'}
 							]
 						},
+						isFeatured: {
+							label: 'Is Featured',
+							value: 'all',
+							options: [
+								{ name: 'all', label: "Don't care"},
+								{ name: 'no', label: 'No'},
+								{ name: 'yes', label: 'Yes'}
+							]
+						},
 						hasEasterEgg: {
 							label: 'Has Easter Egg',
 							value: 'all',

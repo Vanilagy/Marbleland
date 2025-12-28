@@ -24,6 +24,7 @@ export interface AccountDoc {
 	}[],
 	bio: string,
 	moderator?: boolean,
+	curator?: boolean,
 	acknowledgedGuidelines?: boolean,
 	suspended?: boolean,
 	suspensionReason?: string,
@@ -163,6 +164,7 @@ export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 		hasAvatar,
 		isModerator: !!doc.moderator,
 		isSuspended: !!doc.suspended,
+		isCurator: !!doc.curator,
 		suspensionReason: doc.suspensionReason
 	};
 };

@@ -204,7 +204,7 @@ export const initLevelApi = () => {
 	// Get additional info about a given level
 	app.get('/api/level/:levelId/extended-info', async (req, res) => {
 		let levelId = await verifyLevelId(req, res);
-		if (levelId === null) return;
+		if (levelId === null) return; 
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
@@ -606,6 +606,45 @@ export const initLevelApi = () => {
 			return null;
 		}
 	});
+
+	app.post('/api/level/:levelId/curate-vote', async (req, res) => {
+        let { doc: account } = await authorize(req);
+        if (!account || (!account.curator && !account.moderator)) {
+            res.status(403).send("403\nForbidden.");
+            return;
+        }
+
+        let levelId = await verifyLevelId(req, res);
+        if (levelId === null) return;
+
+        let voteValue = req.body.vote
+
+        let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+
+		if(account._id == missionDoc.addedBy) {
+			res.status(403).send("403\nCan't vote on your own level.");
+			return;
+		}
+
+        let votes = missionDoc.curatorVotes || {};
+
+        // Apply vote
+        if (voteValue === null || voteValue === undefined) {
+            delete votes[account._id];
+        } else {
+            votes[account._id] = !!voteValue;
+        }
+
+        // Recalculate score
+        let score = Object.values(votes).reduce((sum, v) => sum + (v ? 1 : -1), 0);
+
+        missionDoc.curatorVotes = votes;
+        missionDoc.curationScore = score;
+
+        await db.missions.update({ _id: levelId }, missionDoc);
+
+        res.send({ success: true });
+    });
 };
 
 export const incrementLevelDownloads = (doc: MissionDoc, req: express.Request) => {

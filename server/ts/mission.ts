@@ -11,7 +11,7 @@ import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
-import { MUTABLE_MISSION_INFO_FIELDS } from '../../shared/constants';
+import { MUTABLE_MISSION_INFO_FIELDS, FEATURE_SCORE_THRESHOLD } from '../../shared/constants';
 import { guessGameType, guessModification } from '../../shared/classification';
 import { MissionVerifier } from './verifier';
 import { MissionHasher } from './hasher';
@@ -42,6 +42,8 @@ export interface MissionDoc {
 	missesDependencies: boolean,
 	preferPrevThumbnail: boolean,
 	lovedBy: number[],
+	curatorVotes: Record<number, boolean>,
+	curationScore: number,
 	editedAt: number,
 	hasCustomCode: boolean,
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
@@ -73,6 +75,9 @@ export class Mission {
 	preferPrevThumbnail = false;
 	/** List of account IDs that love this mission. */
 	lovedBy: number[];
+	/** Map of curator account IDs with their vote */
+	curatorVotes: Record<number, boolean>;
+	curationScore: number = 0;
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
@@ -109,6 +114,8 @@ export class Mission {
 		mission.missesDependencies = doc.missesDependencies;
 		mission.preferPrevThumbnail = doc.preferPrevThumbnail;
 		mission.lovedBy = doc.lovedBy ?? [];
+		mission.curatorVotes = doc.curatorVotes ?? {};
+		mission.curationScore = doc.curationScore;
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
 		mission.datablockCompatibility = doc.datablockCompatibility ?? 'pq';
@@ -460,6 +467,8 @@ export class Mission {
 			preferPrevThumbnail: this.preferPrevThumbnail,
 			editedAt: this.editedAt,
 			lovedBy: this.lovedBy,
+			curatorVotes: this.curatorVotes,
+			curationScore : this.curationScore,
 			hasCustomCode: this.hasCustomCode,
 			datablockCompatibility: this.datablockCompatibility
 		};
@@ -497,13 +506,16 @@ export class Mission {
 			lovedCount: this.lovedBy.length,
 
 			hasCustomCode: this.hasCustomCode,
-			datablockCompatibility: this.datablockCompatibility
+			datablockCompatibility: this.datablockCompatibility,
+
+			isFeatured: (this.curationScore ?? 0) >= FEATURE_SCORE_THRESHOLD,
 		};
 	}
 
 	async createExtendedLevelInfo(requesterId?: number): Promise<ExtendedLevelInfo> {
 		let levelInfo = this.createLevelInfo();
 		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
+		let requesterDoc = await db.accounts.findOne({ _id: requesterId }) as AccountDoc;
 
 		// Find all packs containing this mission
 		let packDocs = await db.packs.find({ levels: this.id }) as PackDoc[];
@@ -523,8 +535,9 @@ export class Mission {
 			id: query.id,
 			name: query.name
 		}));
-		
-		return Object.assign(levelInfo, {
+
+		let extended: ExtendedLevelInfo = {
+			...levelInfo,
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
 			remarks: this.remarks,
 			packs: packInfos,
@@ -535,9 +548,14 @@ export class Mission {
 			hasPrevImage: this.getPrevImagePath() !== null,
 			missionInfo: this.info as any,
 			dependencies: this.getFilteredDependencies('none', false),
-			playInfo: playInfo,
-			leaderboardInfo: lbQueryInfo
-		});
+			playInfo,
+			leaderboardInfo: lbQueryInfo,
+			curatorVotes: requesterDoc?.curator ? this.curatorVotes : {},
+			curationScore: requesterDoc?.curator ? this.curationScore : null,
+			yourVote: requesterDoc?.curator ? this.curatorVotes[requesterDoc._id] : null
+		};
+		
+		return extended;
 	}
 
 	/** Get the path to the image thumbnail of this mission. */

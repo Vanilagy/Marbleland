@@ -4,6 +4,8 @@
 	<div class="actions">
 		<home-action v-for="action of actions" :key="action.name" :icon="action.icon" :name="action.name" :description="action.description" :path="action.path"></home-action>		
 	</div>
+	<h3>Featured levels</h3>
+	<panel-list :defaultCount="12" :entries="homeInfo && homeInfo.featuredLevels" noEntriesNotice="There are no featured levels." mode="level"></panel-list>
 	<h3>Latest levels</h3>
 	<panel-list :defaultCount="12" :entries="homeInfo && homeInfo.latestLevels" noEntriesNotice="There are no latest levels." mode="level"></panel-list>
 	<h1>Level installation guide</h1>

@@ -27,9 +27,35 @@
 					Loves: {{ levelInfo.lovedCount }}<br>
 					Added {{ formatDate(levelInfo.addedAt) }}
 					<template v-if="levelInfo.editedAt"><br>Edited {{ formatDate(levelInfo.editedAt) }}</template>
+					<span v-if="levelInfo.isFeatured" style="color: #3c68e6;"><br>Featured</span>
 					<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span>
 					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
+				<div v-if="isCurator" class="curationPanel">
+					<div class="curationHeader">Curator Score</div>
+					<div class="voteContainer">
+						<div class="voteBtn up" 
+							:class="{ active: levelInfo.yourVote === true }" 
+							@click="submitVote(true)" 
+							title="Vote Up">
+							<img src="/assets/svg/expand_more_black_24dp.svg">
+						</div>
+
+						<span class="score" :class="{ 
+							positive: (levelInfo.curationScore || 0) > 0, 
+							negative: (levelInfo.curationScore || 0) < 0 
+						}">
+							{{ levelInfo.curationScore || 0 }}
+						</span>
+
+						<div class="voteBtn down" 
+							:class="{ active: levelInfo.yourVote === false }" 
+							@click="submitVote(false)" 
+							title="Vote Down">
+							<img src="/assets/svg/expand_more_black_24dp.svg">
+						</div>
+					</div>
+				</div>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
@@ -327,7 +353,11 @@ export default defineComponent({
 		},
 		isLoggedIn(): boolean {
 			return !!this.$store.state.loggedInAccount
-		}
+		},
+		isCurator(): boolean {
+            const acc = this.$store.state.loggedInAccount;
+            return !!acc && acc.isCurator;
+        }
 	},
 	methods: {
 		/** Turns the modification value into a pretty string. */
@@ -554,7 +584,54 @@ export default defineComponent({
 				if (nextToken !== this.lbUpdateToken) return;
 				this.lbStatusMessage = 'An error has occurred while fetching scores.';
 			}
-		}
+		},
+		async submitVote(voteType: boolean) {
+            if (!this.isCurator || !this.levelInfo) return;
+
+			let getScoreVal = (vote): number => {
+				if (vote === true) return 1;
+				if (vote === false) return -1;
+				return 0;
+			};
+
+            let oldVote = this.levelInfo.yourVote;
+            
+            let newVote = voteType;
+            if (oldVote === voteType) newVote = null;
+
+            // Optimistic UI
+            let oldVal = getScoreVal(oldVote);
+            let newVal = getScoreVal(newVote);
+            let diff = newVal - oldVal;
+
+            this.levelInfo = {
+                ...this.levelInfo,
+                yourVote: newVote,
+                curationScore: (this.levelInfo.curationScore || 0) + diff
+            };
+
+            try {
+                let response = await fetch(`/api/level/${this.levelInfo.id}/curate-vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vote: newVote })
+                });
+
+                if (response.ok) {
+                } else {
+                    throw new Error("Vote failed");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Failed to submit vote.");
+                // Revert to old state
+                this.levelInfo = {
+                    ...this.levelInfo,
+                    yourVote: oldVote,
+                    curationScore: (this.levelInfo.curationScore || 0) - diff
+                };
+            }
+        }
 	},
 	watch: {
 		isLoggedIn() {
@@ -807,6 +884,90 @@ h3 {
 
 .lbButton.selected:hover {
 	border: 2px solid transparent;
+}
+
+.curationPanel {
+    background: var(--background-1); /* Matches thumbnail bg */
+    border-radius: 5px;
+    margin-top: 10px;
+    padding: 10px;
+    text-align: center;
+}
+
+.curationHeader {
+    font-size: 13px;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-bottom: 5px;
+    opacity: 0.75;
+}
+
+.voteContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.voteBtn {
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.voteBtn:hover {
+    background: rgba(0,0,0,0.1);
+}
+
+.voteBtn:active {
+    transform: scale(0.95);
+}
+
+.voteBtn img {
+    width: 24px;
+    height: 24px;
+    opacity: 0.6;
+}
+
+/* Rotate expand_more for up arrow */
+.voteBtn.up img {
+    transform: rotate(180deg);
+}
+
+/* Active States */
+.voteBtn.up.active {
+    background: #4caf50; /* Green for upvote */
+}
+.voteBtn.up.active img {
+    filter: invert(1); /* White icon */
+    opacity: 1;
+}
+
+.voteBtn.down.active {
+    background: #f44336; /* Red for downvote */
+}
+.voteBtn.down.active img {
+    filter: invert(1);
+    opacity: 1;
+}
+
+.score {
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 30px;
+}
+
+.score.positive {
+    color: #4caf50;
+}
+.score.negative {
+    color: #f44336;
 }
 </style>
 
