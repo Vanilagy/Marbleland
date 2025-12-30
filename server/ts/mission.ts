@@ -11,7 +11,7 @@ import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
-import { MUTABLE_MISSION_INFO_FIELDS, FEATURE_SCORE_THRESHOLD } from '../../shared/constants';
+import { MUTABLE_MISSION_INFO_FIELDS } from '../../shared/constants';
 import { guessGameType, guessModification } from '../../shared/classification';
 import { MissionVerifier } from './verifier';
 import { MissionHasher } from './hasher';
@@ -51,6 +51,8 @@ export interface MissionDoc {
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
 export class Mission {
+	/** Curator score a mission needs to be considered featured */
+	static featureScoreThreshold = 1;
 	baseDirectory: string;
 	relativePath: string;
 	dependencies = new Set<string>();
@@ -508,7 +510,7 @@ export class Mission {
 			hasCustomCode: this.hasCustomCode,
 			datablockCompatibility: this.datablockCompatibility,
 
-			isFeatured: (this.curationScore ?? 0) >= FEATURE_SCORE_THRESHOLD,
+			isFeatured: (this.curationScore ?? 0) >= Mission.featureScoreThreshold,
 		};
 	}
 
@@ -768,4 +770,32 @@ export class Mission {
 
 		return result;
 	}
+
+	/** Remove all mission curator votes from this account */
+	static async removeVotes(accountId: number) {
+        let missions = await db.missions.find({ [`curatorVotes.${accountId}`]: { $exists: true } }) as MissionDoc[];
+
+        // Process updates
+		let updates = missions.map(async (doc) => {
+			let mission = Mission.fromDoc(doc);
+			mission.setVote(accountId, null);
+			return db.missions.update({ _id: mission.id }, mission.createDoc());
+		});
+		await Promise.all(updates);
+    }
+
+	/** Add or remove an account's curator vote */
+	setVote(accountId: number, vote: boolean | null) {
+        if (!this.curatorVotes) this.curatorVotes = {};
+        
+		// Apply vote
+        if (vote === null || vote === undefined) {
+            delete this.curatorVotes[accountId];
+        } else {
+            this.curatorVotes[accountId] = !!vote;
+        }
+
+        // Recalc score
+        this.curationScore = Object.values(this.curatorVotes).reduce((sum, v) => sum + (v ? 1 : -1), 0);
+    }
 }

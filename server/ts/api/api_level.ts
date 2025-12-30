@@ -608,40 +608,30 @@ export const initLevelApi = () => {
 	});
 
 	app.post('/api/level/:levelId/curate-vote', async (req, res) => {
-        let { doc: account } = await authorize(req);
-        if (!account || (!account.curator && !account.moderator)) {
+        let { doc } = await authorize(req);
+        if (!doc || !doc.curator) {
             res.status(403).send("403\nForbidden.");
             return;
         }
 
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
         let levelId = await verifyLevelId(req, res);
         if (levelId === null) return;
 
-        let voteValue = req.body.vote
-
         let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 
-		if(account._id == missionDoc.addedBy) {
+		if(doc._id == missionDoc.addedBy) {
 			res.status(403).send("403\nCan't vote on your own level.");
 			return;
 		}
 
-        let votes = missionDoc.curatorVotes || {};
-
-        // Apply vote
-        if (voteValue === null || voteValue === undefined) {
-            delete votes[account._id];
-        } else {
-            votes[account._id] = !!voteValue;
-        }
-
-        // Recalculate score
-        let score = Object.values(votes).reduce((sum, v) => sum + (v ? 1 : -1), 0);
-
-        missionDoc.curatorVotes = votes;
-        missionDoc.curationScore = score;
-
-        await db.missions.update({ _id: levelId }, missionDoc);
+		let mission = Mission.fromDoc(missionDoc);
+		mission.setVote(doc._id, req.body.vote);
+        await db.missions.update({ _id: levelId }, mission.createDoc());
 
         res.send({ success: true });
     });

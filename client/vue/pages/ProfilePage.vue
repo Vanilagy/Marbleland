@@ -110,7 +110,7 @@
 				Are you sure you want to promote <strong>{{ profileInfo?.username }}</strong> to a Curator?
 			</p>
 			<p v-else>
-				Are you sure you want to remove Curator status from <strong>{{ profileInfo?.username }}</strong>?
+				Are you sure you want to remove Curator status from <strong>{{ profileInfo?.username }}</strong>? This action will remove all of their level votes permanently.
 			</p>
 			
 			<p>Curators have the ability to:</p>

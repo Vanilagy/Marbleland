@@ -32,28 +32,12 @@
 					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
 				<div v-if="isCurator" class="curationPanel">
-					<div class="curationHeader">Curator Score</div>
 					<div class="voteContainer">
-						<div class="voteBtn up" 
-							:class="{ active: levelInfo.yourVote === true }" 
-							@click="submitVote(true)" 
-							title="Vote Up">
-							<img src="/assets/svg/expand_more_black_24dp.svg">
-						</div>
-
-						<span class="score" :class="{ 
-							positive: (levelInfo.curationScore || 0) > 0, 
-							negative: (levelInfo.curationScore || 0) < 0 
-						}">
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true }" @click="submitVote(true)" title="Vote Up"></button-with-icon>
+						<span class="score" :class="{ positive: (levelInfo.curationScore || 0) > 0, negative: (levelInfo.curationScore || 0) < 0 }">
 							{{ levelInfo.curationScore || 0 }}
 						</span>
-
-						<div class="voteBtn down" 
-							:class="{ active: levelInfo.yourVote === false }" 
-							@click="submitVote(false)" 
-							title="Vote Down">
-							<img src="/assets/svg/expand_more_black_24dp.svg">
-						</div>
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn down" :class="{ active: levelInfo.yourVote === false }"  @click="submitVote(false)" title="Vote Down"></button-with-icon>
 					</div>
 				</div>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
@@ -604,11 +588,7 @@ export default defineComponent({
             let newVal = getScoreVal(newVote);
             let diff = newVal - oldVal;
 
-            this.levelInfo = {
-                ...this.levelInfo,
-                yourVote: newVote,
-                curationScore: (this.levelInfo.curationScore || 0) + diff
-            };
+            this.levelInfo = {...this.levelInfo,yourVote: newVote, curationScore: (this.levelInfo.curationScore || 0) + diff };
 
             try {
                 let response = await fetch(`/api/level/${this.levelInfo.id}/curate-vote`, {
@@ -619,17 +599,13 @@ export default defineComponent({
 
                 if (response.ok) {
                 } else {
+					let text = await response.text();
+					alert("Failed to submit vote: " + text);
                     throw new Error("Vote failed");
                 }
             } catch (e) {
-                console.error(e);
-                alert("Failed to submit vote.");
                 // Revert to old state
-                this.levelInfo = {
-                    ...this.levelInfo,
-                    yourVote: oldVote,
-                    curationScore: (this.levelInfo.curationScore || 0) - diff
-                };
+                this.levelInfo = { ...this.levelInfo, yourVote: oldVote, curationScore: (this.levelInfo.curationScore || 0) - diff };
             }
         }
 	},
@@ -887,56 +863,38 @@ h3 {
 }
 
 .curationPanel {
-    background: var(--background-1); /* Matches thumbnail bg */
     border-radius: 5px;
     margin-top: 10px;
     padding: 10px;
     text-align: center;
 }
 
-.curationHeader {
-    font-size: 13px;
-    text-transform: uppercase;
-    font-weight: bold;
-    margin-bottom: 5px;
-    opacity: 0.75;
-}
-
 .voteContainer {
     display: flex;
-    justify-content: center;
+    justify-content: left;
     align-items: center;
     gap: 15px;
 }
 
 .voteBtn {
-    cursor: pointer;
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.05);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background: var(--background-1);
     transition: background 0.2s, transform 0.1s;
+	padding: 0 0px;
 }
 
 .voteBtn:hover {
-    background: rgba(0,0,0,0.1);
+    border: 2px solid var(--background-2);
 }
 
 .voteBtn:active {
-    transform: scale(0.95);
-}
-
-.voteBtn img {
-    width: 24px;
-    height: 24px;
-    opacity: 0.6;
+    background:var(--background-2);
 }
 
 /* Rotate expand_more for up arrow */
-.voteBtn.up img {
+.voteBtn.up :deep(img) {
     transform: rotate(180deg);
 }
 
@@ -944,7 +902,7 @@ h3 {
 .voteBtn.up.active {
     background: #4caf50; /* Green for upvote */
 }
-.voteBtn.up.active img {
+.voteBtn.up.active :deep(img) {
     filter: invert(1); /* White icon */
     opacity: 1;
 }
@@ -952,7 +910,7 @@ h3 {
 .voteBtn.down.active {
     background: #f44336; /* Red for downvote */
 }
-.voteBtn.down.active img {
+.voteBtn.down.active :deep(img) {
     filter: invert(1);
     opacity: 1;
 }

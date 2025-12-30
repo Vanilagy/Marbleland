@@ -152,6 +152,9 @@ export const suspendAccount = async (doc: AccountDoc, suspensionReason: string) 
 
 	// Delete all comments by the user
 	await db.comments.remove({ author: doc._id }, { multi: true });
+
+	// Remove all curator votes by the user
+	if(doc.curator) await Mission.removeVotes(doc._id);
 }
 
 /** Generates the profile info for a given account. */

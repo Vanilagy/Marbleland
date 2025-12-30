@@ -2,7 +2,6 @@ import { LevelInfo, HomeInfo } from "../../../shared/types";
 import { db } from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { app } from "../server";
-import { FEATURE_SCORE_THRESHOLD } from "../../../shared/constants";
 
 export const initHomeApi = () => {
 	// Send info necessary for the home page
@@ -18,7 +17,7 @@ export const initHomeApi = () => {
 			latestLevels.push(mission.createLevelInfo());
 		}
 
-		let featuredDocs = await db.missions.find({ curationScore: { $gte: FEATURE_SCORE_THRESHOLD } }) as MissionDoc[];
+		let featuredDocs = await db.missions.find({ curationScore: { $gte: Mission.featureScoreThreshold } }) as MissionDoc[];
 		featuredDocs.sort((a, b) => b.addedAt - a.addedAt);
 		featuredDocs = featuredDocs.slice(0, 12);
 
