@@ -572,7 +572,7 @@ export default defineComponent({
 		async submitVote(voteType: boolean) {
             if (!this.isCurator || !this.levelInfo) return;
 
-			let getScoreVal = (vote): number => {
+			let getScoreVal = (vote: boolean): number => {
 				if (vote === true) return 1;
 				if (vote === false) return -1;
 				return 0;
