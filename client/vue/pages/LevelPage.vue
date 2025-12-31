@@ -33,11 +33,11 @@
 				</p>
 				<div v-if="isCurator" class="curationPanel">
 					<div class="voteContainer">
-						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true }" @click="submitVote(true)" title="Vote Up"></button-with-icon>
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
 						<span class="score" :class="{ positive: (levelInfo.curationScore || 0) > 0, negative: (levelInfo.curationScore || 0) < 0 }">
 							{{ levelInfo.curationScore || 0 }}
 						</span>
-						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn down" :class="{ active: levelInfo.yourVote === false }"  @click="submitVote(false)" title="Vote Down"></button-with-icon>
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn down" :class="{ active: levelInfo.yourVote === false }"  @click="submitVote(false)" title="This level does not demonstrate creative effort."></button-with-icon>
 					</div>
 				</div>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
