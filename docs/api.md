@@ -409,6 +409,24 @@ Resets the password for an account using a valid reset token received via email.
 }
 ```
 
+### `POST` /api/account/{account-id}/set-curator
+**Requires [authentication](#authentication) and moderator privileges.** Grants or revokes curator status for the specified account. When revoking status, any existing curator votes by this user are automatically removed.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	isCurator: boolean // true to grant, false to revoke
+}
+```
+
+**Response body:**
+```typescript
+{
+	success: boolean,
+	isCurator: boolean // The new status
+}
+```
+
 ## Pack
 ### `GET` /api/pack/list
 Returns a list of all packs as an array of [PackInfo](#packinfo).
@@ -481,6 +499,23 @@ number[] // An array of level IDs to include in the pack
 
 ### `PATCH` /api/pack/{pack-id}/unlove
 **Requires [authentication](#authentication).** Unmarks a pack as loved.
+
+### `POST` /api/level/{level-id}/curate-vote
+**Requires [authentication](#authentication) and curator privileges.** Casts a curator vote on a level. If the resulting score meets the threshold, the level is automatically featured.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	vote: boolean | null // true = upvote, false = downvote, null = retract vote
+}
+```
+
+**Response body:**
+```typescript
+{
+	success: boolean,
+}
+```
 
 ## Home
 ### `GET` /api/home/info
@@ -566,6 +601,8 @@ Contains metadata about a level.
 
 	hasCustomCode: boolean,
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq' // Which variant of Marble Blast this level's datablocks are compatible with
+
+	isFeatured: boolean,
 }
 ```
 
@@ -584,7 +621,11 @@ LevelInfo & {
 	missionInfo: Record<string, string>, // All the properties of the .mis file's MissionInfo element
 	dependencies: string[], // The list of files (assets) the given level depends on
 	playInfo: GameDefinition[], // Contains the definitions of the games the level can be played on
-	leaderboardInfo: ReducedLeaderboardDefinition[] // Contains the definitions of the leaderboards available for the level
+	leaderboardInfo: ReducedLeaderboardDefinition[], // Contains the definitions of the leaderboards available for the level
+	// Visible to curators only:
+	curatorVotes: Record<number, boolean>, // All the votes cast by curators
+	curationScore: number, // Cumulative curator score
+	yourVote: boolean, // Your curator vote; true for upvote, false for downvote
 }
 ```
 
@@ -665,6 +706,7 @@ Contains metadata about a profile.
 	username: string,
 	hasAvatar: boolean,
 	isModerator: boolean,
+	isCurator: boolean,
 	isSuspended?: boolean,
 	suspensionReason?: string
 }
