@@ -27,7 +27,6 @@
 					Loves: {{ levelInfo.lovedCount }}<br>
 					Added {{ formatDate(levelInfo.addedAt) }}
 					<template v-if="levelInfo.editedAt"><br>Edited {{ formatDate(levelInfo.editedAt) }}</template>
-					<span v-if="levelInfo.isFeatured" style="color: #3c68e6;"><br>Featured</span>
 					<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span>
 					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>

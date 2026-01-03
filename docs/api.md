@@ -501,7 +501,7 @@ number[] // An array of level IDs to include in the pack
 **Requires [authentication](#authentication).** Unmarks a pack as loved.
 
 ### `POST` /api/level/{level-id}/curate-vote
-**Requires [authentication](#authentication) and curator privileges.** Casts a curator vote on a level. If the resulting score meets the threshold, the level is automatically featured.
+**Requires [authentication](#authentication) and curator privileges.** Casts a curator vote on a level. If the resulting score is below threshold, it is hidden from normal view.
 
 **Request body (`Content-Type: application/json`):**
 ```typescript
@@ -600,9 +600,9 @@ Contains metadata about a level.
 	lovedCount: number,
 
 	hasCustomCode: boolean,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq' // Which variant of Marble Blast this level's datablocks are compatible with
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // Which variant of Marble Blast this level's datablocks are compatible with
 
-	isFeatured: boolean,
+	curationScore: number, // Cumulative curator score
 }
 ```
 
@@ -624,7 +624,6 @@ LevelInfo & {
 	leaderboardInfo: ReducedLeaderboardDefinition[], // Contains the definitions of the leaderboards available for the level
 	// Visible to curators only:
 	curatorVotes: Record<number, boolean>, // All the votes cast by curators
-	curationScore: number, // Cumulative curator score
 	yourVote: boolean, // Your curator vote; true for upvote, false for downvote
 }
 ```

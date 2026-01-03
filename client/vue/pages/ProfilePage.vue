@@ -116,7 +116,7 @@
 			<p>Curators have the ability to:</p>
 			<ul>
 				<li>View hidden Curator Score on all levels.</li>
-				<li>Vote to feature levels on the homepage.</li>
+				<li>Vote to filter levels on the homepage.</li>
 			</ul>
 		</div>
 		<hr />

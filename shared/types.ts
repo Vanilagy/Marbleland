@@ -64,7 +64,7 @@ export interface LevelInfo {
 	hasCustomCode: boolean,
 	datablockCompatibility: Mission['datablockCompatibility'],
 
-	isFeatured: boolean
+	curationScore: number,
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */
@@ -81,7 +81,6 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	playInfo: GameDefinition[],
 	leaderboardInfo: ReducedLeaderboardDefinition[],
 	curatorVotes: Record<number, boolean>,
-	curationScore: number,
 	yourVote: boolean,
 }
 
@@ -150,6 +149,6 @@ export interface CommentInfo {
 
 /** Describes the data displayed on the Home page. */
 export interface HomeInfo {
-	featuredLevels: LevelInfo[]
-	latestLevels: LevelInfo[]
+	allLevels: LevelInfo[]
+	filteredLevels: LevelInfo[]
 }

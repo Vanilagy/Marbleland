@@ -51,8 +51,6 @@ export interface MissionDoc {
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
 export class Mission {
-	/** Curator score a mission needs to be considered featured */
-	static featureScoreThreshold = 1;
 	baseDirectory: string;
 	relativePath: string;
 	dependencies = new Set<string>();
@@ -510,7 +508,7 @@ export class Mission {
 			hasCustomCode: this.hasCustomCode,
 			datablockCompatibility: this.datablockCompatibility,
 
-			isFeatured: (this.curationScore ?? 0) >= Mission.featureScoreThreshold,
+			curationScore : this.curationScore
 		};
 	}
 
@@ -553,7 +551,6 @@ export class Mission {
 			playInfo,
 			leaderboardInfo: lbQueryInfo,
 			curatorVotes: requesterDoc?.curator ? this.curatorVotes : {},
-			curationScore: requesterDoc?.curator ? this.curationScore : null,
 			yourVote: requesterDoc?.curator ? this.curatorVotes[requesterDoc._id] : null
 		};
 		

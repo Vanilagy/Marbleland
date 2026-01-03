@@ -80,8 +80,8 @@ export const createNewStore = () => {
 								{ name: 'yes', label: 'Yes'}
 							]
 						},
-						isFeatured: {
-							label: 'Is Featured',
+						isFiltered: {
+							label: 'Possible spam',
 							value: 'all',
 							options: [
 								{ name: 'all', label: "Don't care"},
