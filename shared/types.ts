@@ -60,7 +60,7 @@ export interface LevelInfo {
 
 	downloads: number,
 	lovedCount: number,
-	
+
 	hasCustomCode: boolean,
 	datablockCompatibility: Mission['datablockCompatibility']
 }
@@ -87,7 +87,8 @@ export interface ProfileInfo {
 	hasAvatar: boolean,
 	isModerator: boolean,
 	isSuspended?: boolean,
-	suspensionReason?: string
+	suspensionReason?: string,
+	levelCount: number
 }
 
 /** Contains metadata about a profile, as well as additional data to display on the Profile page. */
@@ -106,7 +107,7 @@ export interface SignInInfo {
 		name: string,
 		levelIds: number[]
 	}[],
-	/** Whether the user has acknowledged the content guidelines. */	
+	/** Whether the user has acknowledged the content guidelines. */
 	acknowledgedGuidelines: boolean
 }
 

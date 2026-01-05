@@ -1,4 +1,7 @@
-# Version history
+### Version history
+
+## 1.10.3
+- Made the pack creation require uploading at least one level
 
 ## 1.10.2
 - Fixed BMP2 and BMP3 image files not being accepted

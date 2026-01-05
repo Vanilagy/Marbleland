@@ -3,7 +3,7 @@
 		<title>Create pack - Marbleland</title>
 		<meta name="og:title" content="Create pack">
 	</Head>
-	<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended">
+	<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended && $store.state.loggedInAccount.levelCount > 0">
 		<h1>Create new level pack</h1>
 		<div :class="{ disabled: creating }">
 			<input type="text" placeholder="Name" :maxlength="$store.state.packNameMaxLength" v-model.trim="name" class="basicTextInput">
@@ -13,6 +13,7 @@
 		</div>
 	</template>
 	<p v-else-if="$store.state.loggedInAccount && $store.state.loggedInAccount.isSuspended" class="suspendedMessage">Your account has been suspended and cannot create level packs.</p>
+	<p v-else-if="$store.state.loggedInAccount && $store.state.loggedInAccount.levelCount === 0" class="noLevelsMessage">You need to create at least one level before you can create a pack.</p>
 	<p v-else class="notSignedIn">You need to be signed in to create a level pack.</p>
 </template>
 
