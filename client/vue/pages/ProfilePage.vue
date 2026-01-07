@@ -18,8 +18,8 @@
 			<img :src="avatarSrc" :class="{ basicIcon: !profileInfo.hasAvatar }">
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
-		<p class="moderatorBadge" v-if="profileInfo.isModerator">Moderator</p>
-		<p class="moderatorBadge" v-if="profileInfo.isCurator">Curator</p>
+		<p class="badge moderatorColor" v-if="profileInfo.isModerator">Moderator</p>
+		<p class="badge curatorColor" v-if="profileInfo.isCurator">Curator</p>
 		<template v-if="!editingBio || !hasOwnershipPermissions">
 			<p class="bio" :class="{ emptyBio: !profileInfo.bio }" v-html="bio"></p>
 			<div class="bioActions" v-if="hasOwnershipPermissions">
@@ -480,17 +480,25 @@ h3 {
 	margin-top: 50px;
 }
 
-.moderatorBadge {
+.badge {
 	width: 85px;
     margin: 5px auto;
     text-align: center;
-    background: #3c68e6;
+    
     font-size: 10px;
     color: white;
     text-transform: uppercase;
     border-radius: 5px;
     font-weight: bold;
     padding: 1px;
+}
+
+.moderatorColor {
+	background: #3c68e6;
+}
+
+.curatorColor {
+	background: #4caf50;
 }
 
 .stats {

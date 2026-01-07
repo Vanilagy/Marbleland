@@ -3,8 +3,13 @@
 		<div class="panel notSelectable" @click="clicked">
 			<a :href="`/level/${levelInfo.id}`" @click.prevent=""><img :src="imageSource" @error="imageLoadError" v-if="imageShown" class="mainImage"></a>
 			<div class="bottom">
-				<div class="name">{{levelInfo.name}}</div>
-				<div class="artist" :class="{missingArtist: !levelInfo.artist}">{{levelInfo.artist? levelInfo.artist : 'Missing artist'}}</div>
+				<div class="info">
+					<div class="name">{{ levelInfo.name }}</div>
+					<div class="artist" :class="{missingArtist: !levelInfo.artist}">
+						{{ levelInfo.artist ? levelInfo.artist : 'Missing artist' }}
+					</div>
+				</div>
+				<div class="score" :class="{ positive: (levelScore(levelInfo) || 0) > 0, negative: (levelScore(levelInfo) || 0) < 0 }">{{ levelScore(levelInfo) }}</div>
 			</div>
 			<div class="actions" :style="actionsStyle">
 				<img src="/assets/svg/west_black_24dp.svg" v-if="actions && actions.swapLeft" title="Swap to the left" @click.stop="actions.swapLeft(levelInfo)" class="basicIcon">
@@ -61,7 +66,10 @@ export default defineComponent({
 		},
 		download() {
 			window.location.href = window.location.origin + `/api/level/${this.levelInfo.id}/zip`;
-		}
+		},
+		levelScore(info: LevelInfo) {
+			return info && this.$store.state.loggedInAccount?.isCurator ? info.curationScore : null;
+		},
 	},
 	components: {
 		PackAdder
@@ -141,11 +149,34 @@ export default defineComponent({
 .bottom {
 	position: absolute;
 	left: 0;
+	right: 0;
 	bottom: 0;
+	display: flex;
+	align-items: center;
 	padding: 3px 9px;
-	width: 100%;
 	background: var(--level-panel-bottom-background);
 	box-sizing: border-box;
+}
+
+.info {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.score {
+	flex: 0 0 auto;
+	margin-left: 8px;
+	white-space: nowrap;
+	font-weight: 600;
+	opacity: 1;
+	padding-top: 2px;
+}
+
+.score.positive {
+    color: #4caf50;
+}
+.score.negative {
+    color: #f44336;
 }
 
 .missingArtist {
