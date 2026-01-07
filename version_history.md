@@ -1,5 +1,8 @@
 # Version history
 
+## 1.11.0
+- Added curator role and voting system
+
 ## 1.10.2
 - Fixed BMP2 and BMP3 image files not being accepted
 
