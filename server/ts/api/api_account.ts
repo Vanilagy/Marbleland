@@ -6,6 +6,7 @@ import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtend
 import { config, db, keyValue } from "../globals";
 import { app } from "../server";
 import { tryAssociatingOldUserData } from "../recovery";
+import { MissionDoc, Mission } from '../../../server/ts/mission';
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
@@ -642,4 +643,42 @@ export const initAccountApi = () => {
 			signInInfo: await getSignInInfo(doc) 
 		});
 	});
+
+	// Toggle curator status
+    app.post('/api/account/:accountId/set-curator', async (req, res) => {
+        let { doc } = await authorize(req);
+        if (!doc) {
+            res.status(401).send("401\nInvalid token.");
+            return;
+        }
+
+        // Only moderators can grant curator status
+        if (!doc.moderator) {
+            res.status(403).send("403\nForbidden.");
+            return;
+        }
+
+        let targetId = Number(req.params.accountId);
+        if (!Number.isInteger(targetId)) {
+            res.status(400).end();
+            return;
+        }
+
+        let targetAccount = await db.accounts.findOne({ _id: targetId }) as AccountDoc;
+        if (!targetAccount) {
+            res.status(404).send("404\nAccount not found.");
+            return;
+        }
+
+        // Set the status based on the body (true/false)
+        let isCurator = !!req.body.isCurator;
+        
+        targetAccount.curator = isCurator;
+        await db.accounts.update({ _id: targetAccount._id }, targetAccount);
+
+		// Remove curator votes from this account if it's a revoke
+		if (!isCurator) Mission.removeVotes(targetAccount._id);
+
+        res.send({ success: true, isCurator: targetAccount.curator });
+    });
 };

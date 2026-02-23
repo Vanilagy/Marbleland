@@ -18,6 +18,7 @@ import EmailVerificationPage from '../vue/pages/EmailVerificationPage.vue';
 import ForgotPasswordPage from '../vue/pages/ForgotPasswordPage.vue';
 import ResetPasswordPage from '../vue/pages/ResetPasswordPage.vue';
 import SupportPage from '../vue/pages/SupportPage.vue';
+import AboutCuratorScoresPage from "../vue/pages/AboutCuratorScoresPage.vue";
 
 const routes = [{
 	path: '/',
@@ -95,6 +96,10 @@ const routes = [{
 	path: '/support',
 	name: 'Support',
 	component: SupportPage
+}, {
+	path: '/about-curator-scores',
+	name: 'AboutCuratorScores',
+	component: AboutCuratorScoresPage
 }];
 
 const isServer = typeof window === 'undefined';

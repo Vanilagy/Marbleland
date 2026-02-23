@@ -1,3 +1,4 @@
+import { LEVEL_FILTER_THRESHOLD } from "../../shared/constants";
 import { LevelInfo } from "../../shared/types";
 import { store } from "./store";
 import { Util } from "./util";
@@ -62,6 +63,7 @@ export abstract class Search {
 
 			let selectedCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[filter.datablockCompatibility.value];
 			let levelCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[info.datablockCompatibility];
+			let isRelevant = info.curationScore >= LEVEL_FILTER_THRESHOLD;
 
 			// Apply additional filtering
 			if (filter.modification.value !== 'all' && info.modification !== filter.modification.value) return false;
@@ -69,6 +71,8 @@ export abstract class Search {
 			if (filter.gameType.value !== 'all' && info.gameType !== filter.gameType.value) return false;
 			if (filter.hasGems.value !== 'all' && (info.gems > 0) !== (filter.hasGems.value === 'yes')) return false;
 			if (filter.hasEasterEgg.value !== 'all' && info.hasEasterEgg !== (filter.hasEasterEgg.value === 'yes')) return false;
+
+			if (filter.isFiltered.value !== 'all' && isRelevant !== (filter.isFiltered.value === 'yes')) return false;
 			outer:
 			if (filter.gameMode.value !== 'all') {
 				if (filter.gameMode.value === 'null' && !info.gameMode) break outer;

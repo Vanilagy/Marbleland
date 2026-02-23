@@ -1,4 +1,5 @@
 import { LevelInfo, HomeInfo } from "../../../shared/types";
+import { LEVEL_FILTER_THRESHOLD } from "../../../shared/constants";
 import { db } from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { app } from "../server";
@@ -6,21 +7,25 @@ import { app } from "../server";
 export const initHomeApi = () => {
 	// Send info necessary for the home page
 	app.get('/api/home/info', async (req, res) => {
-		// Get a list of the newest levels
-		let missionDocs = await db.missions.find({}) as MissionDoc[];
-		missionDocs.sort((a, b) => b.addedAt - a.addedAt);
-		missionDocs = missionDocs.slice(0, 12); // 12 because 12 = lcm(1, 2, 3, 4) so it looks good on all screen sizes
+		// Get all missions and sort by newest
+		let allDocs = await db.missions.find({}) as MissionDoc[];
+		allDocs.sort((a, b) => b.addedAt - a.addedAt);
 
-		let levelInfos: LevelInfo[] = [];
-		for (let missionDoc of missionDocs) {
-			let mission = Mission.fromDoc(missionDoc);
-			levelInfos.push(mission.createLevelInfo());
-		}
+		// Filter and slice curated levels
+		const filteredDocs = allDocs
+			.filter(doc => doc.curationScore >= LEVEL_FILTER_THRESHOLD)
+			.slice(0, 12);
 
-		let result: HomeInfo = {
-			latestLevels: levelInfos
-		};
+		// Convert to LevelInfo arrays
+		const filteredLevels: LevelInfo[] = filteredDocs.map(doc => 
+			Mission.fromDoc(doc).createLevelInfo()
+		);
 
+		const allLevels: LevelInfo[] = allDocs
+			.slice(0, 12)
+			.map(doc => Mission.fromDoc(doc).createLevelInfo());
+
+		const result: HomeInfo = { allLevels, filteredLevels };
 		res.send(result);
 	});
 };

@@ -18,11 +18,16 @@
 			<img :src="avatarSrc" :class="{ basicIcon: !profileInfo.hasAvatar }">
 		</div>
 		<h1>{{ profileInfo.username }}</h1>
-		<p class="moderatorBadge" v-if="profileInfo.isModerator">Moderator</p>
+		<p class="badge moderatorColor" v-if="profileInfo.isModerator">Moderator</p>
+		<p class="badge curatorColor" v-if="profileInfo.isCurator">Curator</p>
 		<template v-if="!editingBio || !hasOwnershipPermissions">
 			<p class="bio" :class="{ emptyBio: !profileInfo.bio }" v-html="bio"></p>
 			<div class="bioActions" v-if="hasOwnershipPermissions">
 				<img src="/assets/svg/edit_note_black_24dp.svg" class="editBio basicIcon" title="Edit bio" @click="editingBio = true">
+				<template v-if="isModerator">
+					<img v-if="!profileInfo.isCurator" src="/assets/svg/add_circle_outline_black_24dp.svg" class="curatorIcon basicIcon" title="Grant Curator status" @click="showCuratorConfirmation">
+					<img v-else src="/assets/svg/remove_circle_outline_black_24dp.svg" class="curatorIcon basicIcon" title="Revoke Curator status" @click="showCuratorConfirmation">
+				</template>
 				<template v-if="!isOwnProfile && !profileInfo.isModerator">
 					<img v-if="!profileInfo.isSuspended" src="/assets/svg/gavel_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" class="suspendIcon basicIcon" title="Suspend account" @click="showSuspendConfirmation">
 					<img v-else src="/assets/svg/healing_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" class="unsuspendIcon basicIcon" title="Unsuspend account" @click="unsuspendAccount">
@@ -94,6 +99,38 @@
 			</ButtonWithIcon>
 		</div>
 	</Modal>
+
+	<Modal ref="curatorConfirmationModal">
+		<h2 class="curatorModalHeading" :class="{ revoke: curatorModalIsRevoke }">
+			{{ curatorModalIsRevoke ? 'Revoke' : 'Grant' }} Curator status
+		</h2>
+		<hr />
+		<div class="curatorModalBody">
+			<p v-if="!curatorModalIsRevoke">
+				Are you sure you want to promote <strong>{{ profileInfo?.username }}</strong> to a Curator?
+			</p>
+			<p v-else>
+				Are you sure you want to remove Curator status from <strong>{{ profileInfo?.username }}</strong>? This action will remove all of their level votes permanently.
+			</p>
+			
+			<template v-if="!curatorModalIsRevoke">
+				<p>Curators have the ability to:</p>
+				<ul>
+					<li>View hidden Curator score on all levels.</li>
+					<li>Vote to filter levels on the homepage.</li>
+				</ul>
+			</template>
+		</div>
+		<hr />
+		<div class="curatorModalButtons">
+			<ButtonWithIcon class="confirmCuratorButton" :class="{ revoke: curatorModalIsRevoke }" @click="toggleCurator">
+				{{ curatorModalIsRevoke ? 'Revoke status' : 'Grant status' }}
+			</ButtonWithIcon>
+			<ButtonWithIcon @click="closeCuratorConfirmationModal">
+				Cancel
+			</ButtonWithIcon>
+		</div>
+	</Modal>
 </template>
 
 <script lang="ts">
@@ -119,7 +156,8 @@ export default defineComponent({
 			notFound: false,
 			acknowledgedSuspensionConsequences: false,
 			usernameConfirmation: '',
-			suspensionReason: ''
+			suspensionReason: '',
+			curatorModalIsRevoke: false,
 		};
 	},
 	async mounted() {
@@ -158,8 +196,14 @@ export default defineComponent({
 		shouldSetAvatar(): boolean {
 			return this.profileInfo.id === this.$store.state.loggedInAccount?.id && !this.profileInfo.hasAvatar;
 		},
+		isOwnProfile(): boolean {
+			return this.profileInfo?.id === this.$store.state.loggedInAccount?.id;
+		},
+		isModerator(): boolean {
+			return this.$store.state.loggedInAccount?.isModerator;
+		},
 		hasOwnershipPermissions(): boolean {
-			return this.profileInfo.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount?.isModerator;
+			return this.isModerator || this.isOwnProfile;
 		},
 		bio(): string {
 			return Util.linkify(this.profileInfo.bio) || "This user hasn't set a bio.";
@@ -178,9 +222,6 @@ export default defineComponent({
 		},
 		packLoves(): number {
 			return this.profileInfo.createdPacks.reduce((a, b) => a + b.lovedCount, 0);
-		},
-		isOwnProfile(): boolean {
-			return this.profileInfo?.id === this.$store.state.loggedInAccount?.id;
 		},
 		canSuspend(): boolean {
 			return this.acknowledgedSuspensionConsequences && 
@@ -274,7 +315,37 @@ export default defineComponent({
 			} else {
 				alert("Something went wrong while unsuspending the account.");
 			}
-		}
+		},
+		showCuratorConfirmation() {
+			this.curatorModalIsRevoke = !!this.profileInfo?.isCurator;
+			(this.$refs.curatorConfirmationModal as any).show();
+		},
+		closeCuratorConfirmationModal() {
+			(this.$refs.curatorConfirmationModal as any).hide();
+		},
+		async toggleCurator() {
+			this.closeCuratorConfirmationModal();
+
+			const newStatus = !this.curatorModalIsRevoke;
+			
+			try {
+				let response = await fetch(`/api/account/${this.profileInfo.id}/set-curator`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ isCurator: newStatus })
+				});
+
+				if (response.ok) {
+					let json = await response.json();
+					this.profileInfo.isCurator = json.isCurator;
+				} else {
+					alert("Action failed.");
+				}
+			} catch (e) {
+				console.error(e);
+				alert("Network error.");
+			}
+		},
 	},
 	components: {
 		InfoBanner,
@@ -366,12 +437,12 @@ h1 {
 	margin-top: 5px;
 }
 
-.editBio, .suspendIcon, .unsuspendIcon {
+.editBio, .suspendIcon, .unsuspendIcon, .curatorIcon {
 	opacity: 0.25 !important;
 	cursor: pointer;
 }
 
-.editBio:hover, .suspendIcon:hover, .unsuspendIcon:hover {
+.editBio:hover, .suspendIcon:hover, .unsuspendIcon:hover, .curatorIcon:hover {
 	opacity: 0.75 !important;
 }
 
@@ -411,17 +482,25 @@ h3 {
 	margin-top: 50px;
 }
 
-.moderatorBadge {
+.badge {
 	width: 85px;
     margin: 5px auto;
     text-align: center;
-    background: #3c68e6;
+    
     font-size: 10px;
     color: white;
     text-transform: uppercase;
     border-radius: 5px;
     font-weight: bold;
     padding: 1px;
+}
+
+.moderatorColor {
+	background: #3c68e6;
+}
+
+.curatorColor {
+	background: #4caf50;
 }
 
 .stats {
@@ -517,5 +596,47 @@ h3 {
 
 .suspendAccountButton:active {
 	background: rgb(218, 76, 105) !important;
+}
+
+.curatorModalHeading {
+    text-align: center;
+    color: #4caf50; 
+    margin: 0 0 10px 0;
+    font-weight: normal;
+    font-size: 18px;
+}
+
+.curatorModalHeading.revoke {
+    color: crimson;
+}
+
+.curatorModalBody {
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.curatorModalButtons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.confirmCuratorButton {
+    background: #4caf50 !important;
+    color: white !important;
+}
+.confirmCuratorButton:hover {
+    background: #43a047 !important;
+}
+
+/* Revoke Button = Red */
+.confirmCuratorButton.revoke {
+    background: crimson !important;
+}
+.confirmCuratorButton.revoke:hover {
+    border-color: rgb(218, 76, 105) !important;
+}
+.confirmCuratorButton.revoke:active {
+    background: rgb(218, 76, 105) !important;
 }
 </style>

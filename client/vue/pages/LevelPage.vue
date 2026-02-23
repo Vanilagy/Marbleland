@@ -30,6 +30,19 @@
 					<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span>
 					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
+				<div v-if="isCurator" class="curationPanel">
+					<h3>Curator score</h3>
+
+					<div class="voteContainer">
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true, disabled: isOwnLevel }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
+						<span class="score" :class="{ positive: (levelInfo.curationScore || 0) > 0, negative: (levelInfo.curationScore || 0) < 0 }">
+							{{ levelInfo.curationScore || 0 }}
+						</span>
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn down" :class="{ active: levelInfo.yourVote === false, disabled: isOwnLevel }"  @click="submitVote(false)" title="This level does not demonstrate creative effort."></button-with-icon>
+					</div>
+
+					<p class="aboutCuratorScore" @click="$router.push('/about-curator-scores')">About curator scores</p>
+				</div>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
@@ -110,7 +123,7 @@
 						<strong>Discard this level's statistics</strong>, including all <strong>{{ levelInfo.downloads }}</strong> downloads and <strong>{{ levelInfo.lovedCount }}</strong> loves
 					</li>
 				</ul>
-				<p>Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
+				<p v-if="false">Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
 
 				<div class="deleteModalCheckboxContainer">
 					<input type="checkbox" id="deleteModelAcknowledgement" class="basicCheckbox" v-model="acknowledgedDeletionConsequences"><label for="deleteModelAcknowledgement" class="notSelectable">
@@ -327,7 +340,15 @@ export default defineComponent({
 		},
 		isLoggedIn(): boolean {
 			return !!this.$store.state.loggedInAccount
-		}
+		},
+		isCurator(): boolean {
+            const acc = this.$store.state.loggedInAccount;
+            return !!acc && acc.isCurator;
+        },
+		isOwnLevel(): boolean {
+			const acc = this.$store.state.loggedInAccount;
+			return !!acc && this.levelInfo.addedBy?.id === acc.id;
+		},
 	},
 	methods: {
 		/** Turns the modification value into a pretty string. */
@@ -554,7 +575,46 @@ export default defineComponent({
 				if (nextToken !== this.lbUpdateToken) return;
 				this.lbStatusMessage = 'An error has occurred while fetching scores.';
 			}
-		}
+		},
+		async submitVote(voteType: boolean) {
+            if (!this.isCurator || !this.levelInfo) return;
+
+			let getScoreVal = (vote: boolean): number => {
+				if (vote === true) return 1;
+				if (vote === false) return -1;
+				return 0;
+			};
+
+            let oldVote = this.levelInfo.yourVote;
+            
+            let newVote = voteType;
+            if (oldVote === voteType) newVote = null;
+
+            // Optimistic UI
+            let oldVal = getScoreVal(oldVote);
+            let newVal = getScoreVal(newVote);
+            let diff = newVal - oldVal;
+
+            this.levelInfo = {...this.levelInfo,yourVote: newVote, curationScore: (this.levelInfo.curationScore || 0) + diff };
+
+            try {
+                let response = await fetch(`/api/level/${this.levelInfo.id}/curate-vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vote: newVote })
+                });
+
+                if (response.ok) {
+                } else {
+					let text = await response.text();
+					alert("Failed to submit vote: " + text);
+                    throw new Error("Vote failed");
+                }
+            } catch (e) {
+                // Revert to old state
+                this.levelInfo = { ...this.levelInfo, yourVote: oldVote, curationScore: (this.levelInfo.curationScore || 0) - diff };
+            }
+        }
 	},
 	watch: {
 		isLoggedIn() {
@@ -807,6 +867,84 @@ h3 {
 
 .lbButton.selected:hover {
 	border: 2px solid transparent;
+}
+
+.curationPanel {
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.voteContainer {
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    gap: 15px;
+	margin: 2px 0px;
+	text-align: center;
+}
+
+.voteBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--background-1);
+    transition: background 0.2s, transform 0.1s;
+	padding: 0 0px;
+}
+
+.voteBtn:hover {
+    border: 2px solid var(--background-2);
+}
+
+.voteBtn:active {
+    background:var(--background-2);
+}
+
+/* Rotate expand_more for up arrow */
+.voteBtn.up :deep(img) {
+    transform: rotate(180deg);
+}
+
+/* Active States */
+.voteBtn.up.active {
+    background: #4caf50; /* Green for upvote */
+}
+.voteBtn.up.active :deep(img) {
+    filter: invert(1); /* White icon */
+    opacity: 1;
+}
+
+.voteBtn.down.active {
+    background: #f44336; /* Red for downvote */
+}
+.voteBtn.down.active :deep(img) {
+    filter: invert(1);
+    opacity: 1;
+}
+
+.score {
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 30px;
+}
+
+.score.positive {
+    color: #4caf50;
+}
+.score.negative {
+    color: #f44336;
+}
+
+.aboutCuratorScore {
+	font-size: 14px;
+	opacity: 0.5;
+	cursor: pointer;
+	margin: 0;
+}
+
+.aboutCuratorScore:hover {
+	opacity: 1.0;
+	text-decoration: underline;
 }
 </style>
 

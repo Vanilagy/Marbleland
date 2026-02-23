@@ -42,3 +42,6 @@ export const MUTABLE_MISSION_INFO_FIELDS = [
 
 	'menucamerafov'
 ];
+
+/** Minimum curator score a level can have before considered spam */
+export const LEVEL_FILTER_THRESHOLD = -1;

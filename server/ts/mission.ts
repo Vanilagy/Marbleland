@@ -42,6 +42,7 @@ export interface MissionDoc {
 	missesDependencies: boolean,
 	preferPrevThumbnail: boolean,
 	lovedBy: number[],
+	curatorVotes: Record<number, boolean>,
 	editedAt: number,
 	hasCustomCode: boolean,
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
@@ -73,6 +74,8 @@ export class Mission {
 	preferPrevThumbnail = false;
 	/** List of account IDs that love this mission. */
 	lovedBy: number[];
+	/** Map of curator account IDs with their vote */
+	curatorVotes: Record<number, boolean>;
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
@@ -109,6 +112,7 @@ export class Mission {
 		mission.missesDependencies = doc.missesDependencies;
 		mission.preferPrevThumbnail = doc.preferPrevThumbnail;
 		mission.lovedBy = doc.lovedBy ?? [];
+		mission.curatorVotes = doc.curatorVotes ?? {};
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
 		mission.datablockCompatibility = doc.datablockCompatibility ?? 'pq';
@@ -460,9 +464,14 @@ export class Mission {
 			preferPrevThumbnail: this.preferPrevThumbnail,
 			editedAt: this.editedAt,
 			lovedBy: this.lovedBy,
+			curatorVotes: this.curatorVotes,
 			hasCustomCode: this.hasCustomCode,
 			datablockCompatibility: this.datablockCompatibility
 		};
+	}
+
+	private calculateCurationScore(): number {
+		return Object.values(this.curatorVotes || {}).reduce((sum, v) => sum + (v ? 1 : -1), 0);
 	}
 
 	createLevelInfo(): LevelInfo {
@@ -497,13 +506,16 @@ export class Mission {
 			lovedCount: this.lovedBy.length,
 
 			hasCustomCode: this.hasCustomCode,
-			datablockCompatibility: this.datablockCompatibility
+			datablockCompatibility: this.datablockCompatibility,
+
+			curationScore: this.calculateCurationScore()
 		};
 	}
 
 	async createExtendedLevelInfo(requesterId?: number): Promise<ExtendedLevelInfo> {
 		let levelInfo = this.createLevelInfo();
 		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
+		let requesterDoc = await db.accounts.findOne({ _id: requesterId }) as AccountDoc;
 
 		// Find all packs containing this mission
 		let packDocs = await db.packs.find({ levels: this.id }) as PackDoc[];
@@ -523,8 +535,9 @@ export class Mission {
 			id: query.id,
 			name: query.name
 		}));
-		
-		return Object.assign(levelInfo, {
+
+		let extended: ExtendedLevelInfo = {
+			...levelInfo,
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
 			remarks: this.remarks,
 			packs: packInfos,
@@ -535,9 +548,13 @@ export class Mission {
 			hasPrevImage: this.getPrevImagePath() !== null,
 			missionInfo: this.info as any,
 			dependencies: this.getFilteredDependencies('none', false),
-			playInfo: playInfo,
-			leaderboardInfo: lbQueryInfo
-		});
+			playInfo,
+			leaderboardInfo: lbQueryInfo,
+			curatorVotes: requesterDoc?.curator ? this.curatorVotes : {},
+			yourVote: requesterDoc?.curator ? this.curatorVotes[requesterDoc._id] : null
+		};
+		
+		return extended;
 	}
 
 	/** Get the path to the image thumbnail of this mission. */
@@ -750,4 +767,29 @@ export class Mission {
 
 		return result;
 	}
+
+	/** Remove all mission curator votes from this account */
+	static async removeVotes(accountId: number) {
+        let missions = await db.missions.find({ [`curatorVotes.${accountId}`]: { $exists: true } }) as MissionDoc[];
+
+        // Process updates
+		let updates = missions.map(async (doc) => {
+			let mission = Mission.fromDoc(doc);
+			mission.setVote(accountId, null);
+			return db.missions.update({ _id: mission.id }, mission.createDoc());
+		});
+		await Promise.all(updates);
+    }
+
+	/** Add or remove an account's curator vote */
+	setVote(accountId: number, vote: boolean | null) {
+        if (!this.curatorVotes) this.curatorVotes = {};
+
+		// Apply vote
+        if (vote === null || vote === undefined) {
+            delete this.curatorVotes[accountId];
+        } else {
+            this.curatorVotes[accountId] = !!vote;
+        }
+    }
 }

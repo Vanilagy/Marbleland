@@ -62,7 +62,9 @@ export interface LevelInfo {
 	lovedCount: number,
 
 	hasCustomCode: boolean,
-	datablockCompatibility: Mission['datablockCompatibility']
+	datablockCompatibility: Mission['datablockCompatibility'],
+
+	curationScore: number,
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */
@@ -77,7 +79,9 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	missionInfo: Record<string, string>,
 	dependencies: string[],
 	playInfo: GameDefinition[],
-	leaderboardInfo: ReducedLeaderboardDefinition[]
+	leaderboardInfo: ReducedLeaderboardDefinition[],
+	curatorVotes: Record<number, boolean>,
+	yourVote: boolean,
 }
 
 /** Contains metadata about a profile. */
@@ -86,6 +90,7 @@ export interface ProfileInfo {
 	username: string,
 	hasAvatar: boolean,
 	isModerator: boolean,
+	isCurator: boolean,
 	isSuspended?: boolean,
 	suspensionReason?: string,
 	levelCount: number
@@ -145,5 +150,6 @@ export interface CommentInfo {
 
 /** Describes the data displayed on the Home page. */
 export interface HomeInfo {
-	latestLevels: LevelInfo[]
+	allLevels: LevelInfo[]
+	filteredLevels: LevelInfo[]
 }

@@ -204,7 +204,7 @@ export const initLevelApi = () => {
 	// Get additional info about a given level
 	app.get('/api/level/:levelId/extended-info', async (req, res) => {
 		let levelId = await verifyLevelId(req, res);
-		if (levelId === null) return;
+		if (levelId === null) return; 
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
@@ -606,6 +606,35 @@ export const initLevelApi = () => {
 			return null;
 		}
 	});
+
+	app.post('/api/level/:levelId/curate-vote', async (req, res) => {
+        let { doc } = await authorize(req);
+        if (!doc || !doc.curator) {
+            res.status(403).send("403\nForbidden.");
+            return;
+        }
+
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
+        let levelId = await verifyLevelId(req, res);
+        if (levelId === null) return;
+
+        let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+
+		if(doc._id == missionDoc.addedBy) {
+			res.status(403).send("403\nCan't vote on your own level.");
+			return;
+		}
+
+		let mission = Mission.fromDoc(missionDoc);
+		mission.setVote(doc._id, req.body.vote);
+        await db.missions.update({ _id: levelId }, mission.createDoc());
+
+        res.send({ success: true });
+    });
 };
 
 export const incrementLevelDownloads = (doc: MissionDoc, req: express.Request) => {
