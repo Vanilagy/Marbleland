@@ -131,7 +131,15 @@ export class MissionZipStream extends Readable {
 				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
 				totalSize += size; // Add the actual size of the file
 				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
-				totalSize += Buffer.byteLength(mission.normalizeDependency(dependency, this.appendIdToMis)) * 2; // Both headers contain the file name, so add its byte size twice
+
+				let normalizedName = mission.normalizeDependency(dependency, this.appendIdToMis);                                                                                                                                                                                     
+				let nameByteLength = Buffer.byteLength(normalizedName);                                                                                                                                                                                                               
+				totalSize += nameByteLength * 2; // Both headers contain the file name, so add its byte size twice
+																																																																						
+				// Account for Unicode Path Extra Field (0x7075) in both headers for non-Latin-1 filenames                                                                                                                                                                              
+				if (nameByteLength !== normalizedName.length) {
+					totalSize += (9 + nameByteLength) * 2;
+				}
 
 				includedFiles.add(normalized);
 			}

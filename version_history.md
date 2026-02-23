@@ -1,10 +1,11 @@
 ### Version history
 
-## 1.10.3
-- Made the pack creation require uploading at least one level
-
 ## 1.11.0
 - Added Curator role and voting system
+- Fixed .zip downloads failing for levels with non-Latin-1 filenames
+
+## 1.10.3
+- Made the pack creation require uploading at least one level
 
 ## 1.10.2
 - Fixed BMP2 and BMP3 image files not being accepted
