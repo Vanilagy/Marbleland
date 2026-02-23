@@ -102,7 +102,7 @@
 
 	<Modal ref="curatorConfirmationModal">
 		<h2 class="curatorModalHeading" :class="{ revoke: curatorModalIsRevoke }">
-			{{ curatorModalIsRevoke ? 'Revoke' : 'Grant' }} Curator Status
+			{{ curatorModalIsRevoke ? 'Revoke' : 'Grant' }} Curator status
 		</h2>
 		<hr />
 		<div class="curatorModalBody">
@@ -113,16 +113,18 @@
 				Are you sure you want to remove Curator status from <strong>{{ profileInfo?.username }}</strong>? This action will remove all of their level votes permanently.
 			</p>
 			
-			<p>Curators have the ability to:</p>
-			<ul>
-				<li>View hidden Curator Score on all levels.</li>
-				<li>Vote to filter levels on the homepage.</li>
-			</ul>
+			<template v-if="!curatorModalIsRevoke">
+				<p>Curators have the ability to:</p>
+				<ul>
+					<li>View hidden Curator score on all levels.</li>
+					<li>Vote to filter levels on the homepage.</li>
+				</ul>
+			</template>
 		</div>
 		<hr />
 		<div class="curatorModalButtons">
 			<ButtonWithIcon class="confirmCuratorButton" :class="{ revoke: curatorModalIsRevoke }" @click="toggleCurator">
-				{{ curatorModalIsRevoke ? 'Revoke Status' : 'Grant Status' }}
+				{{ curatorModalIsRevoke ? 'Revoke status' : 'Grant status' }}
 			</ButtonWithIcon>
 			<ButtonWithIcon @click="closeCuratorConfirmationModal">
 				Cancel

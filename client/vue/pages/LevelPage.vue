@@ -31,13 +31,17 @@
 					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
 				<div v-if="isCurator" class="curationPanel">
+					<h3>Curator score</h3>
+
 					<div class="voteContainer">
-						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true, disabled: isOwnLevel }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
 						<span class="score" :class="{ positive: (levelInfo.curationScore || 0) > 0, negative: (levelInfo.curationScore || 0) < 0 }">
 							{{ levelInfo.curationScore || 0 }}
 						</span>
-						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn down" :class="{ active: levelInfo.yourVote === false }"  @click="submitVote(false)" title="This level does not demonstrate creative effort."></button-with-icon>
+						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn down" :class="{ active: levelInfo.yourVote === false, disabled: isOwnLevel }"  @click="submitVote(false)" title="This level does not demonstrate creative effort."></button-with-icon>
 					</div>
+
+					<p class="aboutCuratorScore" @click="$router.push('/about-curator-scores')">About curator scores</p>
 				</div>
 				<profile-banner style="margin-top: 10px" v-if="levelInfo.addedBy" :profileInfo="levelInfo.addedBy" secondaryText="Uploader"></profile-banner>
 			</aside>
@@ -119,7 +123,7 @@
 						<strong>Discard this level's statistics</strong>, including all <strong>{{ levelInfo.downloads }}</strong> downloads and <strong>{{ levelInfo.lovedCount }}</strong> loves
 					</li>
 				</ul>
-				<p>Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
+				<p v-if="false">Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
 
 				<div class="deleteModalCheckboxContainer">
 					<input type="checkbox" id="deleteModelAcknowledgement" class="basicCheckbox" v-model="acknowledgedDeletionConsequences"><label for="deleteModelAcknowledgement" class="notSelectable">
@@ -340,7 +344,11 @@ export default defineComponent({
 		isCurator(): boolean {
             const acc = this.$store.state.loggedInAccount;
             return !!acc && acc.isCurator;
-        }
+        },
+		isOwnLevel(): boolean {
+			const acc = this.$store.state.loggedInAccount;
+			return !!acc && this.levelInfo.addedBy?.id === acc.id;
+		},
 	},
 	methods: {
 		/** Turns the modification value into a pretty string. */
@@ -864,8 +872,6 @@ h3 {
 .curationPanel {
     border-radius: 5px;
     margin-top: 10px;
-    padding: 10px;
-    text-align: center;
 }
 
 .voteContainer {
@@ -873,6 +879,8 @@ h3 {
     justify-content: left;
     align-items: center;
     gap: 15px;
+	margin: 2px 0px;
+	text-align: center;
 }
 
 .voteBtn {
@@ -925,6 +933,18 @@ h3 {
 }
 .score.negative {
     color: #f44336;
+}
+
+.aboutCuratorScore {
+	font-size: 14px;
+	opacity: 0.5;
+	cursor: pointer;
+	margin: 0;
+}
+
+.aboutCuratorScore:hover {
+	opacity: 1.0;
+	text-decoration: underline;
 }
 </style>
 

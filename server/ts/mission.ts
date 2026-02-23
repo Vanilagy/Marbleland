@@ -43,7 +43,6 @@ export interface MissionDoc {
 	preferPrevThumbnail: boolean,
 	lovedBy: number[],
 	curatorVotes: Record<number, boolean>,
-	curationScore: number,
 	editedAt: number,
 	hasCustomCode: boolean,
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
@@ -77,7 +76,6 @@ export class Mission {
 	lovedBy: number[];
 	/** Map of curator account IDs with their vote */
 	curatorVotes: Record<number, boolean>;
-	curationScore: number = 0;
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
@@ -115,7 +113,6 @@ export class Mission {
 		mission.preferPrevThumbnail = doc.preferPrevThumbnail;
 		mission.lovedBy = doc.lovedBy ?? [];
 		mission.curatorVotes = doc.curatorVotes ?? {};
-		mission.curationScore = doc.curationScore;
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
 		mission.datablockCompatibility = doc.datablockCompatibility ?? 'pq';
@@ -468,10 +465,13 @@ export class Mission {
 			editedAt: this.editedAt,
 			lovedBy: this.lovedBy,
 			curatorVotes: this.curatorVotes,
-			curationScore : this.curationScore,
 			hasCustomCode: this.hasCustomCode,
 			datablockCompatibility: this.datablockCompatibility
 		};
+	}
+
+	private calculateCurationScore(): number {
+		return Object.values(this.curatorVotes || {}).reduce((sum, v) => sum + (v ? 1 : -1), 0);
 	}
 
 	createLevelInfo(): LevelInfo {
@@ -508,7 +508,7 @@ export class Mission {
 			hasCustomCode: this.hasCustomCode,
 			datablockCompatibility: this.datablockCompatibility,
 
-			curationScore : this.curationScore
+			curationScore: this.calculateCurationScore()
 		};
 	}
 
@@ -784,15 +784,12 @@ export class Mission {
 	/** Add or remove an account's curator vote */
 	setVote(accountId: number, vote: boolean | null) {
         if (!this.curatorVotes) this.curatorVotes = {};
-        
+
 		// Apply vote
         if (vote === null || vote === undefined) {
             delete this.curatorVotes[accountId];
         } else {
             this.curatorVotes[accountId] = !!vote;
         }
-
-        // Recalc score
-        this.curationScore = Object.values(this.curatorVotes).reduce((sum, v) => sum + (v ? 1 : -1), 0);
     }
 }

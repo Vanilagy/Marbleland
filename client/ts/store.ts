@@ -81,7 +81,7 @@ export const createNewStore = () => {
 							]
 						},
 						isFiltered: {
-							label: 'Possible spam',
+							label: 'Relevant',
 							value: 'all',
 							options: [
 								{ name: 'all', label: "Don't care"},
