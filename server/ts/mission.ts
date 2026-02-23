@@ -470,7 +470,7 @@ export class Mission {
 		};
 	}
 
-	private calculateCurationScore(): number {
+	calculateCurationScore(): number {
 		return Object.values(this.curatorVotes || {}).reduce((sum, v) => sum + (v ? 1 : -1), 0);
 	}
 

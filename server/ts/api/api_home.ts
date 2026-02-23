@@ -13,7 +13,7 @@ export const initHomeApi = () => {
 
 		// Filter and slice curated levels
 		const filteredDocs = allDocs
-			.filter(doc => doc.curationScore >= LEVEL_FILTER_THRESHOLD)
+			.filter(doc => Mission.fromDoc(doc).calculateCurationScore() >= LEVEL_FILTER_THRESHOLD)
 			.slice(0, 12);
 
 		// Convert to LevelInfo arrays
