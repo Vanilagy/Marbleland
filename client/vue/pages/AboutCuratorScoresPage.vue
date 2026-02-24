@@ -10,7 +10,7 @@
 	</p>
 
 	<p>
-		Curators should aim to rate levels not based on their personal subjective taste in levels but based on the apparent objective effort, creativity, quality and intention visible in the level. In case an uploader uploads multiple similar levels that, when taken together, appear spammy, then it is okay to downvote all but one of these levels. Since the threshold score is below -1, two Curators are required to mark a level as irrelevant. This is so that consensus from multiple people is required to make such a decision. Levels that clearly violate the <span @click="$router.push('/content-guidelines')" class="contentGuidelinesLink">content guidelines</span> beyond just being "meh" should be deleted by moterators in addition to being downvoted by Curators.
+		Curators should aim to rate levels not based on their personal subjective taste in levels but based on the apparent objective effort, creativity, quality and intention visible in the level. In case an uploader uploads multiple similar levels that, when taken together, appear spammy, then it is okay to downvote all but one of these levels. Since the threshold score is below -1, two Curators are required to mark a level as irrelevant. This is so that consensus from multiple people is required to make such a decision. Levels that clearly violate the <span @click="$router.push('/content-guidelines')" class="contentGuidelinesLink">content guidelines</span> beyond just being "meh" should be deleted by moderators in addition to being downvoted by Curators.
 	</p>
 
 	<p>
