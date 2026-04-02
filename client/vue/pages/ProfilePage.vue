@@ -372,8 +372,8 @@ export default defineComponent({
 }
 
 .avatar > img {
-	width: 101%;
-	height: 101%;
+	width: 100%;
+	height: 100%;
 	object-fit: cover;
 }
 
