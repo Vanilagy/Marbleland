@@ -65,6 +65,20 @@ export interface LevelInfo {
 	datablockCompatibility: Mission['datablockCompatibility'],
 
 	curationScore: number,
+	currentVersion: number;
+}
+
+/** Contains minimal version info to display on the Level page. */
+export interface VersionInfo {
+	versionNumber: number;
+	versionAddedAt: number;
+	changelog: string;
+}
+
+/** Contains voter info for display in a modal. */
+export interface CuratorVoteInfo {
+    profile: ProfileInfo,
+    vote: boolean
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */
@@ -80,8 +94,10 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	dependencies: string[],
 	playInfo: GameDefinition[],
 	leaderboardInfo: ReducedLeaderboardDefinition[],
-	curatorVotes: Record<number, boolean>,
+	curatorVotes: CuratorVoteInfo[],
 	yourVote: boolean,
+	currentVersionChangelog: string,
+	pastVersions: VersionInfo[];
 }
 
 /** Contains metadata about a profile. */

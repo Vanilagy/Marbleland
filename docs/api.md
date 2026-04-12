@@ -50,6 +50,7 @@ Get the .zip archive for a given level.
 Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+version | `number` | If present, this version will be fetched if it exists.
 append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/mbpak
@@ -60,6 +61,7 @@ Get the .mbpak archive for a given level.
 Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
+version | `number` | If present, this version will be fetched if it exists.
 append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/image
@@ -171,13 +173,11 @@ missionId* | `number` | The index of the mission whose image thumbnail should be
 }
 ```
 
-**Response body:**
-```typescript
-{
-	levelIds: number, // The IDs of the submitted levels
-	newPackId?: number // Should a new pack have been created, this will be the ID for that pack
-}
-```
+### `POST` /api/level/{level-id}/update-upload
+**Requires [authentication](#authentication).** Same as level uploading, but replaces the current level with the new one.
+
+### `POST` /api/level/{level-id}/update-submit
+**Requires [authentication](#authentication).** Same as level submit, but for level updates. The first remark becomes the version changelog.
 
 ### `PATCH` /api/level/{level-id}/edit
 **Requires [authentication](#authentication).** Edit the metadata of a previously submitted level. Right now, the level's MissionInfo and remarks can be edited.
@@ -603,6 +603,7 @@ Contains metadata about a level.
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // Which variant of Marble Blast this level's datablocks are compatible with
 
 	curationScore: number, // Cumulative curator score
+	currentVersion: number;
 }
 ```
 
@@ -623,8 +624,29 @@ LevelInfo & {
 	playInfo: GameDefinition[], // Contains the definitions of the games the level can be played on
 	leaderboardInfo: ReducedLeaderboardDefinition[], // Contains the definitions of the leaderboards available for the level
 	// Visible to curators only:
-	curatorVotes: Record<number, boolean>, // All the votes cast by curators
+	curatorVotes: CuratorVoteInfo[], // All the votes cast by curators
 	yourVote: boolean, // Your curator vote; true for upvote, false for downvote
+	currentVersionChangelog: string, // Changes made in the latest version
+	pastVersions: VersionInfo[],
+}
+```
+
+### VersionInfo
+Contains minimal data about a level version.
+```typescript
+{
+	versionNumber: number;
+	versionAddedAt: number;
+	changelog: string;
+}
+```
+
+### CuratorVoteInfo
+Contains a curator vote (up or down) by a profile
+```typescript
+{
+    profile: ProfileInfo,
+    vote: boolean
 }
 ```
 

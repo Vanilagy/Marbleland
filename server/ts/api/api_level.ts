@@ -93,7 +93,8 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let mission = Mission.fromDoc(doc);
+		let version = req.query.version ? Number(req.query.version) : undefined;
+    	let mission = Mission.fromVersion(doc, version);
 
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
@@ -103,7 +104,7 @@ export const initLevelApi = () => {
 		await incrementLevelDownloads(doc, req);
 
 		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
-		stream.connectToResponse(res, `${fileName}-${doc._id}.zip`);
+		stream.connectToResponse(res, `${fileName}-${doc._id}${version !== undefined ? `-v${version}` : ""}.zip`);
 	});
 
 	// Get the .mbpak of a given level
@@ -112,7 +113,8 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let mission = Mission.fromDoc(doc);
+		let version = req.query.version ? Number(req.query.version) : undefined;
+    	let mission = Mission.fromVersion(doc, version);
 
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
@@ -240,32 +242,15 @@ export const initLevelApi = () => {
 		res.send(packInfos);
 	});
 
-	const upload = multer();
-
-	// Upload a level archive. This doesn't yet submit it, but causes the processing/verification step.
-	app.post('/api/level/upload', upload.any(), async (req, res) => {
-		let { doc } = await authorize(req);
-		if (!doc) {
-			res.status(401).send("401\nInvalid token.");
-			return;
-		}
-
-		if (isSuspended(doc)) {
-			res.status(403).send("403\nAccount is suspended.");
-			return;
-		}
-
+	const processMissionArchive = async (req: express.Request, updateId?: number) => {
 		/** A list of problems with the upload, will be populated later. */
 		let problems: string[] = [];
 		/** A list of warnings regarding the upload. Warnings won't prevent submission. */
 		let warnings: string[] = [];
 		let zip: jszip;
-		let upload: MissionUpload;
 
-		if (req.headers['content-type'].startsWith('multipart/form-data')) {
+		if (req.headers['content-type']?.startsWith('multipart/form-data')) {
 			zip = new jszip();
-
-			// Simply create a zip from the uploaded files
 			for (let file of req.files as Express.Multer.File[]) {
 				zip.file(file.originalname, file.buffer);
 			}
@@ -277,52 +262,76 @@ export const initLevelApi = () => {
 			}
 		}
 
-		if (zip) {
-			try {
-				// Start processing the uploaded archive
-				upload = new MissionUpload(zip);
-				await upload.process();
+		if (!zip) return { upload: null, problems, warnings };
 
-				problems.push(...upload.problems);
-				warnings.push(...upload.warnings);
-			} catch (e) {
-				problems.push("An error occurred during processing.");
-
-				console.error("Upload processing error:");
-				console.error(e);
-			}
+		const upload = new MissionUpload(zip, updateId);
+		try {
+			await upload.process();
+			problems.push(...upload.problems);
+			warnings.push(...upload.warnings);
+		} catch (e) {
+			problems.push("An error occurred during processing.");
+			console.error("Upload processing error:", e);
 		}
 
-		if (problems.length > 0) {
-			res.status(400).send({
-				status: 'error',
-				problems: problems
-			});
-		} else {
-			// Because uploading is not the same as submitting, we simply remember the mission upload in memory for now. Upon submission, we'll actually write it to disk.
-			ongoingUploads.set(upload.id, upload);
+		return { upload, problems, warnings };
+	};
 
-			// Also send all of the uploader's packs
-			let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
-			packDocs.sort((a, b) => b.createdAt - a.createdAt); // Show newest ones first
-			let packs: PackInfo[] = [];
+	const authorizeUploader = async (req: express.Request, res: express.Response, existingLevelId?: number) => {
+        let { doc } = await authorize(req);
+        if (!doc) {
+            res.status(401).send("401\nInvalid token.");
+            return null;
+        }
+        if (isSuspended(doc)) {
+            res.status(403).send("403\nAccount is suspended.");
+            return null;
+        }
 
-			for (let doc of packDocs) {
-				packs.push(await getPackInfo(doc));
-			}
+        // If updating, verify ownership
+        if (existingLevelId !== undefined) {
+            let missionDoc = await db.missions.findOne({ _id: existingLevelId }) as MissionDoc;
+            if (!missionDoc) {
+                res.status(404).send("404\nLevel not found.");
+                return null;
+            }
+            if (missionDoc.addedBy !== doc._id && !doc.moderator) {
+                res.status(403).send("403\nUnauthorized to update this level.");
+                return null;
+            }
+        }
 
-			res.send({
-				status: 'success',
-				uploadId: upload.id,
-				missions: upload.groups.map(x => ({
-					misFilePath: x.misFilePath,
-					name: x.missionInfo.name
-				})),
-				packs: packs,
-				warnings: warnings
-			});
-		}
-	});
+        return doc;
+    };
+
+	const upload = multer();
+
+	// Upload a level archive. This doesn't yet submit it, but causes the processing/verification step.
+	app.post('/api/level/upload', upload.any(), async (req, res) => {
+        const doc = await authorizeUploader(req, res);
+        if (!doc) return;
+
+        const { upload, problems } = await processMissionArchive(req);
+
+        if (problems.length > 0) {
+            return res.status(400).send({ status: 'error', problems });
+        }
+
+        ongoingUploads.set(upload.id, upload);
+        
+        // Fetch user's packs
+        let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+        packDocs.sort((a, b) => b.createdAt - a.createdAt);
+        let packs = await Promise.all(packDocs.map(p => getPackInfo(p)));
+
+        res.send({
+            status: 'success',
+            uploadId: upload.id,
+            missions: upload.groups.map(x => ({ misFilePath: x.misFilePath, name: x.missionInfo.name })),
+            packs,
+            warnings: [...upload.warnings]
+        });
+    });
 
 	// Submit a previously uploaded mission
 	app.post('/api/level/submit', async (req, res) => {
@@ -357,6 +366,48 @@ export const initLevelApi = () => {
 			newPackId
 		});
 	});
+
+	// Upload the level for updating purposes
+	app.post('/api/level/:levelId/update-upload', upload.any(), async (req, res) => {
+        const levelId = await verifyLevelId(req, res);
+        if (levelId === null) return;
+
+        const doc = await authorizeUploader(req, res, levelId);
+        if (!doc) return;
+
+        const { upload, problems, warnings } = await processMissionArchive(req, levelId);
+
+        if (problems.length > 0) {
+            return res.status(400).send({ status: 'error', problems });
+        }
+
+        ongoingUploads.set(upload.id, upload);
+        res.send({
+            status: 'success',
+            uploadId: upload.id,
+            missions: upload.groups.map(x => ({ misFilePath: x.misFilePath, name: x.missionInfo.name })),
+            warnings: [...warnings]
+        });
+    });
+
+	// Submit a previously uploaded update
+    app.post('/api/level/:levelId/update-submit', async (req, res) => {
+        const levelId = await verifyLevelId(req, res);
+        if (levelId === null) return;
+
+        const doc = await authorizeUploader(req, res, levelId);
+        if (!doc) return;
+
+        const upload = ongoingUploads.get(req.body.uploadId);
+        if (!upload) return res.status(400).send("Invalid or expired upload ID.");
+
+        const { docs } = await upload.submit(doc, {
+            ...req.body,
+            existingLevelId: levelId
+        });
+
+        res.send({ status: 'success', version: docs[0].currentVersion, levelIds: [levelId] });
+    });
 
 	// Meaning upload (noun) image. Is used to get an image preview of a level currently pending submission but not yet submitted.
 	app.get('/api/level/upload-image', async (req, res) => {
@@ -663,7 +714,30 @@ export const deleteSingleLevel = async (levelId: number) => {
 	// Delete all comments for this level
 	await db.comments.remove({ forType: 'level', for: levelId }, { multi: true });
 
-	// Delete the level's folder if there are no other levels that reside in it
-	let canDeleteDirectory = !(await db.missions.findOne({ baseDirectory: missionDoc.baseDirectory }));
-	if (canDeleteDirectory) await fs.remove(missionDoc.baseDirectory);
+	// Collect all directories to potentially delete
+	let directoriesToCheck = new Set<string>();
+
+	// Current version directory
+	if (missionDoc.baseDirectory) {
+		directoriesToCheck.add(missionDoc.baseDirectory);
+	}
+
+	// Past versions directories
+	if (missionDoc.pastVersions) {
+		for (let version of missionDoc.pastVersions) {
+			directoriesToCheck.add(version.baseDirectory);
+		}
+	}
+
+	// Check each directory before deleting
+	for (let dir of directoriesToCheck) {
+		// Check if any OTHER mission still uses this directory
+		let stillUsed = await db.missions.findOne({
+			$or: [ { baseDirectory: dir }, { "pastVersions.baseDirectory": dir } ]
+		});
+
+		if (!stillUsed) {
+			await fs.remove(dir);
+		}
+	}
 };

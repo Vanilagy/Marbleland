@@ -4,7 +4,8 @@
 		<meta name="og:title" content="Upload levels">
 	</Head>
 	<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended">
-		<h1>Upload levels</h1>
+		<h1 v-if="!updateId">Upload levels</h1>
+		<h1 v-else>Update level</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<p class="contentGuidelines" @click="$router.push('/content-guidelines')">Content guidelines</p>
 		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
@@ -44,17 +45,25 @@
 				<img src="/assets/svg/chevron_left_black_24dp.svg" class="basicIcon" title="Cycle to previous level" v-if="successResponse.missions.length > 1" @click="currentIndex = (currentIndex - 1 + successResponse.missions.length) % successResponse.missions.length">
 				<img src="/assets/svg/chevron_right_black_24dp.svg" class="basicIcon" title="Cycle to next level" v-if="successResponse.missions.length > 1" @click="currentIndex = (currentIndex + 1) % successResponse.missions.length">
 			</div>
-			<h3>If you want to, add a few additional remarks describing this level ({{ successResponse.missions[currentIndex].name }}) and its creation before submitting it:</h3>
-			<textarea class="remarks basicTextarea" :placeholder="`Additional remarks on ${successResponse.missions[currentIndex].name}`" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
+			<h3 v-if="updateId">
+				What's new in this version?
+			</h3>
+			<h3 v-else>
+				If you want to, add a few additional remarks describing this level ({{ successResponse.missions[currentIndex].name }}) and its creation before submitting it:
+			</h3>
+			<textarea class="remarks basicTextarea" :placeholder="(updateId ? 'Changes to' : 'Additional remarks on') + ' ' + successResponse.missions[currentIndex].name" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
 
-			<hr>
+			<template v-if="!updateId">
+				<hr>
+				<h3>Optionally, choose the packs you want to add the uploaded {{ successResponse.missions.length > 1 ? 'levels' : 'level' }} to:</h3>
+				<panel-list mode="pack" :entries="successResponse.packs" :defaultCount="4" noEntriesNotice="" :selectedPacks="selectedPacks" v-if="successResponse.packs.length > 0"></panel-list>
 
-			<h3>Optionally, choose the packs you want to add the uploaded {{ successResponse.missions.length > 1 ? 'levels' : 'level' }} to:</h3>
-			<panel-list mode="pack" :entries="successResponse.packs" :defaultCount="4" noEntriesNotice="" :selectedPacks="selectedPacks" v-if="successResponse.packs.length > 0"></panel-list>
-
-			<input type="checkbox" id="createPackCheckbox" class="basicCheckbox" v-model="createNewPack"><label for="createPackCheckbox" class="notSelectable">Create new pack</label>
-			<input type="text" placeholder="Pack name" :maxlength="$store.state.packNameMaxLength" v-model.trim="newPackName" class="basicTextInput newPackName" v-if="createNewPack">
-			<textarea class="basicTextarea newPackDescription" placeholder="Pack description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="newPackDescription" v-if="createNewPack"></textarea>
+				<input type="checkbox" id="createPackCheckbox" class="basicCheckbox" v-model="createNewPack">
+				<label for="createPackCheckbox" class="notSelectable">Create new pack</label>
+				
+				<input type="text" placeholder="Pack name" :maxlength="$store.state.packNameMaxLength" v-model.trim="newPackName" class="basicTextInput newPackName" v-if="createNewPack">
+				<textarea class="basicTextarea newPackDescription" placeholder="Pack description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="newPackDescription" v-if="createNewPack"></textarea>
+			</template>
 
 			<hr>
 
@@ -104,7 +113,8 @@ export default defineComponent({
 			newPackName: "",
 			newPackDescription: "",
 			submitting: false,
-			dragEntered: false
+			dragEntered: false,
+			updateId: this.$route.query.updateId ? Number(this.$route.query.updateId) : null,
 		};
 	},
 	methods: {
@@ -144,7 +154,12 @@ export default defineComponent({
 			}
 
 			let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
-			request.open('POST', '/api/level/upload', true);
+
+			const endpoint = this.updateId 
+				? `/api/level/${this.updateId}/update-upload` 
+				: '/api/level/upload';
+
+			request.open('POST', endpoint, true);
 			request.setRequestHeader('Content-Type', 'application/zip');
 			request.withCredentials = true;
 			request.send(file);
@@ -214,8 +229,12 @@ export default defineComponent({
 
 			this.submitting = true;
 
+			const endpoint = this.updateId 
+				? `/api/level/${this.updateId}/update-submit` 
+				: `/api/level/submit`;
+
 			// Tell the server to submit the upload
-			let response = await fetch(`/api/level/submit`, {
+			let response = await fetch(endpoint, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -223,7 +242,7 @@ export default defineComponent({
 				body: JSON.stringify({
 					uploadId: this.successResponse.uploadId,
 					remarks: this.remarks,
-					addToPacks: this.selectedPacks,
+					addToPacks: this.updateId ? [] : this.selectedPacks, // Don't change pack when updating level
 					newPack: this.createNewPack? {
 						name: this.newPackName,
 						description: this.newPackDescription
