@@ -337,7 +337,7 @@ export class MissionUpload {
 					return this.registerDependency(group, dependency.replace('interiors/', 'interiors_mbg/'), matchType, requiredBy, permittedExtensions, false, dependency);
 				} else {
 					// We definitely couldn't locate a file, add a problem
-					//this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
+					this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
 				}
 			}
 
