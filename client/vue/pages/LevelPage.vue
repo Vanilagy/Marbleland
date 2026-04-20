@@ -112,7 +112,7 @@
 					<span class="date">— {{ formatDate(ver.versionAddedAt) }}</span>
 					<strong v-if="ver.isCurrent" class="current-badge">(current)</strong>
 				</div>
-				<download-button v-if="!ver.isCurrent" :id="levelInfo.id" :version="ver.versionNumber" mode="level" class="small-download"></download-button>
+					<download-button v-if="!ver.isCurrent" :id="levelInfo.id" :version="ver.versionNumber" mode="level" class="small-download"></download-button>
 				</div>
 				<p class="changelog-text">{{ ver.changelog }}</p>
 			</div>
@@ -311,6 +311,8 @@ export default defineComponent({
 			this.notFound = true;
 			return;
 		}
+
+		console.log(doc);
 		
 		let mission = Mission.fromDoc(doc);
 		this.levelInfo = await mission.createExtendedLevelInfo(this.$store.state.loggedInAccount?.id);
@@ -1035,7 +1037,7 @@ h3 {
 .version-header {
 	display: flex;
 	justify-content: space-between;
-	align-items: center;
+	align-items: baseline;
 }
 
 .version-meta {
