@@ -31,7 +31,7 @@
 					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
 				<div v-if="isCurator" class="curationPanel">
-					<h3>Curator score</h3>
+					<h3 @click="$refs.curatorDetailsModal.show();" class="curatorScore">Curator score</h3>
 
 					<div class="voteContainer">
 						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true, disabled: isOwnLevel }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
@@ -49,7 +49,7 @@
 				<div class="actions">
 					<img v-if="levelInfo.leaderboardInfo.length > 0" :src="showLBs ? '/assets/svg/info_24dp_FILL0_wght400_GRAD0_opsz24 (1).svg' : '/assets/svg/bar_chart_24dp.svg'" :title="showLBs ? 'Show level info' : 'Show leaderboards'" @click="toggleLBs" class="basicIcon">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
-					<!--<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">-->
+					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="updateLevel" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
 					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" @click="$refs.packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
@@ -103,7 +103,20 @@
 		<div>
 			<comment-element v-for="comment of levelInfo.comments" :key="comment.id" :commentInfo="comment" @delete="deleteComment(comment.id)"></comment-element>
 		</div>
-
+		<div v-if="levelInfo.pastVersions && levelInfo.pastVersions.length > 0" class="version-history" >
+			<h3>Version History</h3>
+			<div v-for="ver in allVersions" :key="ver.versionNumber" class="version-item">
+				<div class="version-header">
+				<div class="version-meta">
+					<strong>v{{ ver.versionNumber }}</strong>
+					<span class="date">— {{ formatDate(ver.versionAddedAt) }}</span>
+					<strong v-if="ver.isCurrent" class="current-badge">(current)</strong>
+				</div>
+					<download-button v-if="!ver.isCurrent" :id="levelInfo.id" :version="ver.versionNumber" mode="level" class="small-download"></download-button>
+				</div>
+				<p class="changelog-text">{{ ver.changelog }}</p>
+			</div>
+		</div>
 		<Modal ref="deleteConfirmationModal">
 			<h2 class="deleteModalHeading">CAUTION: You're about to delete "{{ levelInfo.name }}"</h2>
 			<hr />
@@ -123,7 +136,7 @@
 						<strong>Discard this level's statistics</strong>, including all <strong>{{ levelInfo.downloads }}</strong> downloads and <strong>{{ levelInfo.lovedCount }}</strong> loves
 					</li>
 				</ul>
-				<p v-if="false">Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
+				<p>Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
 
 				<div class="deleteModalCheckboxContainer">
 					<input type="checkbox" id="deleteModelAcknowledgement" class="basicCheckbox" v-model="acknowledgedDeletionConsequences"><label for="deleteModelAcknowledgement" class="notSelectable">
@@ -141,12 +154,30 @@
 				</ButtonWithIcon>
 			</div>
 		</Modal>
+		<Modal ref="curatorDetailsModal">
+			<h2 style="text-align: center; margin-bottom: 5px;">Curator Votes</h2>
+			<hr style="margin-bottom: 0px;"/>
+			<div class="voteDetailsList">
+				<div>
+					<h3 class="voteHeader up">Upvoted by:</h3>
+					<profile-banner v-for="curator in upvoters" :key="curator.id" :profileInfo="curator"style="margin-bottom: 10px"></profile-banner>
+				</div>
+				<div>
+					<h3 class="voteHeader down">Downvoted by:</h3>
+					<profile-banner v-for="curator in downvoters" :key="curator.id" :profileInfo="curator"style="margin-bottom: 10px"></profile-banner>
+				</div>
+			</div>
+			<hr />
+			<div style="display: flex; justify-content: flex-end;">
+				<ButtonWithIcon @click="$refs.curatorDetailsModal.hide()">Close</ButtonWithIcon>
+			</div>
+		</Modal>
 	</template>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { CommentInfo, ExtendedLevelInfo, ReducedLeaderboardDefinition, LeaderboardScore, Modification, PackInfo } from '../../../shared/types';
+import { CommentInfo, ExtendedLevelInfo, ReducedLeaderboardDefinition, LeaderboardScore, Modification, PackInfo, ProfileInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
 import PlayButton from '../components/PlayButton.vue';
 import ProfileBanner from '../components/ProfileBanner.vue';
@@ -280,6 +311,8 @@ export default defineComponent({
 			this.notFound = true;
 			return;
 		}
+
+		console.log(doc);
 		
 		let mission = Mission.fromDoc(doc);
 		this.levelInfo = await mission.createExtendedLevelInfo(this.$store.state.loggedInAccount?.id);
@@ -349,6 +382,27 @@ export default defineComponent({
 			const acc = this.$store.state.loggedInAccount;
 			return !!acc && this.levelInfo.addedBy?.id === acc.id;
 		},
+		allVersions() {
+			const current = {
+				versionNumber: this.levelInfo.currentVersion,
+				changelog: this.levelInfo.currentVersionChangelog,
+				versionAddedAt: this.levelInfo.editedAt,
+				isCurrent: true
+			};
+
+			const past = (this.levelInfo.pastVersions || []).map(v => ({
+				...v,
+				isCurrent: false
+			}));
+
+			return [...past, current].reverse();
+		},
+		upvoters(): ProfileInfo[] {
+			return this.levelInfo.curatorVotes.filter(v => v.vote === true).map(v => v.profile);
+		},
+		downvoters(): ProfileInfo[] {
+			return this.levelInfo.curatorVotes.filter(v => v.vote === false).map(v => v.profile);
+		}
 	},
 	methods: {
 		/** Turns the modification value into a pretty string. */
@@ -422,6 +476,9 @@ export default defineComponent({
 		},
 		closeDeleteConfirmationModal() {
 			(this.$refs.deleteConfirmationModal as any).hide();
+		},
+		async updateLevel() {
+			this.$router.push({ name: 'Upload', query: { updateId: this.levelInfo.id } });
 		},
 		async deleteLevel() {
 			this.closeDeleteConfirmationModal();
@@ -935,6 +992,11 @@ h3 {
     color: #f44336;
 }
 
+.curatorScore:hover {
+	text-decoration: underline;
+	cursor: pointer;
+}
+
 .aboutCuratorScore {
 	font-size: 14px;
 	opacity: 0.5;
@@ -946,6 +1008,65 @@ h3 {
 	opacity: 1.0;
 	text-decoration: underline;
 }
+
+.voteHeader {
+    margin-top: 14px;
+    font-size: 14px;
+}
+
+.voteHeader.up { 
+	color: #4caf50;
+	margin-bottom: 10px;
+}
+.voteHeader.down { 
+	color: #f44336; 
+	margin-bottom: 10px;
+}
+
+.voteDetailsList {
+	display: grid; 
+	grid-template-columns: 1fr 1fr; 
+	gap: 20px;
+}
+
+.version-item {
+	padding: 12px 0;
+	border-bottom: 1px solid var(--background-2);
+}
+
+.version-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+}
+
+.version-meta {
+	font-size: 0.95rem;
+}
+
+.version-meta .date {
+	color: var(--background-2);
+	margin-left: 6px;
+}
+
+.changelog-text {
+	margin-top: 6px;
+	font-size: 0.9rem;
+	line-height: 1.4;
+	white-space: pre-line;
+}
+
+.small-download {
+	transform: scale(0.75);
+	transform-origin: right center;
+}
+
+.current-badge {
+	color: #2e7d32;
+	font-size: 0.8rem;
+	margin-left: 6px;
+}
+
 </style>
 
 <style>

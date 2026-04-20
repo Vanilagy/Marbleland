@@ -7,7 +7,7 @@ import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
 import { Config } from './config';
 import { config, datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
-import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
+import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo, CuratorVoteInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
@@ -45,7 +45,24 @@ export interface MissionDoc {
 	curatorVotes: Record<number, boolean>,
 	editedAt: number,
 	hasCustomCode: boolean,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq',
+	currentVersion?: number,
+	currentVersionChangelog?: string,
+	pastVersions?: MissionVersion[],
+}
+
+/** State of a level before it was updated */
+export interface MissionVersion {
+    versionNumber: number;
+	versionChangelog: string,
+    versionAddedAt: number;
+    baseDirectory: string;
+    relativePath: string;
+    misHash: string;
+    astHash: string;
+    dependencies: string[];
+    fileSizes: number[];
+    info: MissionElementScriptObject;
 }
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
@@ -79,6 +96,9 @@ export class Mission {
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
+	currentVersion?: number;
+	currentVersionChangelog?: string;
+	pastVersions?: MissionVersion[];
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -116,9 +136,42 @@ export class Mission {
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
 		mission.datablockCompatibility = doc.datablockCompatibility ?? 'pq';
+		mission.currentVersion = doc.currentVersion ?? 1;
+		mission.pastVersions = doc.pastVersions ?? [];
+		mission.currentVersionChangelog = doc.currentVersionChangelog ?? '';
 
 		return mission;
 	}
+
+	static fromVersion(doc: MissionDoc, versionNumber?: number) {
+        // Initialize with the latest version's data and all global level metadata
+        let mission = Mission.fromDoc(doc);
+
+        // If no version or the latest version is requested, we are done
+		const currentVersion = doc.currentVersion || 1;
+        if (versionNumber === undefined || versionNumber === currentVersion) {
+            return mission;
+        }
+
+        // Find the snapshot
+        const v = doc.pastVersions.find(v => v.versionNumber === versionNumber);
+        if (!v) return null;
+
+        // Overwrite the fields that vary between versions
+        mission.currentVersion = v.versionNumber;
+        mission.baseDirectory = v.baseDirectory;
+        mission.relativePath = v.relativePath;
+        mission.misHash = v.misHash;
+        mission.astHash = v.astHash;
+        mission.dependencies = new Set(v.dependencies);
+        mission.fileSizes = v.fileSizes;
+        mission.info = v.info;
+        mission.currentVersionChangelog = v.versionChangelog;
+
+        mission.classify(); 
+
+        return mission;
+    }
 
 	/** Fill the mission with data. */
 	async hydrate() {
@@ -508,7 +561,8 @@ export class Mission {
 			hasCustomCode: this.hasCustomCode,
 			datablockCompatibility: this.datablockCompatibility,
 
-			curationScore: this.calculateCurationScore()
+			curationScore: this.calculateCurationScore(),
+			currentVersion: this.currentVersion,
 		};
 	}
 
@@ -536,6 +590,18 @@ export class Mission {
 			name: query.name
 		}));
 
+		let curatorVoteDetails: CuratorVoteInfo[] = [];
+		if (requesterDoc?.curator && this.curatorVotes) {
+			const curatorIds = Object.keys(this.curatorVotes).map(Number);
+			const accounts = await db.accounts.find({ _id: { $in: curatorIds } }) as AccountDoc[];
+			
+			// Resolve accounts to ProfileInfo objects
+			curatorVoteDetails = await Promise.all(accounts.map(async acc => ({
+				profile: await getProfileInfo(acc),
+				vote: this.curatorVotes[acc._id]
+			})));
+		}
+
 		let extended: ExtendedLevelInfo = {
 			...levelInfo,
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
@@ -550,8 +616,14 @@ export class Mission {
 			dependencies: this.getFilteredDependencies('none', false),
 			playInfo,
 			leaderboardInfo: lbQueryInfo,
-			curatorVotes: requesterDoc?.curator ? this.curatorVotes : {},
-			yourVote: requesterDoc?.curator ? this.curatorVotes[requesterDoc._id] : null
+			curatorVotes: curatorVoteDetails,
+			yourVote: requesterDoc?.curator ? this.curatorVotes[requesterDoc._id] : null,
+			currentVersionChangelog: this.currentVersionChangelog,
+			pastVersions: this.pastVersions.map(v => ({
+				versionNumber: v.versionNumber,
+				versionAddedAt: v.versionAddedAt,
+				changelog: v.versionChangelog
+			}))
 		};
 		
 		return extended;

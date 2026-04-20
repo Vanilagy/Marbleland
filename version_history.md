@@ -1,5 +1,9 @@
 ### Version history
 
+## 1.12.0
+- Added level update feature
+- Added "favorite levels" section
+
 ## 1.11.0
 - Added Curator role and voting system
 - Fixed .zip downloads failing for levels with non-Latin-1 filenames
