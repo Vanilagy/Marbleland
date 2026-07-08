@@ -389,24 +389,24 @@ export class MisParser {
 		this.index = head.index + head[0].length;
 		let element: MissionElement = null;
 
-		switch (type) {
-			case "SimGroup": element = this.readSimGroup(name); break;
-			case "ScriptObject": element = this.readScriptObject(name); break;
-			case "MissionArea": element = this.readMissionArea(name); break;
-			case "Sky": element = this.readSky(name); break;
-			case "Sun": element = this.readSun(name); break;
-			case "InteriorInstance": element = this.readInteriorInstance(name); break;
-			case "StaticShape": element = this.readStaticShape(name); break;
-			case "Item": element = this.readItem(name); break;
-			case "Path": element = this.readPath(name); break;
-			case "Marker": element = this.readMarker(name); break;
-			case "PathedInterior": element = this.readPathedInterior(name); break;
-			case "Trigger": element = this.readTrigger(name); break;
-			case "AudioProfile": element = this.readAudioProfile(name); break;
-			case "MessageVector": element = this.readMessageVector(name); break;
-			case "TSStatic": element = this.readTSStatic(name); break;
-			case "ParticleEmitterNode": element = this.readParticleEmitterNode(name); break;
-			case "AudioEmitter": element = this.readAudioEmitter(name); break;
+		switch (type.toLowerCase()) {
+			case "simgroup": element = this.readSimGroup(name); break;
+			case "scriptobject": element = this.readScriptObject(name); break;
+			case "missionarea": element = this.readMissionArea(name); break;
+			case "sky": element = this.readSky(name); break;
+			case "sun": element = this.readSun(name); break;
+			case "interiorinstance": element = this.readInteriorInstance(name); break;
+			case "staticshape": element = this.readStaticShape(name); break;
+			case "item": element = this.readItem(name); break;
+			case "path": element = this.readPath(name); break;
+			case "marker": element = this.readMarker(name); break;
+			case "pathedinterior": element = this.readPathedInterior(name); break;
+			case "trigger": element = this.readTrigger(name); break;
+			case "audioprofile": element = this.readAudioProfile(name); break;
+			case "messagevector": element = this.readMessageVector(name); break;
+			case "tsstatic": element = this.readTSStatic(name); break;
+			case "particleemitternode": element = this.readParticleEmitterNode(name); break;
+			case "audioemitter": element = this.readAudioEmitter(name); break;
 			default: {
 				// Still advance the index
 				let endingBraceIndex = Util.indexOfIgnoreStringLiterals(this.text, '};', this.index);
