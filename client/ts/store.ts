@@ -27,6 +27,7 @@ export const createNewStore = () => {
 							options: [
 								{ name: 'mbg', label: 'Gold'},
 								{ name: 'mbw', label: 'Web'},
+								{ name: 'mbu', label: 'Ultra'},
 								{ name: 'pq', label: 'PlatinumQuest'}
 							]
 						},
