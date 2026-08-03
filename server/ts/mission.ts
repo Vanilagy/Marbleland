@@ -413,7 +413,7 @@ export class Mission {
 		let withoutExtension = Util.removeExtension(this.relativePath);
 		if (dependency.startsWith(withoutExtension)) {
 			let end = dependency.slice(dependency.lastIndexOf('/') + 1);
-			let extension = end.slice(end.indexOf('.'));
+			let extension = end.slice(end.lastIndexOf('.'));
 			if (appendIdToMis) {
 				// Append the mission's ID to the .mis and thumbnail files
 				end = `${end.slice(0, -extension.length)}_${this.id}${extension}`;
