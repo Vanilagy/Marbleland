@@ -76,8 +76,15 @@ const doBackup = async () => {
 				try {
 					let filePath = line.slice(3);
 					let stats = await fs.stat(path.join(config.backupRepositoryPath, filePath));
+
+					// GitHub rejects files over 100 MB, so don't even try
+					if (stats.size > 100 * 1024**2) {
+						console.warn(`Skipping ${filePath} (${stats.size} bytes), too large for the remote.`);
+						continue;
+					}
+
 					totalBytes += stats.size;
-	
+
 					if (totalBytes <= config.backupPushSizeLimit) toAdd.push(filePath);
 					else break;
 				} catch (e) {
