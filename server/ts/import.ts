@@ -115,6 +115,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                         doc.remarks = duplicateDoc.remarks;
                         doc.lovedBy = duplicateDoc.lovedBy;
                         doc.editedAt = duplicateDoc.editedAt;
+                        doc.curatorVotes = duplicateDoc.curatorVotes;
 
                         // We wrongly incremented the ID even though it got replaced now, so set it back so we don't inflate the ID for nothing.
                         let incrementedId = keyValue.get('levelId');
