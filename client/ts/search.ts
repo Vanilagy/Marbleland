@@ -61,12 +61,15 @@ export abstract class Search {
 
 			let info = x.info;
 
-			let selectedCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[filter.datablockCompatibility.value];
-			let levelCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[info.datablockCompatibility];
+			let selectedCompatibility = filter.datablockCompatibility.value;
+			let selectedCompatibilityLevel = { mbg: 0, mbw: 1, mbu: 2, pq: 3 }[selectedCompatibility];
+			let levelCompatibilityLevel = { mbg: 0, mbw: 1, mbu: 2, pq: 3 }[info.datablockCompatibility];
 			let isRelevant = info.curationScore >= LEVEL_FILTER_THRESHOLD;
 
 			// Apply additional filtering
 			if (filter.modification.value !== 'all' && info.modification !== filter.modification.value) return false;
+			// MBU can only run MBU levels; it cannot run MBW and MBG levels despite being "higher" than them
+			if (selectedCompatibility === 'mbu' && info.datablockCompatibility !== 'mbu') return false;
 			if (selectedCompatibilityLevel < levelCompatibilityLevel) return false;
 			if (filter.gameType.value !== 'all' && info.gameType !== filter.gameType.value) return false;
 			if (filter.hasGems.value !== 'all' && (info.gems > 0) !== (filter.hasGems.value === 'yes')) return false;

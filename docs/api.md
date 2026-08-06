@@ -600,7 +600,7 @@ Contains metadata about a level.
 	lovedCount: number,
 
 	hasCustomCode: boolean,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // Which variant of Marble Blast this level's datablocks are compatible with
+	datablockCompatibility: 'mbg' | 'mbw' | 'mbu' | 'pq', // Which variant of Marble Blast this level's datablocks are compatible with
 
 	curationScore: number, // Cumulative curator score
 }
@@ -634,7 +634,7 @@ Contains the definition of a game the level can be played on
 {
 	id: string,
 	name: string,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
+	datablockCompatibility: 'mbg' | 'mbw'| 'mbu' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
 	playUrl: string, // The direct link to play the level in the defined game
 }
 ```
@@ -645,7 +645,7 @@ Contains the definition of a leaderboard source for levels.
 {
 	id: string,
 	name: string,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
+	datablockCompatibility: 'mbg' | 'mbw' | 'mbu' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
 	queryUrl: string, // The leaderboard endpoint that can be used to query the leaderboard for the level
 }
 ```

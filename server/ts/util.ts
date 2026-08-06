@@ -324,11 +324,15 @@ export class Util {
 	static chooseDataByDatablockCompatibility<T extends DataDefinitionBase>(games: T[], datablockCompatibility: Mission["datablockCompatibility"]) {
 		// PQ levels can only run on PQ
 		// MBW levels can run on both PQ and MBW
+		// MBU levels can only be run on PQ and MBU, but MBU itself cannot run MBW and MBG levels
 		// MBG levels can run on all
 		let selected: T[] = [];
-		let compatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[datablockCompatibility];
+		let compatibilityLevel = { mbg: 0, mbw: 1, mbu: 2, pq: 3 }[datablockCompatibility];
 		for (const game of games) {
-			let gameCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[game.datablockCompatibility];
+			let gameCompatibilityLevel = { mbg: 0, mbw: 1, mbu: 2, pq: 3 }[game.datablockCompatibility];
+			if (game.datablockCompatibility === 'mbu' && datablockCompatibility !== 'mbu') {
+				continue;
+			}
 			if (gameCompatibilityLevel >= compatibilityLevel) {
 				selected.push(game);
 			}
