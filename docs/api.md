@@ -634,8 +634,9 @@ Contains the definition of a game the level can be played on
 {
 	id: string,
 	name: string,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
+	datablockCompatibilities: ['mbg' | 'mbw' | 'pq'][], // The list of datablock compatibilities this game can play
 	playUrl: string, // The direct link to play the level in the defined game
+	customCodeAllowed: boolean, // Whether this game allows playing levels that utilise custom code.
 }
 ```
 
@@ -645,8 +646,9 @@ Contains the definition of a leaderboard source for levels.
 {
 	id: string,
 	name: string,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // The minimum datablock compatibility required by the level to be playable in the game
+	datablockCompatibility: ['mbg' | 'mbw' | 'pq'][], // The list of datablock compatibilities this game can play
 	queryUrl: string, // The leaderboard endpoint that can be used to query the leaderboard for the level
+	customCodeAllowed: boolean, // Whether this game allows playing levels that utilise custom code.
 }
 ```
 

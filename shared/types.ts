@@ -16,7 +16,8 @@ export enum Modification {
 export type DataDefinitionBase = {
 	id: string,
 	name: string,
-	datablockCompatibility: Mission['datablockCompatibility'],
+	datablockCompatibilites: Mission['datablockCompatibility'][],
+	customCodeAllowed: boolean
 };
 
 export type GameDefinition = DataDefinitionBase & { playUrl: string };

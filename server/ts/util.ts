@@ -319,22 +319,6 @@ export class Util {
 			}
 		});
 	}
-
-	/** Choose data playable by the given datablockCompatibility i.e filters the data whose datablocks are compatible with that of datablockCompatibility */
-	static chooseDataByDatablockCompatibility<T extends DataDefinitionBase>(games: T[], datablockCompatibility: Mission["datablockCompatibility"]) {
-		// PQ levels can only run on PQ
-		// MBW levels can run on both PQ and MBW
-		// MBG levels can run on all
-		let selected: T[] = [];
-		let compatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[datablockCompatibility];
-		for (const game of games) {
-			let gameCompatibilityLevel = { mbg: 0, mbw: 1, pq: 2 }[game.datablockCompatibility];
-			if (gameCompatibilityLevel >= compatibilityLevel) {
-				selected.push(game);
-			}
-		}
-		return selected;
-	}
 }
 
 /** A simple persistent key/value store */
