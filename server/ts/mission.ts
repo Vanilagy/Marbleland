@@ -526,12 +526,12 @@ export class Mission {
 
 		let lovedByYou = this.lovedBy.includes(requesterId);
 
-		let playInfo = Util.chooseDataByDatablockCompatibility(config.games, this.datablockCompatibility).map(game => ({
+		let playInfo = config.games.filter(x => x.datablockCompatibilites.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(game => ({
 			...game,
 			playUrl: game.playUrl.replace('{id}', this.id.toString()),
 		}));
 
-		let lbQueryInfo = Util.chooseDataByDatablockCompatibility(config.leaderboardSources, this.datablockCompatibility).map(query => ({
+		let lbQueryInfo = config.leaderboardSources.filter(x => x.datablockCompatibilites.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(query => ({
 			id: query.id,
 			name: query.name
 		}));
