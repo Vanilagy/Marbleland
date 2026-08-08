@@ -16,7 +16,7 @@ export enum Modification {
 export type DataDefinitionBase = {
 	id: string,
 	name: string,
-	datablockCompatibilites: Mission['datablockCompatibility'][],
+	datablockCompatibilities: Mission['datablockCompatibility'][],
 	customCodeAllowed: boolean
 };
 

@@ -526,12 +526,12 @@ export class Mission {
 
 		let lovedByYou = this.lovedBy.includes(requesterId);
 
-		let playInfo = config.games.filter(x => x.datablockCompatibilites.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(game => ({
+		let playInfo = config.games.filter(x => x.datablockCompatibilities.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(game => ({
 			...game,
 			playUrl: game.playUrl.replace('{id}', this.id.toString()),
 		}));
 
-		let lbQueryInfo = config.leaderboardSources.filter(x => x.datablockCompatibilites.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(query => ({
+		let lbQueryInfo = config.leaderboardSources.filter(x => x.datablockCompatibilities.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(query => ({
 			id: query.id,
 			name: query.name
 		}));

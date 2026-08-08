@@ -581,7 +581,7 @@ export const initLevelApi = () => {
 		let mission = Mission.fromDoc(doc);
 
 		let leaderboardId = req.params.leaderboardId;
-		let lbQueryInfo = config.leaderboardSources.filter(x => x.datablockCompatibilites.includes(mission.datablockCompatibility) && ((mission.hasCustomCode && x.customCodeAllowed) || !mission.hasCustomCode));
+		let lbQueryInfo = config.leaderboardSources.filter(x => x.datablockCompatibilities.includes(mission.datablockCompatibility) && ((mission.hasCustomCode && x.customCodeAllowed) || !mission.hasCustomCode));
 		let query = lbQueryInfo.find(x => x.id === leaderboardId);
 		if (query === undefined) {
 			res.status(400).send("400\nLevel does not contain the specified leaderboard.");
