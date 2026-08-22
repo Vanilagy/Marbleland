@@ -95,6 +95,10 @@ export const initLevelApi = () => {
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		let version = req.query.version ? Number(req.query.version) : undefined;
     	let mission = Mission.fromVersion(doc, version);
+		if (!mission) {
+			res.status(404).send("404\nVersion not found.");
+			return;
+		}
 
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
@@ -115,6 +119,10 @@ export const initLevelApi = () => {
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
 		let version = req.query.version ? Number(req.query.version) : undefined;
     	let mission = Mission.fromVersion(doc, version);
+		if (!mission) {
+			res.status(404).send("404\nVersion not found.");
+			return;
+		}
 
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
@@ -134,7 +142,7 @@ export const initLevelApi = () => {
 
 		res.writeHead(200, {
 			'Content-Type': 'application/octet-stream',
-			'Content-Disposition': 'attachment;filename=' + `${fileName}-${doc._id}.mbpak`,
+			'Content-Disposition': 'attachment;filename=' + `${fileName}-${doc._id}${version !== undefined ? `-v${version}` : ""}.mbpak`,
 			'Content-Length': mbpakdata.length
 		});
 		res.end(mbpakdata);

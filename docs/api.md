@@ -173,6 +173,14 @@ missionId* | `number` | The index of the mission whose image thumbnail should be
 }
 ```
 
+**Response body:**
+```typescript
+{
+	levelIds: number[], // The new IDs of the submitted levels
+	newPackId: number | null // The new ID of the created pack (if any)
+}
+```
+
 ### `POST` /api/level/{level-id}/update-upload
 **Requires [authentication](#authentication).** Same as level uploading, but replaces the current level with the new one.
 
@@ -292,7 +300,7 @@ token* | `string` | The verification token sent via email.
 
 **Response:** Redirects to the user's profile page on successful verification, or returns an error response.
 
-### `POST` /api/account/check-token
+### `GET` /api/account/check-token
 **Requires [authentication](#authentication).** Checks the validity of a token specified in the Authorization header. If it is valid, returns [SignInInfo](#signininfo) for the corresponding account.
 
 ### `GET` /api/account/{account-id}/info

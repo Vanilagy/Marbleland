@@ -119,6 +119,8 @@ export class MissionUpload {
 
 		if (misFiles.length === 0) {
 			this.problems.add(`The archive must contain at least one .mis file.`);
+		} else if (this.updateId !== undefined && misFiles.length > 1) {
+			this.problems.add(`When updating a level, the archive may only contain one .mis file.`);
 		}
 
 		for (let file of misFiles) {

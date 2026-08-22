@@ -154,7 +154,7 @@ export class Mission {
         }
 
         // Find the snapshot
-        const v = doc.pastVersions.find(v => v.versionNumber === versionNumber);
+        const v = (doc.pastVersions ?? []).find(v => v.versionNumber === versionNumber);
         if (!v) return null;
 
         // Overwrite the fields that vary between versions
@@ -519,7 +519,10 @@ export class Mission {
 			lovedBy: this.lovedBy,
 			curatorVotes: this.curatorVotes,
 			hasCustomCode: this.hasCustomCode,
-			datablockCompatibility: this.datablockCompatibility
+			datablockCompatibility: this.datablockCompatibility,
+			currentVersion: this.currentVersion,
+			currentVersionChangelog: this.currentVersionChangelog,
+			pastVersions: this.pastVersions
 		};
 	}
 

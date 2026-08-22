@@ -200,7 +200,6 @@ import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS } from '../../../shared/constants';
 import { CodeJar } from "codejar";
 import { guessGameType, guessModification } from "../../../shared/classification";
 import Modal from '../components/Modal.vue';
-import node_fetch from 'node-fetch';
 
 const COUNT_DOWN_MODES = ['collection', 'elimination', 'gemMadness', 'ghosts', 'hunt', 'king', 'mega', 'party', 'props', 'seek', 'snowball', 'snowballsOnly', 'spooky', 'steal', 'tag', 'training'];
 
@@ -311,8 +310,6 @@ export default defineComponent({
 			this.notFound = true;
 			return;
 		}
-
-		console.log(doc);
 		
 		let mission = Mission.fromDoc(doc);
 		this.levelInfo = await mission.createExtendedLevelInfo(this.$store.state.loggedInAccount?.id);
@@ -386,7 +383,7 @@ export default defineComponent({
 			const current = {
 				versionNumber: this.levelInfo.currentVersion,
 				changelog: this.levelInfo.currentVersionChangelog,
-				versionAddedAt: this.levelInfo.editedAt,
+				versionAddedAt: this.levelInfo.editedAt || this.levelInfo.addedAt,
 				isCurrent: true
 			};
 
@@ -398,10 +395,10 @@ export default defineComponent({
 			return [...past, current].reverse();
 		},
 		upvoters(): ProfileInfo[] {
-			return this.levelInfo.curatorVotes.filter(v => v.vote === true).map(v => v.profile);
+			return (this.levelInfo.curatorVotes || []).filter(v => v.vote === true).map(v => v.profile);
 		},
 		downvoters(): ProfileInfo[] {
-			return this.levelInfo.curatorVotes.filter(v => v.vote === false).map(v => v.profile);
+			return (this.levelInfo.curatorVotes || []).filter(v => v.vote === false).map(v => v.profile);
 		}
 	},
 	methods: {
