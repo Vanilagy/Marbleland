@@ -117,7 +117,8 @@ export interface ExtendedProfileInfo extends ProfileInfo {
 	bio: string,
 	uploadedLevels: LevelInfo[],
 	favoriteLevels: LevelInfo[],
-	createdPacks: PackInfo[]
+	createdPacks: PackInfo[],
+	curatorVotesCast?: number
 }
 
 /** Contains data that is remembered by the client upon login. */

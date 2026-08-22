@@ -748,7 +748,8 @@ ProfileInfo & {
 	bio: string,
 	uploadedLevels: LevelInfo[], // Newest levels first
 	favoriteLevels: LevelInfo[], // Newest levels first
-	createdPacks: PackInfo[]
+	createdPacks: PackInfo[],
+	curatorVotesCast?: number // Total curator votes submitted by this user
 }
 ```
 
