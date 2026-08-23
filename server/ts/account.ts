@@ -207,18 +207,11 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 		createdPacks.push(await getPackInfo(doc));
 	}
 
-	let curatorVotesCast: number = undefined;
-	if (doc.curator) {
-		let votedMissions = await db.missions.find({ [`curatorVotes.${doc._id}`]: { $exists: true } });
-		curatorVotesCast = votedMissions.length;
-	}
-
 	return Object.assign(profileInfo, {
 		bio: doc.bio,
 		uploadedLevels,
 		favoriteLevels,
 		createdPacks,
-		curatorVotesCast
 	});
 };
 

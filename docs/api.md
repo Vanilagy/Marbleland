@@ -803,7 +803,6 @@ ProfileInfo & {
 	uploadedLevels: LevelInfo[], // Newest levels first
 	favoriteLevels: LevelInfo[], // Newest levels first
 	createdPacks: PackInfo[],
-	curatorVotesCast?: number // Total curator votes submitted by this user
 }
 ```
 
