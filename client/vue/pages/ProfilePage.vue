@@ -43,6 +43,7 @@
 			Level loves: <strong>{{ levelLoves }}</strong><br>
 			Pack downloads: <strong>{{ packDownloads }}</strong><br>
 			Pack loves: <strong>{{ packLoves }}</strong>
+			<template v-if="profileInfo.isCurator"><br>Votes cast: <strong>{{ profileInfo.curatorVotesCast ?? 0 }}</strong></template>
 		</p>
 		<template v-if="profileInfo.isSuspended">
 			<div class="suspendedBanner">
