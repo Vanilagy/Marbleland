@@ -4,6 +4,9 @@
 - Added level updating and level versioning
 - Added "favorite levels" section to the profile page
 
+## 1.11.1
+- Added support for filtering games and leaderboards based on exact datablock compatibility values as well as custom code.
+
 ## 1.11.0
 - Added Curator role and voting system
 - Fixed .zip downloads failing for levels with non-Latin-1 filenames

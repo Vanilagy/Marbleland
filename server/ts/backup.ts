@@ -64,9 +64,10 @@ const doBackup = async () => {
 		// We need to split the changes into multiple commits because there is often a limit on how large a single push can be.
 		const maxAllowedIterations = 64;
 		for (let i = 0; i < maxAllowedIterations; i++) {
-			// See which files have changed
-			let output = await execShellCommand('git status --porcelain -u', config.backupRepositoryPath);
-			let lines = output.split('\n').map(x => x.trimEnd()).filter(Boolean);
+			// See which files have changed. -z gives us NUL-separated, unquoted paths, which regular
+			// --porcelain doesn't: there, paths with spaces or non-ASCII get wrapped in quotes, which fucks up our logic.
+			let output = await execShellCommand('git status --porcelain -u -z', config.backupRepositoryPath);
+			let lines = output.split('\0').filter(Boolean);
 			let toAdd: string[] = [];
 			let totalBytes = 0;
 	
@@ -75,8 +76,15 @@ const doBackup = async () => {
 				try {
 					let filePath = line.slice(3);
 					let stats = await fs.stat(path.join(config.backupRepositoryPath, filePath));
+
+					// GitHub rejects files over 100 MB, so don't even try
+					if (stats.size > 100 * 1024**2) {
+						console.warn(`Skipping ${filePath} (${stats.size} bytes), too large for the remote.`);
+						continue;
+					}
+
 					totalBytes += stats.size;
-	
+
 					if (totalBytes <= config.backupPushSizeLimit) toAdd.push(filePath);
 					else break;
 				} catch (e) {

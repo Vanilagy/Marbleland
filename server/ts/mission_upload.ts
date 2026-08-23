@@ -17,6 +17,8 @@ import { MagickFormat } from '@imagemagick/magick-wasm';
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
 const UPLOAD_TTL = 1000 * 60 * 60 * 24; // After a day, the chance of the upload still being submitted is extremely low, so the upload will be killed at that point.
+/** The maximum allowed length, in characters, of a single dependency's normalized file path (the path it ends up under in the generated .zip). */
+const MAX_DEPENDENCY_PATH_LENGTH = 255;
 
 setInterval(async () => {
 	// Once a day, clean up the expired uploads
@@ -316,8 +318,15 @@ export class MissionUpload {
 			if (matches) {
 				if (!found) {
 					// The dependency was found in the archive, so add it to the normalized directory
+					let normalizedPath = path.posix.join(relativeDirectory, fileName2);
+
+					if (normalizedPath.length > MAX_DEPENDENCY_PATH_LENGTH) {
+						this.problems.add(`The dependency ${dependency}, required by ${requiredBy}, has a path that is too long: it is ${normalizedPath.length} characters, but the maximum allowed is ${MAX_DEPENDENCY_PATH_LENGTH}.`);
+						return;
+					}
+
 					found = this.zip.files[name];
-					group.normalizedDirectory.set(path.posix.join(relativeDirectory, fileName2), this.zip.files[name]);
+					group.normalizedDirectory.set(normalizedPath, this.zip.files[name]);
 
 					if (IMAGE_EXTENSIONS.includes(path.extname(name.toLowerCase()))) {
 						// If it's an image, check it
