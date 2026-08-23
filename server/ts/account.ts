@@ -188,6 +188,16 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 		uploadedLevels.push(mission.createLevelInfo());
 	}
 
+	// Add all of their favorites
+	let favoriteMissionDocs = await db.missions.find({ lovedBy: doc._id }) as MissionDoc[];
+	favoriteMissionDocs.sort((a, b) => b.addedAt - a.addedAt); // Show newest ones first
+	let favoriteLevels: LevelInfo[] = [];
+
+	for (let doc of favoriteMissionDocs) {
+		let mission = Mission.fromDoc(doc);
+		favoriteLevels.push(mission.createLevelInfo());
+	}
+
 	// Add all of their packs
 	let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
 	packDocs.sort((a, b) => b.createdAt - a.createdAt); // Show newest ones first
@@ -197,10 +207,18 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 		createdPacks.push(await getPackInfo(doc));
 	}
 
+	let curatorVotesCast: number = undefined;
+	if (doc.curator) {
+		let votedMissions = await db.missions.find({ [`curatorVotes.${doc._id}`]: { $exists: true } });
+		curatorVotesCast = votedMissions.length;
+	}
+
 	return Object.assign(profileInfo, {
 		bio: doc.bio,
 		uploadedLevels,
-		createdPacks
+		favoriteLevels,
+		createdPacks,
+		curatorVotesCast
 	});
 };
 

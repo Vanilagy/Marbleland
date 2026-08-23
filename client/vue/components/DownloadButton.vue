@@ -1,9 +1,9 @@
 <template>
 	<div style="position: relative; border-radius: 5px; overflow: hidden;" class="notSelectable">
-		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest')" style="border-radius: 0px;"><slot></slot></button-with-icon>
+		<button-with-icon icon="/assets/svg/download_black_24dp.svg" @click="download('platinumquest', version)" style="border-radius: 0px;"><slot></slot></button-with-icon>
 		<img src="/assets/svg/expand_more_black_24dp.svg" class="expandMore basicIcon" :style="{ transform: chevronTransform }" @click="expanded = !expanded">
 		<div v-if="expanded">
-			<p v-for="assumption of assuming" :key="assumption.name" @click="download(assumption.name)" v-html="assumption.label"></p>
+			<p v-for="assumption of assuming" :key="assumption.name" @click="download(assumption.name, version)" v-html="assumption.label"></p>
 		</div>
 	</div>
 </template>
@@ -15,7 +15,8 @@ import ButtonWithIcon from './ButtonWithIcon.vue';
 export default defineComponent({
 	props: {
 		mode: String as PropType<'level' | 'pack' | 'multipleLevels'>,
-		id: Number as PropType<number>
+		id: Number as PropType<number>,
+		version: Number as PropType<number>
 	},
 	data() {
 		return {
@@ -38,12 +39,14 @@ export default defineComponent({
 		}
 	},
 	methods: {
-		/** Start downloading the .zip with the correct assumption parameter */
-		download(assumption: string) {
-			if (this.mode !== 'multipleLevels') window.location.href = window.location.origin + 
-				((this.mode === 'level')? `/api/level/${this.id}/zip?assuming=${assumption}`
-				: `/api/pack/${this.id}/zip?assuming=${assumption}`);
-
+		/** Start downloading the .zip with the correct assumption parameter and version */
+		download(assumption: string, version?: number) {
+			if (this.mode !== 'multipleLevels') {
+				let url = ((this.mode === 'level') ? `/api/level/${this.id}/zip?assuming=${assumption}` : `/api/pack/${this.id}/zip?assuming=${assumption}`);
+				if(version !== undefined)
+					url += `&version=${version}`;
+				window.location.href = window.location.origin + url;
+			}
 			this.$emit('download', assumption);
 		}
 	},

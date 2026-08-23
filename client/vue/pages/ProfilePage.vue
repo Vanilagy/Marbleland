@@ -43,6 +43,7 @@
 			Level loves: <strong>{{ levelLoves }}</strong><br>
 			Pack downloads: <strong>{{ packDownloads }}</strong><br>
 			Pack loves: <strong>{{ packLoves }}</strong>
+			<template v-if="profileInfo.isCurator"><br>Curator votes cast: <strong>{{ profileInfo.curatorVotesCast ?? 0 }}</strong></template>
 		</p>
 		<template v-if="profileInfo.isSuspended">
 			<div class="suspendedBanner">
@@ -57,6 +58,8 @@
 			<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
 			<h3>Created packs ({{ profileInfo.createdPacks.length }})</h3>
 			<panel-list mode="pack" :entries="profileInfo.createdPacks" :defaultCount="4" noEntriesNotice="This user has yet to create any packs."></panel-list>
+			<h3>Favorite levels ({{ profileInfo.favoriteLevels.length }})</h3>
+			<panel-list mode="level" :entries="profileInfo.favoriteLevels" :defaultCount="4" noEntriesNotice="This user has yet to love any levels. Cold!"></panel-list>
 		</template>
 		
 	</div>
@@ -372,8 +375,8 @@ export default defineComponent({
 }
 
 .avatar > img {
-	width: 101%;
-	height: 101%;
+	width: 100%;
+	height: 100%;
 	object-fit: cover;
 }
 

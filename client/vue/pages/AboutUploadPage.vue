@@ -33,6 +33,14 @@
 		<li><b>"Missing dependency: X is required by Y but couldn't be found":</b> This simply means that one of your levels requires assets that you forgot to include in your .zip. Say your .mis file uses the interior "myinterior.dif", but you didn't include that .dif with your .zip - then you're missing a dependency.</li>
 	</ul>
 
+	<h3>Level updating</h3>
+	<p>
+		Level updates let you fix mistakes in a level after uploading it. If you own a level, you can upload a new version of it from its level page. This replaces the level's files while keeping its ID, statistics, comments and leaderboards intact, and all previous versions remain viewable and downloadable. You're required to provide a short changelog describing what's different in the new version.
+	</p>
+	<p>
+		Please avoid using this feature to edit levels in a way that breaks leaderboard integrity - if you want to rework a level into something substantially different, upload it as a new level instead.
+	</p>
+
 	<h3>Controlling level classification</h3>
 	<p>
 		Marbleland tries its best to guess a level's modification (the game it's meant to run in) and type (singleplayer/multiplayer) by looking at the mission and the assets it uses. However, sometimes it will get it wrong. You can therefore precisely control this classification by setting specific fields in your level's MissionInfo:<br><br>

@@ -31,18 +31,15 @@ export interface LeaderboardScore {
 	placement: number
 }
 
-/** Contains metadata about a level. */
-export interface LevelInfo {
-	id: number,
+/** Contains the content-derived metadata of a level, i.e. everything that is determined purely by the level's files and therefore varies between versions of a level. Does not include any of the level's identity or social data. */
+export interface LevelContentInfo {
 	baseName: string,
 	gameType: GameType,
 	modification: Modification,
 	name: string,
 	artist: string,
 	desc: string,
-	addedAt: number,
 	gameMode: string,
-	editedAt: number,
 
 	qualifyingTime: number,
 	goldTime: number,
@@ -59,13 +56,36 @@ export interface LevelInfo {
 	gems: number,
 	hasEasterEgg: boolean,
 
+	hasCustomCode: boolean,
+	datablockCompatibility: Mission['datablockCompatibility']
+}
+
+/** Contains metadata about a level: the content of its current version, plus its identity and social data. */
+export interface LevelInfo extends LevelContentInfo {
+	id: number,
+	addedAt: number,
+	editedAt: number,
+
 	downloads: number,
 	lovedCount: number,
 
-	hasCustomCode: boolean,
-	datablockCompatibility: Mission['datablockCompatibility'],
-
 	curationScore: number,
+	/** The version number of the level's current (latest) version. A level that has never been updated is at version 1. */
+	currentVersion: number
+}
+
+/** Contains the metadata of a single level version (as opposed to its content). */
+export interface VersionMetadata {
+	/** When this version was added. */
+	addedAt: number,
+	/** The changes made in this version compared to the previous one. */
+	changelog: string
+}
+
+/** Contains voter info for display in a modal. */
+export interface CuratorVoteInfo {
+    profile: ProfileInfo,
+    vote: boolean
 }
 
 /** Contains metadata about a level, as well as additional data to display on the Level page. */
@@ -81,8 +101,12 @@ export interface ExtendedLevelInfo extends LevelInfo {
 	dependencies: string[],
 	playInfo: GameDefinition[],
 	leaderboardInfo: ReducedLeaderboardDefinition[],
-	curatorVotes: Record<number, boolean>,
+	curatorVotes: CuratorVoteInfo[],
 	yourVote: boolean,
+	/** The content of every superseded version of this level, ordered from oldest to newest. previousVersions[n] contains the content of version n+1 of the level (versions are 1-indexed). The content of the current version is given by the level info itself. Empty for levels that have never been updated. */
+	previousVersions: LevelContentInfo[],
+	/** The metadata of every version of this level except the first, with the same length as previousVersions but conceptually offset by one: versionMetadata[n] describes version n+2 of the level, meaning the last entry describes the current version. The first version has no metadata; it was added at addedAt and has no changelog. */
+	versionMetadata: VersionMetadata[]
 }
 
 /** Contains metadata about a profile. */
@@ -101,7 +125,9 @@ export interface ProfileInfo {
 export interface ExtendedProfileInfo extends ProfileInfo {
 	bio: string,
 	uploadedLevels: LevelInfo[],
-	createdPacks: PackInfo[]
+	favoriteLevels: LevelInfo[],
+	createdPacks: PackInfo[],
+	curatorVotesCast?: number
 }
 
 /** Contains data that is remembered by the client upon login. */

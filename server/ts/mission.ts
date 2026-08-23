@@ -7,7 +7,7 @@ import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
 import { Config } from './config';
 import { config, datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
-import { Modification, GameType, LevelInfo, ExtendedLevelInfo, PackInfo } from '../../shared/types';
+import { Modification, GameType, LevelInfo, LevelContentInfo, ExtendedLevelInfo, PackInfo, CuratorVoteInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
@@ -19,9 +19,8 @@ import { MissionHasher } from './hasher';
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.dds'];
 
-/** Representation of a mission in the database. */
-export interface MissionDoc {
-	_id: number,
+/** The content-derived data of a mission, i.e. everything that is determined purely by the mission's files and therefore varies between versions of a mission. Does not include any of the mission's identity or social data. */
+export interface MissionContentDoc {
 	/** The absolute path to the root directory of this mission and all its dependencies. */
 	baseDirectory: string,
 	/** The relative path to the mission file from the base directory. */
@@ -35,18 +34,56 @@ export interface MissionDoc {
 	hasEasterEgg: boolean,
 	misHash: string,
 	astHash: string,
+	missesDependencies: boolean,
+	preferPrevThumbnail: boolean,
+	hasCustomCode: boolean,
+	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
+}
+
+/** The metadata of a single mission version (as opposed to its content). */
+export interface MissionVersionMetadata {
+	/** When this version was added. */
+	addedAt: number,
+	/** The changes made in this version compared to the previous one. */
+	changelog: string,
+	/** The ID of the account that added this version. */
+	addedBy: number
+}
+
+/** Representation of a mission in the database: the content of its current version, plus its identity and social data. */
+export interface MissionDoc extends MissionContentDoc {
+	_id: number,
 	addedAt: number,
 	addedBy: number,
 	remarks: string,
 	downloads: number,
-	missesDependencies: boolean,
-	preferPrevThumbnail: boolean,
 	lovedBy: number[],
 	curatorVotes: Record<number, boolean>,
 	editedAt: number,
-	hasCustomCode: boolean,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
+	/** The content of every superseded version of this mission, ordered from oldest to newest. previousVersions[n] contains the content of version n+1 of the mission (versions are 1-indexed, so a mission's current version number is previousVersions.length + 1). The current version's content lives directly on the doc. */
+	previousVersions?: MissionContentDoc[],
+	/** The metadata of every version of this mission except the first, with the same length as previousVersions but conceptually offset by one: versionMetadata[n] describes version n+2 of the mission, meaning the last entry describes the current version. The first version has no metadata; it was added at addedAt and has no changelog. */
+	versionMetadata?: MissionVersionMetadata[],
 }
+
+/** Extracts only the content-derived fields from a mission doc (or anything extending it). */
+export const extractMissionContent = (doc: MissionContentDoc): MissionContentDoc => ({
+	baseDirectory: doc.baseDirectory,
+	relativePath: doc.relativePath,
+	dependencies: doc.dependencies,
+	fileSizes: doc.fileSizes,
+	info: doc.info,
+	gameType: doc.gameType,
+	modification: doc.modification,
+	gems: doc.gems,
+	hasEasterEgg: doc.hasEasterEgg,
+	misHash: doc.misHash,
+	astHash: doc.astHash,
+	missesDependencies: doc.missesDependencies,
+	preferPrevThumbnail: doc.preferPrevThumbnail,
+	hasCustomCode: doc.hasCustomCode,
+	datablockCompatibility: doc.datablockCompatibility
+});
 
 /** Represents a mission. Is responsible for constructing the asset dependency tree, as well as other smaller tasks. */
 export class Mission {
@@ -79,6 +116,10 @@ export class Mission {
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
+	/** See MissionDoc.previousVersions. */
+	previousVersions: MissionContentDoc[] = [];
+	/** See MissionDoc.versionMetadata. */
+	versionMetadata: MissionVersionMetadata[] = [];
 
 	constructor(baseDirectory: string, relativePath: string, id?: number) {
 		this.baseDirectory = baseDirectory;
@@ -116,8 +157,58 @@ export class Mission {
 		mission.editedAt = doc.editedAt ?? null;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
 		mission.datablockCompatibility = doc.datablockCompatibility ?? 'pq';
+		mission.previousVersions = doc.previousVersions ?? [];
+		mission.versionMetadata = doc.versionMetadata ?? [];
 
 		return mission;
+	}
+
+	/** Creates a Mission instance representing a specific version of a level: the level's identity and social data with the given version's content overlaid. Pass no version number to get the current version. Returns null if the requested version does not exist. */
+	static fromVersion(doc: MissionDoc, versionNumber?: number) {
+		// Initialize with the current version's content and all level-wide data
+		let mission = Mission.fromDoc(doc);
+
+		// If no version or the current version is requested, we are done
+		if (versionNumber === undefined || versionNumber === mission.getCurrentVersion()) {
+			return mission;
+		}
+
+		let content = mission.previousVersions[versionNumber - 1];
+		if (!content) return null;
+
+		// Overlay the content-derived fields with the requested version's content
+		mission.baseDirectory = content.baseDirectory;
+		mission.relativePath = content.relativePath;
+		mission.dependencies = new Set(content.dependencies);
+		mission.fileSizes = content.fileSizes;
+		mission.info = content.info;
+		mission.gameType = content.gameType;
+		mission.modification = content.modification;
+		mission.gems = content.gems;
+		mission.hasEasterEgg = content.hasEasterEgg;
+		mission.misHash = content.misHash;
+		mission.astHash = content.astHash;
+		mission.missesDependencies = content.missesDependencies;
+		mission.preferPrevThumbnail = content.preferPrevThumbnail;
+		mission.hasCustomCode = content.hasCustomCode;
+		mission.datablockCompatibility = content.datablockCompatibility;
+
+		return mission;
+	}
+
+	/** Returns the version number of this level's current (latest) version. */
+	getCurrentVersion() {
+		return this.previousVersions.length + 1;
+	}
+
+	/** Returns the metadata of a given version of this level, or null for the first version, which has no metadata (it was added at the level's addedAt and has no changelog). */
+	getVersionMetadata(versionNumber: number): MissionVersionMetadata {
+		return this.versionMetadata[versionNumber - 2] ?? null;
+	}
+
+	/** Returns when a given version of this level was added. */
+	getVersionAddedAt(versionNumber: number) {
+		return this.getVersionMetadata(versionNumber)?.addedAt ?? this.addedAt;
 	}
 
 	/** Fill the mission with data. */
@@ -466,7 +557,9 @@ export class Mission {
 			lovedBy: this.lovedBy,
 			curatorVotes: this.curatorVotes,
 			hasCustomCode: this.hasCustomCode,
-			datablockCompatibility: this.datablockCompatibility
+			datablockCompatibility: this.datablockCompatibility,
+			previousVersions: this.previousVersions,
+			versionMetadata: this.versionMetadata
 		};
 	}
 
@@ -474,18 +567,16 @@ export class Mission {
 		return Object.values(this.curatorVotes || {}).reduce((sum, v) => sum + (v ? 1 : -1), 0);
 	}
 
-	createLevelInfo(): LevelInfo {
+	/** Creates the content-derived info of this mission instance (which may represent any version of the level). */
+	createLevelContentInfo(): LevelContentInfo {
 		return {
-			id: this.id,
 			baseName: this.getBaseName(),
 			gameType: this.gameType,
 			modification: this.modification,
 			name: this.info.name,
 			artist: this.info.artist,
 			desc: this.info.desc,
-			addedAt: this.addedAt,
 			gameMode: this.info.gamemode,
-			editedAt: this.editedAt,
 
 			qualifyingTime: this.info.time? MisParser.parseNumber(this.info.time) : undefined,
 			goldTime: this.info.goldtime? MisParser.parseNumber(this.info.goldtime) : undefined,
@@ -502,13 +593,24 @@ export class Mission {
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg,
 
+			hasCustomCode: this.hasCustomCode,
+			datablockCompatibility: this.datablockCompatibility
+		};
+	}
+
+	createLevelInfo(): LevelInfo {
+		return {
+			...this.createLevelContentInfo(),
+
+			id: this.id,
+			addedAt: this.addedAt,
+			editedAt: this.editedAt,
+
 			downloads: this.downloads ?? 0,
 			lovedCount: this.lovedBy.length,
 
-			hasCustomCode: this.hasCustomCode,
-			datablockCompatibility: this.datablockCompatibility,
-
-			curationScore: this.calculateCurationScore()
+			curationScore: this.calculateCurationScore(),
+			currentVersion: this.getCurrentVersion()
 		};
 	}
 
@@ -536,6 +638,18 @@ export class Mission {
 			name: query.name
 		}));
 
+		let curatorVoteDetails: CuratorVoteInfo[] = [];
+		if (requesterDoc?.curator && this.curatorVotes) {
+			const curatorIds = Object.keys(this.curatorVotes).map(Number);
+			const accounts = await db.accounts.find({ _id: { $in: curatorIds } }) as AccountDoc[];
+			
+			// Resolve accounts to ProfileInfo objects
+			curatorVoteDetails = await Promise.all(accounts.map(async acc => ({
+				profile: await getProfileInfo(acc),
+				vote: this.curatorVotes[acc._id]
+			})));
+		}
+
 		let extended: ExtendedLevelInfo = {
 			...levelInfo,
 			addedBy: accountDoc && await getProfileInfo(accountDoc),
@@ -550,11 +664,25 @@ export class Mission {
 			dependencies: this.getFilteredDependencies('none', false),
 			playInfo,
 			leaderboardInfo: lbQueryInfo,
-			curatorVotes: requesterDoc?.curator ? this.curatorVotes : {},
-			yourVote: requesterDoc?.curator ? this.curatorVotes[requesterDoc._id] : null
+			curatorVotes: curatorVoteDetails,
+			yourVote: requesterDoc?.curator ? this.curatorVotes[requesterDoc._id] : null,
+			previousVersions: this.createPreviousVersionContentInfos(),
+			versionMetadata: this.versionMetadata.map(x => ({
+				addedAt: x.addedAt,
+				changelog: x.changelog
+			}))
 		};
-		
+
 		return extended;
+	}
+
+	/** Creates the content-derived info for every superseded version of this level, ordered from oldest to newest. */
+	createPreviousVersionContentInfos(): LevelContentInfo[] {
+		let doc = this.createDoc();
+
+		return this.previousVersions.map((_, index) =>
+			Mission.fromVersion(doc, index + 1).createLevelContentInfo()
+		);
 	}
 
 	/** Get the path to the image thumbnail of this mission. */

@@ -16,22 +16,23 @@
 			<aside>
 				<img v-if="!imageHidden" :src="imageSource" class="thumbnail" @error="imageHidden = true">
 				<div class="buttonContainer">
-					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" mode="level" @download="incrementDownloads">Download level</download-button>
+					<download-button style="flex: 1 1 auto; margin-right: 10px" :id="levelInfo.id" :version="isLatestVersion ? undefined : viewedVersion" mode="level" @download="incrementDownloads">Download level{{ isLatestVersion ? '' : ` (v${viewedVersion})` }}</download-button>
 					<love-button style="flex: 0 1 auto" :levelOrPackInfo="levelInfo"></love-button>
 				</div>
-				<div v-if="levelInfo.playInfo.length > 0" class="buttonContainer">
+				<div v-if="isLatestVersion && levelInfo.playInfo.length > 0" class="buttonContainer">
 					<play-button :playInfo="levelInfo.playInfo" style="flex: 1 1 auto;" :id="levelInfo.id" mode="level" @download="incrementDownloads">Play level</play-button>
 				</div>
 				<p class="additionalInfo">
 					Downloads: {{ levelInfo.downloads }}<br>
 					Loves: {{ levelInfo.lovedCount }}<br>
 					Added {{ formatDate(levelInfo.addedAt) }}
-					<template v-if="levelInfo.editedAt"><br>Edited {{ formatDate(levelInfo.editedAt) }}</template>
+					<template v-if="levelInfo.editedAt"><br>Last edited {{ formatDate(levelInfo.editedAt) }}</template>
+					<template v-if="viewedVersion > 1"><br>v{{ viewedVersion }} added {{ formatDate(viewedAddedAt) }}</template>
 					<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span>
-					<span v-if="levelInfo.hasCustomCode" style="color: orange"><br>Has custom code</span>
+					<span v-if="viewedContent.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
 				<div v-if="isCurator" class="curationPanel">
-					<h3>Curator score</h3>
+					<h3 @click="$refs.curatorDetailsModal.show();" class="curatorScore">Curator score</h3>
 
 					<div class="voteContainer">
 						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true, disabled: isOwnLevel }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
@@ -48,22 +49,28 @@
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
 					<img v-if="levelInfo.leaderboardInfo.length > 0" :src="showLBs ? '/assets/svg/info_24dp_FILL0_wght400_GRAD0_opsz24 (1).svg' : '/assets/svg/bar_chart_24dp.svg'" :title="showLBs ? 'Show level info' : 'Show leaderboards'" @click="toggleLBs" class="basicIcon">
-					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" @click="showDeleteConfirmation" class="basicIcon">
-					<!--<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" @click="deleteLevel" class="basicIcon">-->
-					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing }" @click="editing = true" class="basicIcon">
-					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" @click="$refs.packAdder.show()" class="basicIcon">
+					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="showDeleteConfirmation" class="basicIcon">
+					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="updateLevel" class="basicIcon">
+					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing || !isLatestVersion }" @click="editing = true" class="basicIcon">
+					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" :class="{ disabled: !isLatestVersion }" @click="$refs.packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
 				<template v-if="!editing">
-					<h1>{{ levelInfo.name }}</h1>
-					<h2 v-if="levelInfo.artist">by {{ levelInfo.artist }}</h2>
+					<h1>{{ viewedContent.name }}<span v-if="hasMultipleVersions" class="versionBadge notSelectable" :class="{ outdated: !isLatestVersion }" title="This level has multiple versions">
+						<span class="versionChevron" :class="{ inactive: viewedVersion === 1 }" title="View previous version" @click="cycleVersion(-1)">‹</span>
+						<span>v{{ viewedVersion }}</span>
+						<span class="versionChevron" :class="{ inactive: isLatestVersion }" title="View next version" @click="cycleVersion(1)">›</span>
+					</span></h1>
+					<h2 v-if="viewedContent.artist">by {{ viewedContent.artist }}</h2>
 					<template v-if="!showLBs">
-						<h3 v-if="levelInfo.desc">Description</h3>
+						<h3 v-if="viewedContent.desc">Description</h3>
 						<p class="regularParagraph description" v-html="description"></p>
 						<h3>Details</h3>
 						<div class="detail" v-for="(value, name) in levelDetails" :key="name"><b>{{ name }}</b>: {{ value }}</div>
 						<h3 v-if="levelInfo.remarks">Remarks</h3>
 						<p class="regularParagraph remarks" v-if="levelInfo.remarks" v-html="remarks"></p>
+						<h3 v-if="viewedChangelog">Changes from v{{ viewedVersion - 1 }}</h3>
+						<p class="regularParagraph remarks" v-if="viewedChangelog" v-html="linkifiedChangelog"></p>
 					</template>
 					<template v-if="showLBs">
 						<h3>Leaderboards</h3>
@@ -90,7 +97,7 @@
 				</div>
 			</div>
 		</div>
-		<img v-if="levelInfo.hasPrevImage" :src="`/api/level/${levelInfo.id}/prev-image`" class="previewImage">
+		<img v-if="levelInfo.hasPrevImage && !prevImageHidden" :src="`/api/level/${levelInfo.id}/prev-image?version=${viewedVersion}`" class="previewImage" @error="prevImageHidden = true">
 		<template v-if="levelInfo.packs.length">
 			<h3>Appears in</h3>
 			<panel-list mode="pack" :entries="levelInfo.packs" :defaultCount="4" noEntriesNotice="This level doesn't appear in any packs."></panel-list>
@@ -103,7 +110,6 @@
 		<div>
 			<comment-element v-for="comment of levelInfo.comments" :key="comment.id" :commentInfo="comment" @delete="deleteComment(comment.id)"></comment-element>
 		</div>
-
 		<Modal ref="deleteConfirmationModal">
 			<h2 class="deleteModalHeading">CAUTION: You're about to delete "{{ levelInfo.name }}"</h2>
 			<hr />
@@ -123,7 +129,7 @@
 						<strong>Discard this level's statistics</strong>, including all <strong>{{ levelInfo.downloads }}</strong> downloads and <strong>{{ levelInfo.lovedCount }}</strong> loves
 					</li>
 				</ul>
-				<p v-if="false">Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
+				<p>Should you have a newer version of this level that you want to replace it with, use the update feature instead.</p>
 
 				<div class="deleteModalCheckboxContainer">
 					<input type="checkbox" id="deleteModelAcknowledgement" class="basicCheckbox" v-model="acknowledgedDeletionConsequences"><label for="deleteModelAcknowledgement" class="notSelectable">
@@ -141,12 +147,30 @@
 				</ButtonWithIcon>
 			</div>
 		</Modal>
+		<Modal ref="curatorDetailsModal">
+			<h2 style="text-align: center; margin-bottom: 5px;">Curator Votes</h2>
+			<hr style="margin-bottom: 0px;"/>
+			<div class="voteDetailsList">
+				<div>
+					<h3 class="voteHeader up">Upvoted by:</h3>
+					<profile-banner v-for="curator in upvoters" :key="curator.id" :profileInfo="curator"style="margin-bottom: 10px"></profile-banner>
+				</div>
+				<div>
+					<h3 class="voteHeader down">Downvoted by:</h3>
+					<profile-banner v-for="curator in downvoters" :key="curator.id" :profileInfo="curator"style="margin-bottom: 10px"></profile-banner>
+				</div>
+			</div>
+			<hr />
+			<div style="display: flex; justify-content: flex-end;">
+				<ButtonWithIcon @click="$refs.curatorDetailsModal.hide()">Close</ButtonWithIcon>
+			</div>
+		</Modal>
 	</template>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { CommentInfo, ExtendedLevelInfo, ReducedLeaderboardDefinition, LeaderboardScore, Modification, PackInfo } from '../../../shared/types';
+import { CommentInfo, ExtendedLevelInfo, LevelContentInfo, ReducedLeaderboardDefinition, LeaderboardScore, Modification, PackInfo, ProfileInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
 import PlayButton from '../components/PlayButton.vue';
 import ProfileBanner from '../components/ProfileBanner.vue';
@@ -169,7 +193,6 @@ import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS } from '../../../shared/constants';
 import { CodeJar } from "codejar";
 import { guessGameType, guessModification } from "../../../shared/classification";
 import Modal from '../components/Modal.vue';
-import node_fetch from 'node-fetch';
 
 const COUNT_DOWN_MODES = ['collection', 'elimination', 'gemMadness', 'ghosts', 'hunt', 'king', 'mega', 'party', 'props', 'seek', 'snowball', 'snowballsOnly', 'spooky', 'steal', 'tag', 'training'];
 
@@ -204,6 +227,9 @@ export default defineComponent({
 			sendingComment: false,
 			notFound: false,
 			imageHidden: false,
+			prevImageHidden: false,
+			/** The version number the user has cycled to, or null if they haven't cycled (meaning the current version is shown). */
+			selectedVersion: null as number,
 			editedRemarks: '',
 			editedMissionInfo: null as Record<string, string>,
 			missionInfoCode: '',
@@ -291,32 +317,57 @@ export default defineComponent({
 	},
 	computed: {
 		imageSource(): string {
-			return `/api/level/${this.levelInfo.id}/image`;
+			return `/api/level/${this.levelInfo.id}/image?version=${this.viewedVersion}`;
 		},
-		/** Construct an object of metadata about this level. */
+		/** The version number currently being viewed. */
+		viewedVersion(): number {
+			return this.selectedVersion ?? this.levelInfo.currentVersion ?? 1;
+		},
+		/** The content of the version currently being viewed. The level info itself doubles as the current version's content. */
+		viewedContent(): LevelContentInfo {
+			if (this.isLatestVersion) return this.levelInfo;
+			return this.levelInfo.previousVersions[this.viewedVersion - 1] ?? this.levelInfo;
+		},
+		/** When the currently viewed version was added. */
+		viewedAddedAt(): number {
+			// versionMetadata[n] describes version n+2; the first version was added at the level's addedAt
+			return this.levelInfo.versionMetadata?.[this.viewedVersion - 2]?.addedAt ?? this.levelInfo.addedAt;
+		},
+		/** The changelog of the currently viewed version. Empty for the first version. */
+		viewedChangelog(): string {
+			return this.levelInfo.versionMetadata?.[this.viewedVersion - 2]?.changelog ?? '';
+		},
+		isLatestVersion(): boolean {
+			return this.viewedVersion === (this.levelInfo.currentVersion ?? 1);
+		},
+		hasMultipleVersions(): boolean {
+			return (this.levelInfo.previousVersions?.length ?? 0) > 0;
+		},
+		/** Construct an object of metadata about the currently viewed version of this level. */
 		levelDetails(): Record<string, number | string> {
 			let result: Record<string, number | string> = {};
+			let info = this.viewedContent;
 
-			result["Modification"] = this.prettyModification(this.levelInfo.modification);
-			result["Game type"] = this.levelInfo.gameType === 'single'? 'Singleplayer' : 'Multiplayer';
-			if (this.levelInfo.gameMode && this.levelInfo.gameMode !== 'null')
-				result["Game mode"] = this.levelInfo.gameMode.split(' ').filter(x => x !== 'null').map(x => Util.splitWords(x).join(' ')).join(', ');
-			result["Gem count"] = this.levelInfo.gems;
-			result["Has Easter Egg"] = this.levelInfo.hasEasterEgg? 'Yes' : 'No';
+			result["Modification"] = this.prettyModification(info.modification);
+			result["Game type"] = info.gameType === 'single'? 'Singleplayer' : 'Multiplayer';
+			if (info.gameMode && info.gameMode !== 'null')
+				result["Game mode"] = info.gameMode.split(' ').filter(x => x !== 'null').map(x => Util.splitWords(x).join(' ')).join(', ');
+			result["Gem count"] = info.gems;
+			result["Has Easter Egg"] = info.hasEasterEgg? 'Yes' : 'No';
 
-			let timeName = this.levelInfo.gameMode?.split(' ').some(x => COUNT_DOWN_MODES.includes(x))? 'Time' : 'Qualifying time';
+			let timeName = info.gameMode?.split(' ').some(x => COUNT_DOWN_MODES.includes(x))? 'Time' : 'Qualifying time';
 
-			if (this.levelInfo.qualifyingTime) result[timeName] = Util.secondsToTimeString(Number(this.levelInfo.qualifyingTime) / 1000);
-			if (this.levelInfo.goldTime) result[this.levelInfo.modification === Modification.Platinum? "Platinum time" : "Gold time"] = Util.secondsToTimeString(Number(this.levelInfo.goldTime) / 1000);
-			if (this.levelInfo.platinumTime) result["Platinum time"] = Util.secondsToTimeString(Number(this.levelInfo.platinumTime) / 1000);
-			if (this.levelInfo.ultimateTime) result["Ultimate time"] = Util.secondsToTimeString(Number(this.levelInfo.ultimateTime) / 1000);
-			if (this.levelInfo.awesomeTime) result["Awesome time"] = "🤔";
+			if (info.qualifyingTime) result[timeName] = Util.secondsToTimeString(Number(info.qualifyingTime) / 1000);
+			if (info.goldTime) result[info.modification === Modification.Platinum? "Platinum time" : "Gold time"] = Util.secondsToTimeString(Number(info.goldTime) / 1000);
+			if (info.platinumTime) result["Platinum time"] = Util.secondsToTimeString(Number(info.platinumTime) / 1000);
+			if (info.ultimateTime) result["Ultimate time"] = Util.secondsToTimeString(Number(info.ultimateTime) / 1000);
+			if (info.awesomeTime) result["Awesome time"] = "🤔";
 
-			if (this.levelInfo.qualifyingScore) result["Par score"] = this.levelInfo.qualifyingScore;
-			if (this.levelInfo.goldScore) result["Gold score"] = this.levelInfo.goldScore;
-			if (this.levelInfo.platinumScore) result["Platinum score"] = this.levelInfo.platinumScore;
-			if (this.levelInfo.ultimateScore) result["Ultimate score"] = this.levelInfo.ultimateScore;
-			if (this.levelInfo.awesomeScore) result["Awesome score"] = "🤔";
+			if (info.qualifyingScore) result["Par score"] = info.qualifyingScore;
+			if (info.goldScore) result["Gold score"] = info.goldScore;
+			if (info.platinumScore) result["Platinum score"] = info.platinumScore;
+			if (info.ultimateScore) result["Ultimate score"] = info.ultimateScore;
+			if (info.awesomeScore) result["Awesome score"] = "🤔";
 
 			return result;
 		},
@@ -327,10 +378,13 @@ export default defineComponent({
 			return !!this.commentInput;
 		},
 		description(): string {
-			return Util.linkify(this.levelInfo.desc);
+			return Util.linkify(this.viewedContent.desc);
 		},
 		remarks(): string {
 			return Util.linkify(this.levelInfo.remarks);
+		},
+		linkifiedChangelog(): string {
+			return Util.linkify(this.viewedChangelog);
 		},
 		title(): string {
 			return this.levelInfo.name + (this.levelInfo.artist? ' by ' + this.levelInfo.artist : '');
@@ -349,6 +403,12 @@ export default defineComponent({
 			const acc = this.$store.state.loggedInAccount;
 			return !!acc && this.levelInfo.addedBy?.id === acc.id;
 		},
+		upvoters(): ProfileInfo[] {
+			return (this.levelInfo.curatorVotes || []).filter(v => v.vote === true).map(v => v.profile);
+		},
+		downvoters(): ProfileInfo[] {
+			return (this.levelInfo.curatorVotes || []).filter(v => v.vote === false).map(v => v.profile);
+		}
 	},
 	methods: {
 		/** Turns the modification value into a pretty string. */
@@ -422,6 +482,18 @@ export default defineComponent({
 		},
 		closeDeleteConfirmationModal() {
 			(this.$refs.deleteConfirmationModal as any).hide();
+		},
+		async updateLevel() {
+			this.$router.push({ name: 'Upload', query: { 'update-id': this.levelInfo.id } });
+		},
+		/** Cycles the viewed version by the given delta (clamped to the range of existing versions). */
+		cycleVersion(delta: number) {
+			let target = this.viewedVersion + delta;
+			if (target < 1 || target > (this.levelInfo.currentVersion ?? 1)) return;
+
+			this.selectedVersion = target;
+			this.imageHidden = false;
+			this.prevImageHidden = false;
 		},
 		async deleteLevel() {
 			this.closeDeleteConfirmationModal();
@@ -935,6 +1007,11 @@ h3 {
     color: #f44336;
 }
 
+.curatorScore:hover {
+	text-decoration: underline;
+	cursor: pointer;
+}
+
 .aboutCuratorScore {
 	font-size: 14px;
 	opacity: 0.5;
@@ -945,6 +1022,67 @@ h3 {
 .aboutCuratorScore:hover {
 	opacity: 1.0;
 	text-decoration: underline;
+}
+
+.voteHeader {
+    margin-top: 14px;
+    font-size: 14px;
+}
+
+.voteHeader.up { 
+	color: #4caf50;
+	margin-bottom: 10px;
+}
+.voteHeader.down { 
+	color: #f44336; 
+	margin-bottom: 10px;
+}
+
+.voteDetailsList {
+	display: grid; 
+	grid-template-columns: 1fr 1fr; 
+	gap: 20px;
+}
+
+.versionBadge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	background: #2196f3;
+	color: white;
+	font-size: 14px;
+	font-weight: bold;
+	line-height: 1;
+	border-radius: 12px;
+	padding: 4px 8px;
+	margin-left: 12px;
+	vertical-align: top;
+	margin-top: 9px;
+}
+
+.versionBadge.outdated {
+	background: #fbc02d;
+	color: #333333;
+}
+
+.versionChevron {
+	opacity: 0.6;
+	cursor: pointer;
+	font-weight: normal;
+	font-size: 16px;
+	/* Enlarge the clickable area without growing the badge visually */
+	padding: 8px 9px;
+	margin: -8px -6px;
+}
+
+.versionChevron:hover {
+	opacity: 1.0;
+}
+
+.versionChevron.inactive {
+	opacity: 0.2;
+	cursor: default;
+	pointer-events: none;
 }
 </style>
 
