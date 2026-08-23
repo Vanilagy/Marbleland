@@ -119,6 +119,8 @@ export const createNewStore = () => {
 			/** Stores the profile info of the own, currently logged-in account. */
 			loggedInAccount: null as ProfileInfo,
 			acknowledgedGuidelines: false,
+			/** For curators, all the votes they have cast, keyed by level ID. */
+			curatorVotes: null as Record<number, boolean>,
 			/** Stoers a list of all own packs. */
 			ownPacks: null as SignInInfo["packs"],
 			/** Used to update images accordingly. */

@@ -49,6 +49,7 @@ export const generateHTML = async (req: express.Request, res: express.Response) 
 		store.state.loggedInAccount = signInInfo.profile;
 		store.state.ownPacks = signInInfo.packs;
 		store.state.acknowledgedGuidelines = signInInfo.acknowledgedGuidelines;
+		store.state.curatorVotes = signInInfo.curatorVotes ?? null;
 		setTokenCookie(res, token); // Update its expiration date
 	}
 

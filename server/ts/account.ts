@@ -227,10 +227,18 @@ export const getSignInInfo = async (doc: AccountDoc): Promise<SignInInfo> => {
 	let profileInfo = await getProfileInfo(doc);
 	let packs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
 
+	let curatorVotes: Record<number, boolean> = undefined;
+	if (doc.curator) {
+		curatorVotes = {};
+		let votedMissions = await db.missions.find({ [`curatorVotes.${doc._id}`]: { $exists: true } }) as MissionDoc[];
+		for (let mission of votedMissions) curatorVotes[mission._id] = mission.curatorVotes[doc._id];
+	}
+
 	return {
 		profile: profileInfo,
 		packs: packs.map(x => ({ id: x._id, name: x.name, levelIds: x.levels })),
-		acknowledgedGuidelines: doc.acknowledgedGuidelines ?? false
+		acknowledgedGuidelines: doc.acknowledgedGuidelines ?? false,
+		curatorVotes
 	};
 };
 

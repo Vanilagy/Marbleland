@@ -816,7 +816,8 @@ Contains data that is remembered by the client upon login.
 		id: number,
 		name: string,
 		levelIds: number[]
-	}[]
+	}[],
+	curatorVotes?: Record<number, boolean> // For curators, all the votes they have cast, keyed by level ID
 }
 ```
 

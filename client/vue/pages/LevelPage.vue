@@ -4,7 +4,7 @@
 		<meta name="description" :content="levelInfo.desc">
 		<meta name="og:title" :content="title">
 		<meta name="og:description" :content="levelInfo.desc">
-		<meta name="og:image" :content="origin + `/api/level/${levelInfo.id}/image`">
+		<meta name="og:image" :content="origin + `/api/level/${levelInfo.id}/image?version=${levelInfo.currentVersion ?? 1}`">
 		<meta name="twitter:card" content="summary_large_image">
 		<link rel="preload" href="/assets/svg/favorite_black_24dp.svg" as="image">
 	</Head>
@@ -658,9 +658,15 @@ export default defineComponent({
 			};
 
             let oldVote = this.levelInfo.yourVote;
-            
+
             let newVote = voteType;
             if (oldVote === voteType) newVote = null;
+
+			const setStoredVote = (vote: boolean) => {
+				if (!this.$store.state.curatorVotes) this.$store.state.curatorVotes = {};
+				if (vote === null) delete this.$store.state.curatorVotes[this.levelInfo.id];
+				else this.$store.state.curatorVotes[this.levelInfo.id] = vote;
+			};
 
             // Optimistic UI
             let oldVal = getScoreVal(oldVote);
@@ -668,6 +674,7 @@ export default defineComponent({
             let diff = newVal - oldVal;
 
             this.levelInfo = {...this.levelInfo,yourVote: newVote, curationScore: (this.levelInfo.curationScore || 0) + diff };
+			setStoredVote(newVote);
 
             try {
                 let response = await fetch(`/api/level/${this.levelInfo.id}/curate-vote`, {
@@ -685,6 +692,7 @@ export default defineComponent({
             } catch (e) {
                 // Revert to old state
                 this.levelInfo = { ...this.levelInfo, yourVote: oldVote, curationScore: (this.levelInfo.curationScore || 0) - diff };
+				setStoredVote(oldVote);
             }
         }
 	},

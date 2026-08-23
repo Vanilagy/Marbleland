@@ -98,6 +98,7 @@ export default defineComponent({
 					this.$store.state.loggedInAccount = json.signInInfo.profile;
 					this.$store.state.ownPacks = json.signInInfo.packs;
 					this.$store.state.acknowledgedGuidelines = json.signInInfo.acknowledgedGuidelines;
+					this.$store.state.curatorVotes = json.signInInfo.curatorVotes ?? null;
 					this.$store.state.nextInfoBannerMessage = "Password reset successfully!";
 					this.$router.replace({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
 				}

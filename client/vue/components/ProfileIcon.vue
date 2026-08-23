@@ -62,6 +62,7 @@ export default defineComponent({
 							method: 'POST'
 						});
 						self.$store.state.loggedInAccount = null;
+						self.$store.state.curatorVotes = null;
 					}
 				}, themeOption];
 			}

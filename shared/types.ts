@@ -140,7 +140,9 @@ export interface SignInInfo {
 		levelIds: number[]
 	}[],
 	/** Whether the user has acknowledged the content guidelines. */
-	acknowledgedGuidelines: boolean
+	acknowledgedGuidelines: boolean,
+	/** For curators, all the votes they have cast, keyed by level ID. */
+	curatorVotes?: Record<number, boolean>
 }
 
 /** Contains metadata about a pack. */

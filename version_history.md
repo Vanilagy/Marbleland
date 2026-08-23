@@ -1,5 +1,8 @@
 ### Version history
 
+## 1.12.1
+- Curators can now vote on levels right through the level panel
+
 ## 1.12.0
 - Added level updating and level versioning
 - Added "favorite levels" section to the profile page
