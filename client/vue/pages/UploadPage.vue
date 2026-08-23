@@ -5,17 +5,33 @@
 	</Head>
 	<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended">
 		<h1 v-if="!updateId">Upload levels</h1>
-		<h1 v-else>Update level</h1>
+		<h1 v-else>Update level "<span class="updateTargetName" @click="$router.push({ name: 'Level', params: { id: updateId } })">{{ updateTarget ? updateTarget.name : `#${updateId}` }}</span>"</h1>
 		<p class="learnMore" @click="$router.push('/about-upload')">Learn more</p>
 		<p class="contentGuidelines" @click="$router.push('/content-guidelines')">Content guidelines</p>
 		<a href="/about-upload" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
-		<a href="/content-guidelines" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->	
+		<a href="/content-guidelines" @click.prevent=""></a> <!-- Let's hope Google will accept this xD -->
+		<p v-if="updateTargetMissing" class="notSignedIn">The level you're trying to update doesn't exist or has been deleted.</p>
+		<template v-if="updateTarget">
+			<div class="updateTargetCard">
+				<img :src="`/api/level/${updateTarget.id}/image?version=${updateTarget.currentVersion ?? 1}`">
+				<div>
+					<p class="updateTargetTitle">{{ updateTarget.name }}</p>
+					<p class="updateTargetArtist" v-if="updateTarget.artist">by {{ updateTarget.artist }}</p>
+				</div>
+			</div>
+			<p class="updateExplanation">
+				Uploading a new version will replace the level's files, while keeping its ID, statistics, comments and leaderboards intact. The previous version will remain viewable.
+			</p>
+			<p class="updateExplanation">
+				Avoid using this feature to edit levels in a way that breaks leaderboard integrity.
+			</p>
+		</template>
 		<div v-if="!$store.state.acknowledgedGuidelines">
 			<p class="acceptContentGuidelinesNotice">
 				In order to upload levels, you must first read and accept the <span @click="$router.push('/content-guidelines')">content guidelines</span>.
 			</p>
 		</div>
-		<template v-else>
+		<template v-else-if="!updateTargetMissing">
 			<div class="uploadButtons">
 				<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="selectFile" :class="{ disabled: uploading }">Select .zip</button-with-icon>
 				<button-with-icon icon="/assets/svg/file_upload_black_24dp.svg" class="button" @click="selectFolder" :class="{ disabled: uploading }">Select folder</button-with-icon>
@@ -46,12 +62,12 @@
 				<img src="/assets/svg/chevron_right_black_24dp.svg" class="basicIcon" title="Cycle to next level" v-if="successResponse.missions.length > 1" @click="currentIndex = (currentIndex + 1) % successResponse.missions.length">
 			</div>
 			<h3 v-if="updateId">
-				What's new in this version?
+				What's different in this version? <span class="requiredNote">(required)</span>
 			</h3>
 			<h3 v-else>
 				If you want to, add a few additional remarks describing this level ({{ successResponse.missions[currentIndex].name }}) and its creation before submitting it:
 			</h3>
-			<textarea class="remarks basicTextarea" :placeholder="(updateId ? 'Changes to' : 'Additional remarks on') + ' ' + successResponse.missions[currentIndex].name" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
+			<textarea class="remarks basicTextarea" :placeholder="updateId ? `Changes to ${updateTarget?.name ?? 'this level'}` : `Additional remarks on ${successResponse.missions[currentIndex].name}`" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
 
 			<template v-if="!updateId">
 				<hr>
@@ -67,7 +83,7 @@
 
 			<hr>
 
-			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit" :class="{ disabled: createNewPack && !(newPackName && newPackDescription) }">{{ successResponse.missions.length > 1? `Submit all ${successResponse.missions.length} levels` : "Submit level" }}</button-with-icon>
+			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="button" @click="submit" :class="{ disabled: (createNewPack && !(newPackName && newPackDescription)) || (updateId && !remarks[0]) }">{{ updateId? "Submit update" : successResponse.missions.length > 1? `Submit all ${successResponse.missions.length} levels` : "Submit level" }}</button-with-icon>
 		</div>
 	</template>
 	<p v-else-if="$store.state.loggedInAccount && $store.state.loggedInAccount.isSuspended" class="suspendedMessage">Your account has been suspended and cannot upload any levels.</p>
@@ -80,7 +96,7 @@ import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 import PanelList from '../components/PanelList.vue';
 import { Head } from '@vueuse/head';
-import { PackInfo } from '../../../shared/types';
+import { LevelInfo, PackInfo } from '../../../shared/types';
 
 export default defineComponent({
 	components: {
@@ -114,8 +130,22 @@ export default defineComponent({
 			newPackDescription: "",
 			submitting: false,
 			dragEntered: false,
-			updateId: this.$route.query.updateId ? Number(this.$route.query.updateId) : null,
+			updateId: this.$route.query['update-id'] ? Number(this.$route.query['update-id']) : null,
+			/** The current state of the level being updated. Fetched on mount when updateId is set. */
+			updateTarget: null as LevelInfo,
+			updateTargetMissing: false
 		};
+	},
+	async mounted() {
+		if (this.updateId === null) return;
+
+		// Fetch the metadata of the level being updated
+		let response = await fetch(`/api/level/${this.updateId}/info`);
+		if (response.ok) {
+			this.updateTarget = await response.json();
+		} else {
+			this.updateTargetMissing = true;
+		}
 	},
 	methods: {
 		/** Show a file dialog that allows the user to select a .zip file, then upload it to the server. */
@@ -154,17 +184,15 @@ export default defineComponent({
 			}
 
 			let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
-
-			const endpoint = this.updateId 
-				? `/api/level/${this.updateId}/update-upload` 
-				: '/api/level/upload';
-
-			request.open('POST', endpoint, true);
+			request.open('POST', this.getUploadEndpoint(), true);
 			request.setRequestHeader('Content-Type', 'application/zip');
 			request.withCredentials = true;
 			request.send(file);
 
 			this.handleUpload(request);
+		},
+		getUploadEndpoint() {
+			return this.updateId? `/api/level/${this.updateId}/upload` : '/api/level/upload';
 		},
 		uploadFiles(files: File[]) {
 			let totalSizeSum = files.reduce((sum, file) => sum + file.size, 0);
@@ -177,7 +205,7 @@ export default defineComponent({
 			for (let file of files) formData.append('files', file);
 
 			let request = new XMLHttpRequest();
-			request.open('POST', '/api/level/upload', true);
+			request.open('POST', this.getUploadEndpoint(), true);
 			request.withCredentials = true;
 			request.send(formData);
 
@@ -229,8 +257,8 @@ export default defineComponent({
 
 			this.submitting = true;
 
-			const endpoint = this.updateId 
-				? `/api/level/${this.updateId}/update-submit` 
+			const endpoint = this.updateId
+				? `/api/level/${this.updateId}/submit`
 				: `/api/level/submit`;
 
 			// Tell the server to submit the upload
@@ -256,8 +284,8 @@ export default defineComponent({
 					levelIds: number[],
 					newPackId?: number
 				};
-				this.$store.state.nextInfoBannerMessage = (json.levelIds.length > 1)?
-					`All ${json.levelIds.length} levels submitted successfully!`
+				this.$store.state.nextInfoBannerMessage = this.updateId? "Level updated successfully!"
+					: (json.levelIds.length > 1)? `All ${json.levelIds.length} levels submitted successfully!`
 					: "Level submitted successfully!";
 
 				// Navigate either to the level page or the profile page depending on the amount of uploaded levels
@@ -329,6 +357,60 @@ export default defineComponent({
 h1 {
 	text-align: center;
 	margin: 30px 0px;
+}
+
+.updateTargetName {
+	cursor: pointer;
+}
+
+.updateTargetName:hover {
+	text-decoration: underline;
+}
+
+.updateTargetCard {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 20px auto 0px auto;
+	width: fit-content;
+	background: var(--background-1);
+	border-radius: 5px;
+	padding: 10px;
+	padding-right: 20px;
+}
+
+.updateTargetCard > img {
+	width: 120px;
+	height: 80px;
+	object-fit: cover;
+	border-radius: 5px;
+	flex-shrink: 0;
+}
+
+.updateTargetTitle {
+	margin: 0;
+	font-weight: bold;
+	line-height: 1.2;
+}
+
+.updateTargetArtist {
+	margin: 0;
+	font-size: 13px;
+	opacity: 0.75;
+	line-height: 1.2;
+}
+
+.updateExplanation {
+	margin: 10px auto 0px auto;
+	max-width: 500px;
+	font-size: 13px;
+	opacity: 0.75;
+	text-align: center;
+}
+
+.requiredNote {
+	opacity: 0.5;
+	font-weight: normal;
 }
 
 .button {

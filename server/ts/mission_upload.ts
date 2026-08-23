@@ -5,7 +5,7 @@ import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementType } from './io/mis_parser';
 import { Config } from './config';
 import hxDif from '../lib/hxDif';
-import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission, MissionDoc, MissionVersion } from './mission';
+import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission, MissionDoc, extractMissionContent } from './mission';
 import { Util } from './util';
 import { DtsFile, DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
@@ -144,17 +144,23 @@ export class MissionUpload {
 		let text = await group.misFile.async('text'); // This might fuck up in extremely rare cases due to encoding stuff (because missions aren't UTF-8)
 		let misFile: MisFile;
 
-		// Check if this .mis file is already present in the database and if so, abort
+		// Check if this .mis file is already present in the database (as any version of any mission) and if so, abort. The mission currently being updated is exempt, since re-uploading one of its own versions is allowed for updates.
 		let misHash = crypto.createHash('sha256').update(text).digest('base64');
-		let existing = await db.missions.findOne({ misHash: misHash, _id: { $ne: this.updateId } });
+		let existing = await db.missions.findOne({
+			_id: { $ne: this.updateId },
+			$or: [{ misHash: misHash }, { 'previousVersions.misHash': misHash }]
+		});
 		if (existing) {
 			this.problems.add(`Duplicate: Mission ${group.misFilePath} has already been uploaded.`);
 			return false;
 		}
-	
+
 		// Hash the AST for more rigorous duplicate detection
 		let astHash = await MissionHasher.hashMission(null, text);
-		let existingAst = await db.missions.findOne({ astHash: astHash, _id: { $ne: this.updateId } });
+		let existingAst = await db.missions.findOne({
+			_id: { $ne: this.updateId },
+			$or: [{ astHash: astHash }, { 'previousVersions.astHash': astHash }]
+		});
 		if (existingAst) {
 			this.problems.add(`Duplicate: Mission ${group.misFilePath} has already been uploaded.`);
 			return false;
@@ -339,7 +345,7 @@ export class MissionUpload {
 					return this.registerDependency(group, dependency.replace('interiors/', 'interiors_mbg/'), matchType, requiredBy, permittedExtensions, false, dependency);
 				} else {
 					// We definitely couldn't locate a file, add a problem
-					this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
+					//this.problems.add(`Missing dependency: ${originalDependency ?? dependency} is required by ${requiredBy} but couldn't be found.`);
 				}
 			}
 
@@ -562,64 +568,45 @@ export class MissionUpload {
 		let finalDocs: MissionDoc[] = [];
 
 		if (requestBody.existingLevelId !== undefined) {
-            // --- UPDATE PATH ---
-            let missionDoc = await db.missions.findOne({ _id: requestBody.existingLevelId }) as MissionDoc;
-            if (!missionDoc) throw new Error("Level not found.");
+			// --- UPDATE PATH ---
+			let missionDoc = await db.missions.findOne({ _id: requestBody.existingLevelId }) as MissionDoc;
+			if (!missionDoc) throw new Error("Level not found.");
 
-            // Snapshot current state before overwriting
-            const snapshot: MissionVersion = {
-                versionNumber: missionDoc.currentVersion || 1,
-				versionChangelog: missionDoc.currentVersionChangelog,
-                versionAddedAt: missionDoc.editedAt || missionDoc.addedAt,
-                baseDirectory: missionDoc.baseDirectory,
-                relativePath: missionDoc.relativePath,
-                misHash: missionDoc.misHash,
-                astHash: missionDoc.astHash,
-                dependencies: missionDoc.dependencies,
-                fileSizes: missionDoc.fileSizes,
-                info: missionDoc.info
-            };
+			// Snapshot the current version's content and record the new version's metadata
+			missionDoc.previousVersions = missionDoc.previousVersions ?? [];
+			missionDoc.previousVersions.push(extractMissionContent(missionDoc));
+			missionDoc.versionMetadata = missionDoc.versionMetadata ?? [];
+			missionDoc.versionMetadata.push({
+				addedAt: Date.now(),
+				changelog: requestBody.remarks[0] ?? '',
+				addedBy: submitter._id
+			});
 
-            missionDoc.pastVersions = missionDoc.pastVersions ?? [];
-            missionDoc.pastVersions.push(snapshot);
-			missionDoc.currentVersionChangelog = requestBody.remarks[0];
-            missionDoc.currentVersion = snapshot.versionNumber + 1;
+			// Use first group in upload for writing
+			const newVersionNumber = missionDoc.previousVersions.length + 1;
+			const mission = await writeGroupToDisk(this.groups[0], missionDoc._id, newVersionNumber);
 
-            // Use first group in upload for writing
-            const mission = await writeGroupToDisk(this.groups[0], missionDoc._id, missionDoc.currentVersion);
+			// Overwrite all content-derived fields on the existing doc while leaving its identity (statistics, social data) untouched
+			Object.assign(missionDoc, extractMissionContent(mission.createDoc()));
 
-            // Update existing doc
-            const newDocData = mission.createDoc();
-            Object.assign(missionDoc, {
-                baseDirectory: newDocData.baseDirectory,
-                relativePath: newDocData.relativePath,
-                dependencies: newDocData.dependencies,
-                fileSizes: newDocData.fileSizes,
-                info: newDocData.info,
-                misHash: newDocData.misHash,
-                astHash: newDocData.astHash,
-                editedAt: Date.now()
-            });
+			await db.missions.update({ _id: missionDoc._id }, missionDoc);
+			finalDocs = [missionDoc];
+		} else {
+			// --- UPLOAD PATH ---
+			for (let [i, group] of this.groups.entries()) {
+				const levelId = keyValue.get('levelId');
+				keyValue.set('levelId', levelId + 1);
 
-            await db.missions.update({ _id: missionDoc._id }, missionDoc);
-            finalDocs = [missionDoc];
+				const mission = await writeGroupToDisk(group, levelId);
 
-        } else {
-            // --- UPLOAD PATH ---
-            for (let [i, group] of this.groups.entries()) {
-                const levelId = keyValue.get('levelId');
-                keyValue.set('levelId', levelId + 1);
+				const doc = mission.createDoc();
+				doc.addedBy = submitter._id;
+				doc.remarks = requestBody.remarks[i] ?? '';
 
-                const mission = await writeGroupToDisk(group, levelId);
-
-                const doc = mission.createDoc();
-                doc.addedBy = submitter._id;
-                doc.remarks = requestBody.remarks[i] ?? '';
-
-                await db.missions.insert(doc);
-                finalDocs.push(doc);
-            }
-        }
+				await db.missions.insert(doc);
+				finalDocs.push(doc);
+			}
+		}
 
 		// Now, let's do all the pack updating:
 

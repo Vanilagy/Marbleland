@@ -13,6 +13,7 @@
 		<li><b>Attribution:</b> You are allowed to upload other people's levels if they haven't been uploaded yet. In fact, this is encouraged as it grows the archive. However, you cannot take any credit for the level. Additionally, if the level's original author doesn't want their level to be on Marbleland, then the level must be deleted.</li>
 		<li><b>No spam:</b> Your levels may not contain spammy, excessively long or short, or unrelated titles and descriptions. Additionally, your level design shouldn't rely solely on a high quantity of randomly-arranged objects.</li>
 		<li><b>No malicious content:</b> Your levels may not intentionally lag, vandalize or tamper with the game or computer of players.</li>
+		<li><b>No level update abuse:</b> You may not abuse the level update feature for things it isn't meant to do, such as repeatedly making large breaking changes to a level or uploading a completely unrelated level as a new version. In those cases, upload a new level instead.</li>
 	</ul>
 
 	<h3>Enforcement</h3>

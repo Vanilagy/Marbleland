@@ -4,7 +4,7 @@ import { MisFile, MisParser, MissionElementSimGroup, MissionElementType } from '
 import { Util } from './util';
 import { Config } from './config';
 import { db, keyValue } from './globals';
-import { Mission, MissionDoc } from './mission';
+import { Mission, MissionDoc, MissionContentDoc, extractMissionContent } from './mission';
 
 /** Scans a given directory for missions and imports them all.
  * @param idMapPath Path to a JSON file which maps mission base names to IDs. Can be used for controlled setting of IDs.
@@ -115,6 +115,9 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                         doc.remarks = duplicateDoc.remarks;
                         doc.lovedBy = duplicateDoc.lovedBy;
                         doc.editedAt = duplicateDoc.editedAt;
+                        doc.curatorVotes = duplicateDoc.curatorVotes;
+                        doc.versionMetadata = duplicateDoc.versionMetadata;
+                        doc.previousVersions = await reimportPreviousVersions(duplicateDoc);
 
                         // We wrongly incremented the ID even though it got replaced now, so set it back so we don't inflate the ID for nothing.
                         let incrementedId = keyValue.get('levelId');
@@ -139,6 +142,24 @@ Failures: ${failure}
 Skipped: ${skipped}
 Duplicates: ${duplicates}
     `);
+};
+
+/** Re-derives the content of all of a mission's previous versions from their files on disk. Falls back to the stored content for versions that fail to hydrate. */
+const reimportPreviousVersions = async (doc: MissionDoc) => {
+    let previousVersions: MissionContentDoc[] = [];
+
+    for (let content of doc.previousVersions ?? []) {
+        try {
+            let mission = new Mission(content.baseDirectory, content.relativePath, doc._id);
+            await mission.hydrate();
+            previousVersions.push(extractMissionContent(mission.createDoc()));
+        } catch (e) {
+            console.error(`Error in reimporting previous version of mission ${doc._id} at ${content.baseDirectory}, keeping its stored content:`, e);
+            previousVersions.push(content);
+        }
+    }
+
+    return previousVersions;
 };
 
 /** Compares two missions and returns true, if their contents match (excluding MissionInfo). */

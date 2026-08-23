@@ -1,8 +1,8 @@
 ### Version history
 
 ## 1.12.0
-- Added level update feature
-- Added "favorite levels" section
+- Added level updating and level versioning
+- Added "favorite levels" section to the profile page
 
 ## 1.11.0
 - Added Curator role and voting system

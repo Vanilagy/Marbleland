@@ -47,6 +47,21 @@ const verifyLevelId = async (req: express.Request, res: express.Response) => {
 	return levelId;
 };
 
+/** Parses and validates the `version` query parameter for a given level. Valid version numbers are 1 up to and including the level's current version number. Returns the parsed version number, undefined if the parameter is absent (meaning the current version), or null if the parameter is invalid (in which case a 400 response has been sent). */
+const verifyVersionNumber = (req: express.Request, res: express.Response, doc: MissionDoc) => {
+	if (req.query.version === undefined) return undefined;
+
+	let version = Number(req.query.version);
+	let currentVersion = (doc.previousVersions?.length ?? 0) + 1;
+
+	if (!Number.isInteger(version) || version < 1 || version > currentVersion) {
+		res.status(400).send("400\nInvalid version number.");
+		return null;
+	}
+
+	return version;
+};
+
 export const initLevelApi = () => {
 	// Get a list of all levels
 	app.get('/api/level/list', async (req, res) => {
@@ -93,12 +108,9 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let version = req.query.version ? Number(req.query.version) : undefined;
-    	let mission = Mission.fromVersion(doc, version);
-		if (!mission) {
-			res.status(404).send("404\nVersion not found.");
-			return;
-		}
+		let version = verifyVersionNumber(req, res, doc);
+		if (version === null) return;
+		let mission = Mission.fromVersion(doc, version);
 
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
@@ -117,12 +129,9 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let version = req.query.version ? Number(req.query.version) : undefined;
-    	let mission = Mission.fromVersion(doc, version);
-		if (!mission) {
-			res.status(404).send("404\nVersion not found.");
-			return;
-		}
+		let version = verifyVersionNumber(req, res, doc);
+		if (version === null) return;
+		let mission = Mission.fromVersion(doc, version);
 
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
@@ -154,7 +163,9 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let mission = Mission.fromDoc(doc);
+		let version = verifyVersionNumber(req, res, doc);
+		if (version === null) return;
+		let mission = Mission.fromVersion(doc, version);
 
 		let imagePath = mission.getImagePath();
 		if (!imagePath) {
@@ -172,7 +183,9 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let mission = Mission.fromDoc(doc);
+		let version = verifyVersionNumber(req, res, doc);
+		if (version === null) return;
+		let mission = Mission.fromVersion(doc, version);
 
 		let imagePath = mission.getPrevImagePath();
 		if (!imagePath) {
@@ -190,7 +203,9 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let mission = Mission.fromDoc(doc);
+		let version = verifyVersionNumber(req, res, doc);
+		if (version === null) return;
+		let mission = Mission.fromVersion(doc, version);
 
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest';
@@ -206,7 +221,9 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let mission = Mission.fromDoc(doc);
+		let version = verifyVersionNumber(req, res, doc);
+		if (version === null) return;
+		let mission = Mission.fromVersion(doc, version);
 
 		res.send(mission.createLevelInfo());
 	});
@@ -230,7 +247,9 @@ export const initLevelApi = () => {
 		if (levelId === null) return;
 
 		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let mission = Mission.fromDoc(doc);
+		let version = verifyVersionNumber(req, res, doc);
+		if (version === null) return;
+		let mission = Mission.fromVersion(doc, version);
 
 		res.send(mission.info);
 	});
@@ -376,7 +395,7 @@ export const initLevelApi = () => {
 	});
 
 	// Upload the level for updating purposes
-	app.post('/api/level/:levelId/update-upload', upload.any(), async (req, res) => {
+	app.post('/api/level/:levelId/upload', upload.any(), async (req, res) => {
         const levelId = await verifyLevelId(req, res);
         if (levelId === null) return;
 
@@ -399,23 +418,34 @@ export const initLevelApi = () => {
     });
 
 	// Submit a previously uploaded update
-    app.post('/api/level/:levelId/update-submit', async (req, res) => {
-        const levelId = await verifyLevelId(req, res);
-        if (levelId === null) return;
+	app.post('/api/level/:levelId/submit', async (req, res) => {
+		const levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
 
-        const doc = await authorizeUploader(req, res, levelId);
-        if (!doc) return;
+		const doc = await authorizeUploader(req, res, levelId);
+		if (!doc) return;
 
-        const upload = ongoingUploads.get(req.body.uploadId);
-        if (!upload) return res.status(400).send("Invalid or expired upload ID.");
+		const upload = ongoingUploads.get(req.body.uploadId);
+		if (!upload) return res.status(400).send("Invalid or expired upload ID.");
 
-        const { docs } = await upload.submit(doc, {
-            ...req.body,
-            existingLevelId: levelId
-        });
+		// A changelog describing the new version is mandatory
+		if (!Array.isArray(req.body.remarks) || typeof req.body.remarks[0] !== 'string' || !req.body.remarks[0].trim()) {
+			res.status(400).send("400\nA changelog describing the changes in the new version is required.");
+			return;
+		}
 
-        res.send({ status: 'success', version: docs[0].currentVersion, levelIds: [levelId] });
-    });
+		const { docs } = await upload.submit(doc, {
+			...req.body,
+			existingLevelId: levelId
+		});
+
+		// Clear IP timeouts so the download count can increase again for the new version
+		for (let [key] of ipTimeouts) {
+			if (key.endsWith('level' + levelId)) ipTimeouts.delete(key);
+		}
+
+		res.send({ status: 'success', version: (docs[0].previousVersions?.length ?? 0) + 1, levelIds: [levelId] });
+	});
 
 	// Meaning upload (noun) image. Is used to get an image preview of a level currently pending submission but not yet submitted.
 	app.get('/api/level/upload-image', async (req, res) => {
@@ -730,9 +760,9 @@ export const deleteSingleLevel = async (levelId: number) => {
 		directoriesToCheck.add(missionDoc.baseDirectory);
 	}
 
-	// Past versions directories
-	if (missionDoc.pastVersions) {
-		for (let version of missionDoc.pastVersions) {
+	// Previous versions' directories
+	if (missionDoc.previousVersions) {
+		for (let version of missionDoc.previousVersions) {
 			directoriesToCheck.add(version.baseDirectory);
 		}
 	}
@@ -741,7 +771,7 @@ export const deleteSingleLevel = async (levelId: number) => {
 	for (let dir of directoriesToCheck) {
 		// Check if any OTHER mission still uses this directory
 		let stillUsed = await db.missions.findOne({
-			$or: [ { baseDirectory: dir }, { "pastVersions.baseDirectory": dir } ]
+			$or: [ { baseDirectory: dir }, { "previousVersions.baseDirectory": dir } ]
 		});
 
 		if (!stillUsed) {

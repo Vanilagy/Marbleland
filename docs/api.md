@@ -50,7 +50,7 @@ Get the .zip archive for a given level.
 Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
-version | `number` | If present, this version will be fetched if it exists.
+version | `number` | *Defaults to the current version.* If present, the data of this specific version of the level is returned. Valid version numbers range from 1 to the level's current version number.
 append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/mbpak
@@ -61,7 +61,7 @@ Get the .mbpak archive for a given level.
 Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the archive. For example, if set to `'gold'`, all MBG default assets won't be included with the .zip.
-version | `number` | If present, this version will be fetched if it exists.
+version | `number` | *Defaults to the current version.* If present, the data of this specific version of the level is returned. Valid version numbers range from 1 to the level's current version number.
 append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
 
 ### `GET` /api/level/{level-id}/image
@@ -74,6 +74,7 @@ Name | Type | Meaning
 original | `boolean` | If set, the original, uncompressed image thumbnail will be returned. Takes precedence over `width` and `height`.
 width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
 height | `number` | *See `width`.*
+version | `number` | *Defaults to the current version.* If present, the data of this specific version of the level is returned. Valid version numbers range from 1 to the level's current version number.
 
 ### `GET` /api/level/{level-id}/prev-image
 Get the (usually large) preview image for a given level. Note that not every level has one.
@@ -85,6 +86,7 @@ Name | Type | Meaning
 original | `boolean` | If set, the original, uncompressed preview image will be returned. Takes precedence over `width` and `height`.
 width | `number` | When used together with `height`, specifies the dimensions to resize the image to. The original image will be stretched to cover the new dimensions while maintaining its aspect ratio.
 height | `number` | *See `width`.*
+version | `number` | *Defaults to the current version.* If present, the data of this specific version of the level is returned. Valid version numbers range from 1 to the level's current version number.
 
 ### `GET` /api/level/{level-id}/dependencies
 Returns a list of files (assets) a given level depends on as an array of `string`. Essentially returns the file paths of the .zip.
@@ -95,15 +97,29 @@ Name | Type | Meaning
 --- | --- | ---
 assuming | `'none' \| 'gold' \| 'platinumquest'` | *Defaults to `'platinumquest'`.* If present, specifies the set of default assets to exclude from the dependencies. For example, if set to `'gold'`, all MBG default assets won't be listed as a dependency.
 append-id-to-mis | `boolean` | If present, each level's ID will be appended to the end of its corresponding .mis file.
+version | `number` | *Defaults to the current version.* If present, the data of this specific version of the level is returned. Valid version numbers range from 1 to the level's current version number.
 
 ### `GET` /api/level/{level-id}/info
 Returns the metadata for a given level in the form of [LevelInfo](#levelinfo).
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+version | `number` | *Defaults to the current version.* If present, the data of this specific version of the level is returned. Valid version numbers range from 1 to the level's current version number.
 
 ### `GET` /api/level/{level-id}/extended-info
 Returns the extended information for a given level in the form of [ExtendedLevelInfo](#extendedlevelinfo).
 
 ### `GET` /api/level/{level-id}/mission-info
 Returns the raw MissionData ScriptObject of the .mis file as a `Record<string, string | string[]>`.
+
+**Query parameters:**
+
+Name | Type | Meaning
+--- | --- | ---
+version | `number` | *Defaults to the current version.* If present, the data of this specific version of the level is returned. Valid version numbers range from 1 to the level's current version number.
+
 
 ### `GET` /api/level/{level-id}/packs
 Returns a list of packs a given level appears in as an array of [PackInfo](#packinfo).
@@ -181,11 +197,48 @@ missionId* | `number` | The index of the mission whose image thumbnail should be
 }
 ```
 
-### `POST` /api/level/{level-id}/update-upload
-**Requires [authentication](#authentication).** Same as level uploading, but replaces the current level with the new one.
+### `POST` /api/level/{level-id}/upload
+**Requires [authentication](#authentication).** Uploads a .zip archive containing a new version of the given level and primes it for submission. Only the level's uploader and moderators may do this, and the archive may only contain a single .mis file.
 
-### `POST` /api/level/{level-id}/update-submit
-**Requires [authentication](#authentication).** Same as level submit, but for level updates. The first remark becomes the version changelog.
+**Request body:** The raw data of the .zip file with `Content-Type: application/zip`, or multipart form data with `Content-Type: multipart/form-data` containing the files to upload.
+
+**Response body:**
+```typescript
+{
+	// On error
+	status: 'error',
+	problems: string[] // A list of problems with the uploaded archive
+} | {
+	// On successful upload
+	status: 'success',
+	uploadId: string, // The random ID of this upload. Needs to be remembered for submission.
+	missions: { // List of missions detected in the .zip.
+		misFilePath: string,
+		name: string
+	}[],
+	warnings: string[] // A list of warnings about the uploaded archive
+}
+```
+
+### `POST` /api/level/{level-id}/submit
+**Requires [authentication](#authentication).** Submits a previously uploaded archive as the given level's new version, that is, replaces the level's content while keeping its identity (ID, statistics, comments and leaderboards) intact. The superseded version remains accessible through the `version` query parameter of the other endpoints.
+
+**Request body (`Content-Type: application/json`):**
+```typescript
+{
+	uploadId: string,
+	remarks: string[] // The first remark becomes the new version's changelog and is required to be a non-empty string
+}
+```
+
+**Response body:**
+```typescript
+{
+	status: 'success',
+	version: number, // The version number of the newly created version
+	levelIds: number[] // Contains the ID of the updated level
+}
+```
 
 ### `PATCH` /api/level/{level-id}/edit
 **Requires [authentication](#authentication).** Edit the metadata of a previously submitted level. Right now, the level's MissionInfo and remarks can be edited.
@@ -611,7 +664,7 @@ Contains metadata about a level.
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // Which variant of Marble Blast this level's datablocks are compatible with
 
 	curationScore: number, // Cumulative curator score
-	currentVersion: number;
+	currentVersion: number, // The version number of the level's current (latest) version
 }
 ```
 
@@ -634,18 +687,17 @@ LevelInfo & {
 	// Visible to curators only:
 	curatorVotes: CuratorVoteInfo[], // All the votes cast by curators
 	yourVote: boolean, // Your curator vote; true for upvote, false for downvote
-	currentVersionChangelog: string, // Changes made in the latest version
-	pastVersions: VersionInfo[],
+	previousVersions: LevelContentInfo[], // The content of every superseded version, oldest to newest; previousVersions[n] contains version n+1 (versions are 1-indexed). The current version's content is the level info itself. Empty if the level was never updated.
+	versionMetadata: VersionMetadata[], // Same length as previousVersions but offset by one semantically: versionMetadata[n] describes version n+2, so the last entry describes the current version. The first version has no metadata; it was added at addedAt and has no changelog.
 }
 ```
 
-### VersionInfo
-Contains minimal data about a level version.
+### VersionMetadata
+Contains the metadata of a single level version (as opposed to its content).
 ```typescript
 {
-	versionNumber: number;
-	versionAddedAt: number;
-	changelog: string;
+	addedAt: number, // When this version was added
+	changelog: string // The changes made in this version compared to the previous one
 }
 ```
 
