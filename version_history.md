@@ -1,5 +1,8 @@
 ### Version history
 
+## 1.12.2
+- Fixed how level versions were being written to backup
+
 ## 1.12.1
 - Curators can now vote on levels right through the level panel
 

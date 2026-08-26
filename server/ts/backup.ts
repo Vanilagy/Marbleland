@@ -47,6 +47,14 @@ const doBackup = async () => {
 			delete x.fileSizes;
 			delete x.preferPrevThumbnail;
 			delete x.lovedBy;
+
+			// The previous versions carry the same content fields, so give them the same treatment
+			x.previousVersions?.forEach(y => {
+				y.baseDirectory = y.baseDirectory.slice(y.baseDirectory.indexOf('levels'));
+
+				delete y.fileSizes;
+				delete y.preferPrevThumbnail;
+			});
 		});
 		await fs.writeFile(path.join(config.backupRepositoryPath, 'missions.json'), JSON.stringify(missionDocs, null, 4));
 
