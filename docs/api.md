@@ -627,20 +627,18 @@ Example configuration values:
 
 # Data types
 The following describes a set of object data types used in the API.
-### LevelInfo
-Contains metadata about a level.
+
+### LevelContentInfo
+Contains the content-derived metadata of a level.
 ```typescript
 {
-	id: number,
 	baseName: string,
 	gameType: 'single' | 'multi',
 	modification: 'gold' | 'platinum' | 'fubar' | 'ultra' | 'platinumquest',
 	name: string,
 	artist: string,
 	desc: string,
-	addedAt: number,
 	gameMode: string,
-	editedAt: number, // Timestamp of when the level was last edited, null if it hasn't been edited.
 
 	qualifyingTime: number,
 	goldTime: number,
@@ -657,11 +655,21 @@ Contains metadata about a level.
 	gems: number,
 	hasEasterEgg: boolean,
 
-	downloads: number,
-	lovedCount: number,
-
 	hasCustomCode: boolean,
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq', // Which variant of Marble Blast this level's datablocks are compatible with
+}
+```
+
+### LevelInfo
+Contains metadata about a level: the content of its current version, plus its identity and social data.
+```typescript
+LevelContentInfo & {
+	id: number,
+	addedAt: number,
+	editedAt: number, // Timestamp of when the level was last edited, null if it hasn't been edited.
+
+	downloads: number,
+	lovedCount: number,
 
 	curationScore: number, // Cumulative curator score
 	currentVersion: number, // The version number of the level's current (latest) version
