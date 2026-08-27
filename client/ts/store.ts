@@ -1,5 +1,5 @@
 import { createStore } from "vuex";
-import { ExtendedLevelInfo, ExtendedPackInfo, ExtendedProfileInfo, LeaderboardScore, ProfileInfo, SignInInfo } from "../../shared/types";
+import { ExtendedLevelInfo, ExtendedPackInfo, ExtendedProfileInfo, HomeInfo, LeaderboardScore, ProfileInfo, SignInInfo } from "../../shared/types";
 
 export const createNewStore = () => {
 	return createStore({
@@ -130,8 +130,11 @@ export const createNewStore = () => {
 			levelRemarksMaxLength: 10000,
 			packNameMaxLength: 64,
 			packDescriptionMaxLength: 1000,
+			/** Which of the home page's level lists to show. Kept in a cookie so the server can render the right one. */
+			homeViewPref: 'relevant',
 
 			// SSR stuff:
+			homePreload: null as HomeInfo,
 			levelPreload: null as ExtendedLevelInfo,
 			packPreload: null as ExtendedPackInfo,
 			profilePreload: null as ExtendedProfileInfo,

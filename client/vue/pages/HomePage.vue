@@ -45,11 +45,12 @@ import DropdownComponent from '../components/DropdownComponent.vue';
 import HomeAction from '../components/HomeAction.vue';
 import PanelList from '../components/PanelList.vue';
 import { Head } from '@vueuse/head';
+import { getHomeInfo } from '../../../server/ts/api/api_home';
 
 export default defineComponent({
 	data() {
 		return {
-			currentView: 'relevant',
+			currentView: this.$store.state.homeViewPref,
             viewOptions: [
 				{ name: 'relevant', label: 'Relevant' },
 				{ name: 'all', label: 'All' },
@@ -86,21 +87,30 @@ export default defineComponent({
 	},
 	computed: {
         currentLevelList(): LevelInfo[] {
-            if (!this.homeInfo) return [];
+            if (!this.homeInfo) return null; // Makes the panel list show skeletons instead of a "no levels" notice
 			return this.currentView === 'relevant' ? this.homeInfo.filteredLevels : this.homeInfo.allLevels;
         },
     },
 	async mounted() {
-		this.currentView = localStorage.getItem('homeViewPref') || 'relevant';
+		if (this.$store.state.homePreload) {
+			this.homeInfo = this.$store.state.homePreload;
+			this.$store.state.homePreload = null;
+		} else {
+			let response = await fetch('/api/home/info');
+			let json = await response.json() as HomeInfo;
 
-		let response = await fetch('/api/home/info');
-		let json = await response.json() as HomeInfo;
-
-		this.homeInfo = json;
+			this.homeInfo = json;
+		}
+	},
+	async serverPrefetch() {
+		this.homeInfo = await getHomeInfo();
+		this.$store.state.homePreload = this.homeInfo;
 	},
 	methods: {
 		saveViewPref(newVal: string) {
-            localStorage.setItem('homeViewPref', newVal);
+			this.$store.state.homeViewPref = newVal;
+			// A cookie, not localStorage, so that the server knows which list to render for SSR
+			document.cookie = `homeViewPref=${newVal}; Path=/; Max-Age=${60 * 60 * 24 * 365};`;
         },
 		showVersionHistory() {
 			location.href = 'https://github.com/Vanilagy/Marbleland/blob/main/version_history.md';

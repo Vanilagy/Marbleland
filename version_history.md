@@ -1,5 +1,8 @@
 ### Version history
 
+## 1.12.3
+- Added server-side rendering for the home page's latest levels
+
 ## 1.12.2
 - Fixed how level versions were being written to backup
 

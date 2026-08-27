@@ -43,6 +43,10 @@ export const generateHTML = async (req: express.Request, res: express.Response) 
 	router.push(req.url);
 	await router.isReady();
 
+	if (/homeViewPref=all(;|$)/.test(req.headers.cookie ?? '')) {
+		store.state.homeViewPref = 'all';
+	}
+
 	let { doc: accountDoc, token } = await authorize(req);
 	if (accountDoc) {
 		let signInInfo = await getSignInInfo(accountDoc);
