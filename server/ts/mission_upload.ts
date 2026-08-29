@@ -554,7 +554,7 @@ export class MissionUpload {
 			return mission;
 		}
 
-		let packDocs: PackDoc[] = [];
+		let addToPackDocs: PackDoc[] = [];
 		let newPackId: number = null;
 
 		// Get all the pack docs ready
@@ -564,17 +564,18 @@ export class MissionUpload {
 				throw new Error("Pack doesn't exist.");
 			}
 
-			packDocs.push(doc);
+			addToPackDocs.push(doc);
 		}
 
 		// Create a new pack if needed
 		if (requestBody.newPack) {
 			let newPackDoc = await createPack(submitter, requestBody.newPack.name, requestBody.newPack.description, false);
-			packDocs.push(newPackDoc);
+			addToPackDocs.push(newPackDoc);
 			newPackId = newPackDoc._id;
 		}
 
 		let finalDocs: MissionDoc[] = [];
+		let stalePackDocs: PackDoc[] = [];
 
 		if (requestBody.existingLevelId !== undefined) {
 			// --- UPDATE PATH ---
@@ -600,6 +601,10 @@ export class MissionUpload {
 
 			await db.missions.update({ _id: missionDoc._id }, missionDoc);
 			finalDocs = [missionDoc];
+
+			// The new version can come with a new thumbnail, so the thumbnails of all packs already containing this level are now (maybe) stale
+			let containingPackDocs = await db.packs.find({ levels: missionDoc._id }) as PackDoc[];
+			stalePackDocs = containingPackDocs.filter(x => !addToPackDocs.some(y => y._id === x._id));
 		} else {
 			// --- UPLOAD PATH ---
 			for (let [i, group] of this.groups.entries()) {
@@ -619,9 +624,9 @@ export class MissionUpload {
 
 		// Now, let's do all the pack updating:
 
-		let promises: Promise<any>[] = [];
+		let promises = stalePackDocs.map(x => createPackThumbnail(x));
 
-		for (let packDoc of packDocs) {
+		for (let packDoc of addToPackDocs) {
 			packDoc.levels.push(...finalDocs.map(x => x._id));
 			promises.push(createPackThumbnail(packDoc));
 

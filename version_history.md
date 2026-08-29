@@ -1,5 +1,8 @@
 ### Version history
 
+## 1.12.4
+- Updating a level's thumbnail now updates the thumbnails of packs it is in
+
 ## 1.12.3
 - Added server-side rendering for the home page's latest levels
 
