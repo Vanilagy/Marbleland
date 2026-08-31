@@ -1,5 +1,8 @@
 ### Version history
 
+## 1.12.5
+- Fixed missing level dependencies not surfacing an error
+
 ## 1.12.4
 - Updating a level's thumbnail now updates the thumbnails of packs it is in
 
