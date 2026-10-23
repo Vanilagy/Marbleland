@@ -1,4 +1,5 @@
 import { Util } from "../util";
+import * as hxTS from "../../lib/hxTorquescript";
 
 export interface MisFile {
 	root: MissionElementSimGroup,
@@ -250,6 +251,13 @@ export interface MissionElementAudioEmitter extends MissionElementBase {
 
 export type MissionElement = MissionElementSimGroup | MissionElementScriptObject | MissionElementMissionArea | MissionElementSky | MissionElementSun | MissionElementInteriorInstance | MissionElementStaticShape | MissionElementItem | MissionElementPath | MissionElementMarker | MissionElementPathedInterior | MissionElementTrigger | MissionElementAudioProfile | MissionElementMessageVector | MissionElementTSStatic | MissionElementParticleEmitterNode | MissionElementAudioEmitter;
 
+export interface TorqueScriptObject {
+	name: string | null;
+	class: string;
+	properties?: Record<string, string | number | boolean | number[]>;
+	children?: TorqueScriptObject[];
+}
+
 const elementHeadRegEx = /new\s+(\w+)\((.*?)\)\s*{/g;
 const blockCommentRegEx = /\/\*(.|\n)*?\*\//g;
 const lineCommentRegEx = /\/\/.*/g;
@@ -262,12 +270,189 @@ const includeDirectiveRegEx = /\/\/\s*@include\s+"((?:[^"\\]|\\.)*)"/gi;
 /** A parser for .mis files, which hold mission information. */
 export class MisParser {
 	text: string;
-	index = 0;
 	currentElementId = 0;
 	variables: Record<string, string>;
 
 	constructor(text: string) {
 		this.text = text;
+	}
+
+	parseTorquescript(text: string): TorqueScriptObject {
+		const scanner = new hxTS.Scanner(text);
+		const parser = new hxTS.Parser(scanner.scanTokens());
+		const astStmts = parser.parse();
+		const optimizer = new hxTS.Optimizer(astStmts);
+		const constFoldPass = new hxTS.optimizer_ConstantFoldingPass();
+		optimizer.addOptimizerPass(constFoldPass);
+
+		const varFoldPass = new hxTS.optimizer_ConstEvalPass();
+		varFoldPass.addGlobal("$usermods", new hxTS.expr_StringConstExpr(0, "", false));
+		optimizer.addOptimizerPass(varFoldPass);
+
+		optimizer.optimize(2); // perform constant folding
+
+		const missionGroup = optimizer.getAST().find(
+			(stmt): stmt is hxTS.expr_ObjectDeclExpr => stmt instanceof hxTS.expr_ObjectDeclExpr && this.flattenValue(stmt.objectNameExpr)?.toString().toLowerCase() === "missiongroup"
+		);
+		if (!missionGroup) {
+			throw new Error("No MissionGroup found in mission file");
+		}
+
+		return this.flattenObject(missionGroup);
+	}
+
+	flattenObject(stmt: hxTS.expr_ObjectDeclExpr): TorqueScriptObject {
+		const properties: Record<string, string | number | boolean> = {};
+		for (const slot of stmt.slotDecls) {
+			let slotName = slot.slotName.lexeme;
+			const arrayIndex = slot.arrayExpr !== null ? this.flattenValue(slot.arrayExpr) : "";
+			if (arrayIndex !== null && arrayIndex !== "") {
+				slotName += arrayIndex;
+			}
+			const value = this.flattenValue(slot.expr);
+			if (value !== null) {
+				properties[slotName.toLowerCase()] = value;
+			}
+		}
+		return {
+			name: this.flattenValue(stmt.objectNameExpr)?.toString() ?? null,
+			class: this.flattenValue(stmt.className)?.toString() ?? "",
+			children: stmt.subObjects.map(child => this.flattenObject(child)),
+			properties,
+		};
+	}
+
+	flattenValue(expr: hxTS.expr_Expr | null | undefined): string | number | boolean | null {
+		if (!expr) return null;
+
+		// The constant folding pass stores its result in a separate expression.
+		if (expr instanceof hxTS.expr_BinaryExpr && expr.optimized && expr.optimizedExpr) return this.flattenValue(expr.optimizedExpr);
+		if (expr instanceof hxTS.expr_IntUnaryExpr && expr.optimized && expr.optimizedExpr) return this.flattenValue(expr.optimizedExpr);
+		if (expr instanceof hxTS.expr_FloatUnaryExpr && expr.optimized && expr.optimizedExpr) return this.flattenValue(expr.optimizedExpr);
+
+		if (expr instanceof hxTS.expr_ConstantExpr) return expr.name.literal ?? expr.name.lexeme;
+		if (expr instanceof hxTS.expr_StringConstExpr) return expr.value;
+		if (expr instanceof hxTS.expr_IntExpr) return expr.value;
+		if (expr instanceof hxTS.expr_FloatExpr) return expr.value;
+		if (expr instanceof hxTS.expr_ParenthesisExpr) return this.flattenValue(expr.expr);
+
+		if (expr instanceof hxTS.expr_VarExpr) {
+			const variable = this.variables?.["$" + expr.name.lexeme];
+			if (variable === undefined) return null;
+			return this.resolveExpression(variable);
+		}
+
+		if (expr instanceof hxTS.expr_StrCatExpr) {
+			const left = this.flattenValue(expr.left);
+			const right = this.flattenValue(expr.right);
+			if (left === null || right === null) return null;
+
+			switch (expr.op.lexeme) {
+				case "SPC": return `${left} ${right}`;
+				case "TAB": return `${left}\t${right}`;
+				case "NL": return `${left}\n${right}`;
+				default: return `${left}${right}`;
+			}
+		}
+
+		if (expr instanceof hxTS.expr_CommaCatExpr) {
+			const left = this.flattenValue(expr.left);
+			const right = this.flattenValue(expr.right);
+			if (left === null || right === null) return null;
+			return `${left},${right}`;
+		}
+
+		if (expr instanceof hxTS.expr_IntBinaryExpr || expr instanceof hxTS.expr_FloatBinaryExpr) {
+			const left = Number(this.flattenValue(expr.left));
+			const right = Number(this.flattenValue(expr.right));
+			if (isNaN(left) || isNaN(right)) return null;
+
+			switch (expr.op.lexeme) {
+				case "+": return left + right;
+				case "-": return left - right;
+				case "*": return left * right;
+				case "/": return right === 0 ? null : left / right;
+				case "%": return right === 0 ? null : left % right;
+				default: return null;
+			}
+		}
+
+		if (expr instanceof hxTS.expr_IntUnaryExpr || expr instanceof hxTS.expr_FloatUnaryExpr) {
+			const value = Number(this.flattenValue(expr.expr));
+			if (isNaN(value)) return null;
+			if (expr.op.lexeme === "-") return -value;
+			if (expr.op.lexeme === "!") return value === 0 ? 1 : 0;
+			return null;
+		}
+
+		return null;
+	}
+
+	/** Converts a flattened TorqueScript object into the public mission element shape. */
+	toMissionElement(object: TorqueScriptObject): MissionElement {
+		const name = object.name ?? "";
+
+		switch (object.class.toLowerCase()) {
+			case "simgroup": {
+				// Children are converted first so that IDs are assigned in the same order as before.
+				const elements = this.toMissionElements(object.children);
+				return {
+					_type: MissionElementType.SimGroup,
+					_name: name,
+					_id: this.currentElementId++,
+					elements
+				} as MissionElementSimGroup;
+			}
+			case "path": {
+				const markers = (this.toMissionElements(object.children) as MissionElementMarker[])
+					.filter(element => element._type === MissionElementType.Marker)
+					.sort((a, b) => MisParser.parseNumber(a.seqnum) - MisParser.parseNumber(b.seqnum));
+				return {
+					_type: MissionElementType.Path,
+					_name: name,
+					_id: this.currentElementId++,
+					markers
+				} as MissionElementPath;
+			}
+			case "scriptobject": return this.createMissionElement(object, MissionElementType.ScriptObject);
+			case "missionarea": return this.createMissionElement(object, MissionElementType.MissionArea);
+			case "sky": return this.createMissionElement(object, MissionElementType.Sky);
+			case "sun": return this.createMissionElement(object, MissionElementType.Sun);
+			case "interiorinstance": return this.createMissionElement(object, MissionElementType.InteriorInstance);
+			case "staticshape": return this.createMissionElement(object, MissionElementType.StaticShape);
+			case "item": return this.createMissionElement(object, MissionElementType.Item);
+			case "marker": return this.createMissionElement(object, MissionElementType.Marker);
+			case "pathedinterior": return this.createMissionElement(object, MissionElementType.PathedInterior);
+			case "trigger": return this.createMissionElement(object, MissionElementType.Trigger);
+			case "audioprofile": return this.createMissionElement(object, MissionElementType.AudioProfile);
+			case "messagevector": return this.createMissionElement(object, MissionElementType.MessageVector);
+			case "tsstatic": return this.createMissionElement(object, MissionElementType.TSStatic);
+			case "particleemitternode": return this.createMissionElement(object, MissionElementType.ParticleEmitterNode);
+			case "audioemitter": return this.createMissionElement(object, MissionElementType.AudioEmitter);
+			default: return null;
+		}
+	}
+
+	toMissionElements(objects: TorqueScriptObject[] | undefined): MissionElement[] {
+		const elements: MissionElement[] = [];
+		for (const object of objects ?? []) {
+			const element = this.toMissionElement(object);
+			if (element) elements.push(element);
+		}
+		return elements;
+	}
+
+	createMissionElement(object: TorqueScriptObject, type: MissionElementType): MissionElement {
+		const properties: Record<string, string> = {};
+		for (const [key, value] of Object.entries(object.properties ?? {})) {
+			properties[key] = Array.isArray(value) ? value.join(" ") : String(value);
+		}
+
+		return Object.assign({
+			_type: type,
+			_name: object.name ?? "",
+			_id: this.currentElementId++
+		}, properties) as unknown as MissionElement;
 	}
 
 	parse(): MisFile {
@@ -351,131 +536,18 @@ export class MisParser {
 			this.text = this.text.slice(objectWriteBeginIndex, objectWriteEndIndex);
 		}
 
-		let indexOfMissionGroup = this.text.indexOf('new SimGroup(MissionGroup)');
-		if (indexOfMissionGroup !== -1) this.index = indexOfMissionGroup;
-
-		// Read out all elements (we're expecting exactly one!)
-		let elements = [];
-		while (this.hasNextElement()) {
-			let element = this.readElement();
-			if (!element) continue;
-			elements.push(element);
-		}
-
-		if (elements.length !== 1) {
-			// We expect there to be only one outer element; the MissionGroup SimGroup.
-			console.log(elements);
-			throw new Error("Mission file doesn't have exactly 1 outer element!");
+		const missionGroup = this.toMissionElement(this.parseTorquescript(this.text));
+		if (!missionGroup || missionGroup._type !== MissionElementType.SimGroup) {
+			throw new Error("Mission file doesn't have a MissionGroup SimGroup!");
 		}
 
 		return {
-			root: elements[0] as MissionElementSimGroup,
+			root: missionGroup as MissionElementSimGroup,
 			marbleAttributes,
 			activatedPackages,
 			datablockFilePaths,
 			manualIncludes
 		};
-	}
-
-	readElement() {
-		// Get information about the head
-		elementHeadRegEx.lastIndex = this.index;
-		let head = elementHeadRegEx.exec(this.text);
-		this.index = head.index + head[0].length;
-
-		let type = head[1];
-		let name = head[2];
-
-		this.index = head.index + head[0].length;
-		let element: MissionElement = null;
-
-		switch (type.toLowerCase()) {
-			case "simgroup": element = this.readSimGroup(name); break;
-			case "scriptobject": element = this.readScriptObject(name); break;
-			case "missionarea": element = this.readMissionArea(name); break;
-			case "sky": element = this.readSky(name); break;
-			case "sun": element = this.readSun(name); break;
-			case "interiorinstance": element = this.readInteriorInstance(name); break;
-			case "staticshape": element = this.readStaticShape(name); break;
-			case "item": element = this.readItem(name); break;
-			case "path": element = this.readPath(name); break;
-			case "marker": element = this.readMarker(name); break;
-			case "pathedinterior": element = this.readPathedInterior(name); break;
-			case "trigger": element = this.readTrigger(name); break;
-			case "audioprofile": element = this.readAudioProfile(name); break;
-			case "messagevector": element = this.readMessageVector(name); break;
-			case "tsstatic": element = this.readTSStatic(name); break;
-			case "particleemitternode": element = this.readParticleEmitterNode(name); break;
-			case "audioemitter": element = this.readAudioEmitter(name); break;
-			default: {
-				// Still advance the index
-				let endingBraceIndex = Util.indexOfIgnoreStringLiterals(this.text, '};', this.index);
-				if (endingBraceIndex === -1) endingBraceIndex = this.text.length;
-				this.index = endingBraceIndex + 2;
-			}
-		}
-
-		if (element) element._id = this.currentElementId++;
-		return element;
-	}
-
-	/** Checks if there's another element coming in the current scope. */
-	hasNextElement() {
-		elementHeadRegEx.lastIndex = this.index;
-		let head = elementHeadRegEx.exec(this.text);
-
-		if (!head) return false;
-		if (Util.indexOfIgnoreStringLiterals(this.text.slice(this.index, head.index), '}') !== -1) return false;
-		return true;
-	}
-
-	readSimGroup(name: string) {
-		let elements: MissionElement[] = [];
-
-		// Read in all elements
-		while (this.hasNextElement()) {
-			let element = this.readElement();
-			if (!element) continue;
-			elements.push(element);
-		}
-
-		let endingBraceIndex = Util.indexOfIgnoreStringLiterals(this.text, '};', this.index);
-		if (endingBraceIndex === -1) endingBraceIndex = this.text.length;
-		this.index = endingBraceIndex + 2;
-
-		if (!elements) return null;
-
-		return {
-			_type: MissionElementType.SimGroup,
-			_name: name,
-			elements: elements
-		} as MissionElementSimGroup;
-	}
-
-	/** Reads the key/value pairs of an element. */
-	readValues() {
-		// Values are either strings or string arrays.
-		let obj: Record<string, string | string[]> = {};
-		let endingBraceIndex = Util.indexOfIgnoreStringLiterals(this.text, '};', this.index);
-		if (endingBraceIndex === -1) endingBraceIndex = this.text.length;
-		let section = this.text.slice(this.index, endingBraceIndex).trim();
-		let statements = Util.splitIgnoreStringLiterals(section, ';').map(x => x.trim()); // Get a list of all statements
-
-		for (let statement of statements) {
-			if (!statement) continue;
-			let splitIndex = statement.indexOf('=');
-			if (splitIndex === -1) continue;
-			let parts = [statement.slice(0, splitIndex), statement.slice(splitIndex + 1)].map((part) => part.trim());
-			if (parts.length !== 2) continue;
-			let key = parts[0];
-			key = key.toLowerCase(); // TorqueScript is case-insensitive here
-			key = key.replace(/\[(\d+)\]/, '$1'); // "Array indices" are fake!!1
-
-			obj[key] = this.resolveExpression(parts[1]);
-		}
-
-		this.index = endingBraceIndex + 2;
-		return obj;
 	}
 
 	/** Resolves a TorqueScript rvalue expression. Currently only supports the concatenation @ operator. */
@@ -494,121 +566,6 @@ export class MisParser {
 		});
 
 		return parts.join('');
-	}
-
-	readScriptObject(name: string) {
-		return Object.assign({
-			_type: MissionElementType.ScriptObject,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementScriptObject;
-	}
-
-	readMissionArea(name: string) {
-		return Object.assign({
-			_type: MissionElementType.MissionArea,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementMissionArea;
-	}
-
-	readSky(name: string) {
-		return Object.assign({
-			_type: MissionElementType.Sky,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementSky;
-	}
-
-	readSun(name: string) {
-		return Object.assign({
-			_type: MissionElementType.Sun,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementSun;
-	}
-
-	readInteriorInstance(name: string) {
-		return Object.assign({
-			_type: MissionElementType.InteriorInstance,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementInteriorInstance;
-	}
-
-	readStaticShape(name: string) {
-		return Object.assign({
-			_type: MissionElementType.StaticShape,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementStaticShape;
-	}
-
-	readItem(name: string) {
-		return Object.assign({
-			_type: MissionElementType.Item,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementItem;
-	}
-
-	readPath(name: string) {
-		let simGroup = this.readSimGroup(name);
-
-		return {
-			_type: MissionElementType.Path,
-			_name: name,
-			markers: (simGroup.elements as MissionElementMarker[]).sort((a, b) => MisParser.parseNumber(a.seqnum) - MisParser.parseNumber(b.seqnum)) // Make sure they're sorted sequentially
-		} as MissionElementPath;
-	}
-
-	readMarker(name: string) {
-		return Object.assign({
-			_type: MissionElementType.Marker,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementMarker;
-	}
-
-	readPathedInterior(name: string) {
-		return Object.assign({
-			_type: MissionElementType.PathedInterior,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementPathedInterior;
-	}
-
-	readTrigger(name: string) {
-		return Object.assign({
-			_type: MissionElementType.Trigger,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementTrigger;
-	}
-
-	readAudioProfile(name: string) {
-		return Object.assign({
-			_type: MissionElementType.AudioProfile,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementAudioProfile;
-	}
-
-	readMessageVector(name: string) {
-		return Object.assign({
-			_type: MissionElementType.MessageVector,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementMessageVector;
-	}
-
-	readTSStatic(name: string) {
-		return Object.assign({
-			_type: MissionElementType.TSStatic,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementTSStatic;
-	}
-
-	readParticleEmitterNode(name: string) {
-		return Object.assign({
-			_type: MissionElementType.ParticleEmitterNode,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementParticleEmitterNode;
-	}
-
-	readAudioEmitter(name: string) {
-		return Object.assign({
-			_type: MissionElementType.AudioEmitter,
-			_name: name
-		}, this.readValues()) as unknown as MissionElementAudioEmitter;
 	}
 
 	/** Parses a numeric value. */

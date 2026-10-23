@@ -5,9 +5,9 @@ import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementType } from './io/mis_parser';
 import { Config } from './config';
 import * as hxDif from '../lib/hxDif';
+import * as hxDts from '../lib/hxDts';
 import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission, MissionDoc, extractMissionContent } from './mission';
 import { Util } from './util';
-import { DtsFile, DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
@@ -21,7 +21,7 @@ const UPLOAD_TTL = 1000 * 60 * 60 * 24; // After a day, the chance of the upload
 /** The maximum allowed length, in characters, of a single dependency's normalized file path (the path it ends up under in the generated .zip). */
 const MAX_DEPENDENCY_PATH_LENGTH = 255;
 // In bytes. Protects against zip bombs; the compressed upload itself is capped at 100 MB.
-const MAX_DECOMPRESSED_ARCHIVE_SIZE = 256 * 1024**2;
+const MAX_DECOMPRESSED_ARCHIVE_SIZE = 256 * 1024 ** 2;
 // Pending uploads are held in memory, so each account only gets to keep its most recent few
 const MAX_PENDING_UPLOADS_PER_ACCOUNT = 2;
 
@@ -157,7 +157,7 @@ export class MissionUpload {
 			});
 
 			if (!withinLimit) {
-				this.problems.add(`The archive is too large when unpacked (more than ${MAX_DECOMPRESSED_ARCHIVE_SIZE / 1024**2} MB).`);
+				this.problems.add(`The archive is too large when unpacked (more than ${MAX_DECOMPRESSED_ARCHIVE_SIZE / 1024 ** 2} MB).`);
 				return false;
 			}
 		}
@@ -244,7 +244,7 @@ export class MissionUpload {
 		}
 
 		await this.traverseMis(group, misFile.root); // Start scanning all elements in the .mis file to find possible dependencies
-		
+
 		if (!group.missionInfo) {
 			this.problems.add(`${group.misFilePath} does not contain a MissionInfo ScriptObject.`);
 		} else {
@@ -357,7 +357,8 @@ export class MissionUpload {
 	 * be found in the regular PQ data directory and if so, we don't need to worry about it. If, however, it can't even be found there, then
 	 * this mission is dependening on an asset that cannot be found and therefore, the mission can't be submitted.
 	 */
-	async registerDependency(group: MissionGroup, dependency: string, matchType: 'exact' | 'extension-agnostic', requiredBy: string, permittedExtensions?: string[], interiorsMbgFallback = false, originalDependency?: string): Promise<{ found: jszip.JSZipObject, relativeDirectory: string }> {;
+	async registerDependency(group: MissionGroup, dependency: string, matchType: 'exact' | 'extension-agnostic', requiredBy: string, permittedExtensions?: string[], interiorsMbgFallback = false, originalDependency?: string): Promise<{ found: jszip.JSZipObject, relativeDirectory: string }> {
+		;
 		// The path determines where the file gets written to on submission, so it must not be able to escape the level directory
 		if (Util.containsParentReference(dependency)) {
 			this.problems.add(`The dependency ${dependency}, required by ${requiredBy}, contains ".." in its path, which isn't allowed.`);
@@ -367,7 +368,7 @@ export class MissionUpload {
 		// First, disect the dependency part into its different piecess
 		let fileName = Util.getFileName(dependency);
 		let dataIndex = dependency.indexOf('data/');
-		let relativePath = (dataIndex !== -1)? dependency.slice(dependency.indexOf('data/') + 'data/'.length) : dependency;
+		let relativePath = (dataIndex !== -1) ? dependency.slice(dependency.indexOf('data/') + 'data/'.length) : dependency;
 		let relativeDirectory = relativePath.substring(0, relativePath.lastIndexOf('/'));
 		let found: jszip.JSZipObject;
 
@@ -377,7 +378,7 @@ export class MissionUpload {
 			let matches = fileName2.toLowerCase() === fileName.toLowerCase();
 
 			if (matchType === 'extension-agnostic') {
-				matches ||= fileName2.toLowerCase() === fileName.toLowerCase() + path.extname(fileName2.toLowerCase()); 
+				matches ||= fileName2.toLowerCase() === fileName.toLowerCase() + path.extname(fileName2.toLowerCase());
 			}
 
 			// Also check if the extension is permitted
@@ -489,7 +490,7 @@ export class MissionUpload {
 			// Read in the .dml
 			let dmlText = await found.async('text');
 			let lines = dmlText.split('\n').map(x => x.trim()).filter(x => x);
-	
+
 			// Register all sky textures as dependencies
 			for (let line of lines) {
 				await this.registerDependency(group, path.posix.join(relativeDirectory, line), 'extension-agnostic', dependency, IMAGE_EXTENSIONS);
@@ -507,10 +508,11 @@ export class MissionUpload {
 
 			// Read in the .dts
 			let buffer = await found.async('arraybuffer');
-			let dtsFile: DtsFile;
+			let dtsFile: hxDts.DtsFile;
 
 			try {
-				dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
+				dtsFile = new hxDts.DtsFile();
+				dtsFile.read(buffer);
 			} catch (e) {
 				this.problems.add(`Shape file ${dependency} failed to parse and is likely invalid.`);
 				continue;
@@ -527,7 +529,7 @@ export class MissionUpload {
 				if (!result2) continue;
 
 				let found2 = result2.found;
-				
+
 				// We found an .ifl material, so read it in and add all of its dependencies as well
 				if (found2.name.toLowerCase().endsWith('.ifl')) {
 					let iflText = await found2.async('text');
@@ -562,7 +564,7 @@ export class MissionUpload {
 			this.problems.add(`Image ${filePath} couldn't be read and is likely invalid.`);
 			return false;
 		}
-		
+
 		// Check that the extension matches the actual format. This is vital as Torque uses the extension to pick the decoder
 		if ((extension === '.jpg' || extension === '.jpeg') && !(imageFormat === MagickFormat.Jpg || imageFormat === MagickFormat.Jpeg)) {
 			this.problems.add(`Image ${filePath} has the wrong extension: Internally, it is a ${imageFormat.toUpperCase()} file.`);

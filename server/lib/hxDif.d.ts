@@ -226,7 +226,7 @@ export class Interior {
 	stateDataFlags: number;
 	stateDataBuffers: number[];
 	nameBuffer: number[];
-	numSubObjects: number;
+	subObjects: MirrorSubObject[];
 	convexHulls: ConvexHull[];
 	convexHullEmitStrings: number[];
 	hullIndices: number[];
@@ -284,6 +284,18 @@ export class LightState {
 	dataCount: number;
 	write(io: io_BytesWriter): void;
 	static read(io: io_BytesReader): LightState;
+}
+
+export class MirrorSubObject {
+	constructor();
+	detailLevel: number;
+	zone: number;
+	alphaLevel: number;
+	surfaceCount: number;
+	surfaceStart: number;
+	centroid: math_Point3F;
+	write(io: io_BytesWriter, version: Version): void;
+	static read(io: io_BytesReader, version: Version): MirrorSubObject;
 }
 
 export class NullSurface {
@@ -348,6 +360,7 @@ export class Surface {
 	windingStart: number;
 	windingCount: number;
 	planeIndex: number;
+	planeFlipped: boolean;
 	textureIndex: number;
 	texGenIndex: number;
 	surfaceFlags: number;
@@ -420,6 +433,7 @@ export class Version {
 	difVersion: number;
 	interiorVersion: number;
 	interiorType: string;
+	useLargeLightmaps: boolean;
 }
 
 export class WayPoint {
@@ -448,6 +462,7 @@ export class Zone {
 	surfaceCount: number;
 	staticMeshStart: number;
 	staticMeshCount: number;
+	flags: number;
 	write(io: io_BytesWriter, version: Version): void;
 	static read(io: io_BytesReader, version: Version): Zone;
 }
@@ -608,7 +623,9 @@ export class math_Box3F {
 	maxX: number;
 	maxY: number;
 	maxZ: number;
+	clone(): math_Box3F;
 	center(): math_Point3F;
+	extend(box: math_Box3F): void;
 	Expand(point: math_Point3F): void;
 	contains(p: math_Point3F): boolean;
 	getClosestPoint(point: math_Point3F): math_Point3F;
