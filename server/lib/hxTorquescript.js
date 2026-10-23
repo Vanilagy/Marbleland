@@ -11181,6 +11181,324 @@ class js_Boot {
 	}
 }
 js_Boot.__name__ = true;
+class optimizer_ConstEvalPass {
+	constructor() {
+		this.folder = new optimizer_ConstantFoldingPass();
+		this.scanning = false;
+		this.inFunction = false;
+		this.topLevelAssigns = [];
+		this.dynamicBases = [];
+		this.assignCounts = new haxe_ds_StringMap();
+		this.locals = new haxe_ds_StringMap();
+		this.globals = new haxe_ds_StringMap();
+	}
+	optimize(ast) {
+		let _g = 0;
+		while(_g < ast.length) {
+			let stmt = ast[_g];
+			++_g;
+			this.inFunction = ((stmt) instanceof expr_FunctionDeclStmt);
+			stmt.visitStmt(this);
+		}
+		this.inFunction = false;
+	}
+	addGlobal(name,expr) {
+		if(name.charAt(0) == "$") {
+			name = HxOverrides.substr(name,1,null);
+		}
+		this.globals.h[name.toLowerCase()] = expr;
+	}
+	isConst(e) {
+		if(!(((e) instanceof expr_IntExpr) || ((e) instanceof expr_FloatExpr))) {
+			if(((e) instanceof expr_StringConstExpr)) {
+				return !(js_Boot.__cast(e , expr_StringConstExpr)).tag;
+			} else {
+				return false;
+			}
+		} else {
+			return true;
+		}
+	}
+	cloneConst(e,lineNo) {
+		if(((e) instanceof expr_IntExpr)) {
+			return new expr_IntExpr(lineNo,(js_Boot.__cast(e , expr_IntExpr)).value);
+		}
+		if(((e) instanceof expr_FloatExpr)) {
+			return new expr_FloatExpr(lineNo,(js_Boot.__cast(e , expr_FloatExpr)).value);
+		}
+		return new expr_StringConstExpr(lineNo,(js_Boot.__cast(e , expr_StringConstExpr)).value,false);
+	}
+	resolveExpr(expr) {
+		while(true) {
+			if(((expr) instanceof expr_ParenthesisExpr)) {
+				expr = (js_Boot.__cast(expr , expr_ParenthesisExpr)).expr;
+				continue;
+			}
+			if(((expr) instanceof expr_BinaryExpr) && (js_Boot.__cast(expr , expr_BinaryExpr)).optimized) {
+				expr = (js_Boot.__cast(expr , expr_BinaryExpr)).optimizedExpr;
+				continue;
+			}
+			if(((expr) instanceof expr_IntUnaryExpr) && (js_Boot.__cast(expr , expr_IntUnaryExpr)).optimized) {
+				expr = (js_Boot.__cast(expr , expr_IntUnaryExpr)).optimizedExpr;
+				continue;
+			}
+			if(((expr) instanceof expr_FloatUnaryExpr) && (js_Boot.__cast(expr , expr_FloatUnaryExpr)).optimized) {
+				expr = (js_Boot.__cast(expr , expr_FloatUnaryExpr)).optimizedExpr;
+				continue;
+			}
+			return expr;
+		}
+	}
+	varKey(v) {
+		let key = v.name.lexeme;
+		if(v.arrayIndex != null) {
+			let idx = this.resolveExpr(v.arrayIndex);
+			if(((idx) instanceof expr_IntExpr)) {
+				key += (js_Boot.__cast(idx , expr_IntExpr)).value;
+			} else if(((idx) instanceof expr_FloatExpr)) {
+				key += (js_Boot.__cast(idx , expr_FloatExpr)).value;
+			} else if(((idx) instanceof expr_StringConstExpr)) {
+				key += (js_Boot.__cast(idx , expr_StringConstExpr)).value;
+			} else {
+				return null;
+			}
+		}
+		return key.toLowerCase();
+	}
+	lookupVar(v) {
+		let key = this.varKey(v);
+		if(key == null) {
+			return null;
+		}
+		if(v.type == expr_VarType.Global) {
+			return this.globals.h[key];
+		}
+		if(this.inFunction && !this.scanning) {
+			return this.locals.h[key];
+		}
+		return null;
+	}
+	sub(e) {
+		if(e == null) {
+			return null;
+		}
+		let r = this.resolveExpr(e);
+		if(this.isConst(r)) {
+			return r;
+		}
+		if(((r) instanceof expr_VarExpr)) {
+			let c = this.lookupVar(js_Boot.__cast(r , expr_VarExpr));
+			if(c != null) {
+				return this.cloneConst(c,e.lineNo);
+			}
+		}
+		return e;
+	}
+	aliasedByDynamicWrite(key) {
+		let _g = 0;
+		let _g1 = this.dynamicBases;
+		while(_g < _g1.length) {
+			let b = _g1[_g];
+			++_g;
+			if(key.startsWith(b)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	countWrite(v) {
+		if(v.type != expr_VarType.Local) {
+			return;
+		}
+		let key = this.varKey(v);
+		if(key == null) {
+			this.dynamicBases.push(v.name.lexeme.toLowerCase());
+			return;
+		}
+		let this1 = this.assignCounts;
+		let value = Object.prototype.hasOwnProperty.call(this.assignCounts.h,key) ? this.assignCounts.h[key] : 0;
+		this1.h[key] = value + 1;
+	}
+	visitStmt(stmt) {
+	}
+	visitBreakStmt(stmt) {
+	}
+	visitContinueStmt(stmt) {
+	}
+	visitExpr(expr) {
+		if(((expr) instanceof expr_CommaCatExpr)) {
+			let c = js_Boot.__cast(expr , expr_CommaCatExpr);
+			c.left.visitStmt(this);
+			c.right.visitStmt(this);
+			c.left = this.sub(c.left);
+			c.right = this.sub(c.right);
+		}
+	}
+	visitParenthesisExpr(expr) {
+	}
+	visitReturnStmt(stmt) {
+		if(stmt.expr != null) {
+			stmt.expr = this.sub(stmt.expr);
+		}
+	}
+	visitIfStmt(stmt) {
+		stmt.condition = this.sub(stmt.condition);
+	}
+	visitLoopStmt(stmt) {
+		stmt.condition = this.sub(stmt.condition);
+	}
+	visitBinaryExpr(expr) {
+	}
+	visitFloatBinaryExpr(expr) {
+		expr.left = this.sub(expr.left);
+		expr.right = this.sub(expr.right);
+		this.folder.visitFloatBinaryExpr(expr);
+	}
+	visitIntBinaryExpr(expr) {
+		expr.left = this.sub(expr.left);
+		expr.right = this.sub(expr.right);
+		this.folder.visitIntBinaryExpr(expr);
+	}
+	visitStrEqExpr(expr) {
+		expr.left = this.sub(expr.left);
+		expr.right = this.sub(expr.right);
+		this.folder.visitStrEqExpr(expr);
+	}
+	visitStrCatExpr(expr) {
+		expr.left = this.sub(expr.left);
+		expr.right = this.sub(expr.right);
+		this.folder.visitStrCatExpr(expr);
+	}
+	visitCommatCatExpr(expr) {
+	}
+	visitConditionalExpr(expr) {
+		expr.condition = this.sub(expr.condition);
+		expr.trueExpr = this.sub(expr.trueExpr);
+		expr.falseExpr = this.sub(expr.falseExpr);
+	}
+	visitIntUnaryExpr(expr) {
+		expr.expr = this.sub(expr.expr);
+		this.folder.visitIntUnaryExpr(expr);
+	}
+	visitFloatUnaryExpr(expr) {
+		expr.expr = this.sub(expr.expr);
+		this.folder.visitFloatUnaryExpr(expr);
+	}
+	visitVarExpr(expr) {
+		if(expr.arrayIndex != null) {
+			expr.arrayIndex = this.sub(expr.arrayIndex);
+		}
+	}
+	visitIntExpr(expr) {
+	}
+	visitFloatExpr(expr) {
+	}
+	visitStringConstExpr(expr) {
+	}
+	visitConstantExpr(expr) {
+	}
+	visitAssignExpr(expr) {
+		expr.expr = this.sub(expr.expr);
+		let v = expr.varExpr;
+		if(v.type != expr_VarType.Local || !this.inFunction) {
+			return;
+		}
+		if(this.scanning) {
+			this.countWrite(v);
+			return;
+		}
+		let key = this.varKey(v);
+		if(key == null || this.aliasedByDynamicWrite(key)) {
+			return;
+		}
+		if(this.assignCounts.h[key] == 1 && this.topLevelAssigns.indexOf(expr) != -1) {
+			let rhs = this.resolveExpr(expr.expr);
+			if(this.isConst(rhs)) {
+				let this1 = this.locals;
+				let value = this.cloneConst(rhs,rhs.lineNo);
+				this1.h[key] = value;
+			}
+		}
+	}
+	visitAssignOpExpr(expr) {
+		expr.expr = this.sub(expr.expr);
+		if(this.scanning && this.inFunction) {
+			this.countWrite(expr.varExpr);
+		}
+	}
+	visitFuncCallExpr(expr) {
+		let _g = 0;
+		let _g1 = expr.args.length;
+		while(_g < _g1) {
+			let i = _g++;
+			expr.args[i] = this.sub(expr.args[i]);
+		}
+	}
+	visitSlotAccessExpr(expr) {
+		expr.objectExpr = this.sub(expr.objectExpr);
+		expr.arrayExpr = this.sub(expr.arrayExpr);
+	}
+	visitSlotAssignExpr(expr) {
+		expr.objectExpr = this.sub(expr.objectExpr);
+		expr.arrayExpr = this.sub(expr.arrayExpr);
+		expr.expr = this.sub(expr.expr);
+	}
+	visitSlotAssignOpExpr(expr) {
+		expr.objectExpr = this.sub(expr.objectExpr);
+		expr.arrayExpr = this.sub(expr.arrayExpr);
+		expr.expr = this.sub(expr.expr);
+	}
+	visitObjectDeclExpr(expr) {
+		expr.objectNameExpr = this.sub(expr.objectNameExpr);
+		let _g = 0;
+		let _g1 = expr.args.length;
+		while(_g < _g1) {
+			let i = _g++;
+			expr.args[i] = this.sub(expr.args[i]);
+		}
+	}
+	visitFunctionDeclStmt(stmt) {
+		this.inFunction = true;
+		this.locals = new haxe_ds_StringMap();
+		this.assignCounts = new haxe_ds_StringMap();
+		this.dynamicBases = [];
+		this.topLevelAssigns = [];
+		let _g = 0;
+		let _g1 = stmt.args;
+		while(_g < _g1.length) {
+			let arg = _g1[_g];
+			++_g;
+			this.assignCounts.h[arg.name.lexeme.toLowerCase()] = 1;
+		}
+		let _g2 = 0;
+		let _g3 = stmt.stmts;
+		while(_g2 < _g3.length) {
+			let s = _g3[_g2];
+			++_g2;
+			if(((s) instanceof expr_AssignExpr)) {
+				this.topLevelAssigns.push(js_Boot.__cast(s , expr_AssignExpr));
+			}
+		}
+		this.scanning = true;
+		let _g4 = 0;
+		let _g5 = stmt.stmts;
+		while(_g4 < _g5.length) {
+			let s = _g5[_g4];
+			++_g4;
+			s.visitStmt(this);
+		}
+		this.scanning = false;
+	}
+	getLevel() {
+		return 2;
+	}
+}
+$hx_exports["optimizer"]["ConstEvalPass"] = optimizer_ConstEvalPass;
+optimizer_ConstEvalPass.__name__ = true;
+optimizer_ConstEvalPass.__interfaces__ = [IOptimizerPass];
+Object.assign(optimizer_ConstEvalPass.prototype, {
+	__class__: optimizer_ConstEvalPass
+});
 class optimizer_ConstantFoldingPass {
 	constructor() {
 	}

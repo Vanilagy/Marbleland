@@ -435,7 +435,7 @@ export class Mission {
 
 		if (this.visitedPaths.has(skyPath)) return;
 		else this.visitedPaths.add(skyPath);
-		
+
 		let fullPath = await this.findPath(skyPath);
 		if (!fullPath) {
 			this.missesDependencies = true;
@@ -450,7 +450,7 @@ export class Mission {
 
 		// Add all sky textures as dependencies
 		for (let line of lines) {
-			let filePath = await this.findFile(line, skyDirectory, true, IMAGE_EXTENSIONS); 
+			let filePath = await this.findFile(line, skyDirectory, true, IMAGE_EXTENSIONS);
 			if (filePath) this.dependencies.add(filePath);
 			else this.missesDependencies = true;
 		}
@@ -493,7 +493,7 @@ export class Mission {
 							if (filePath) this.dependencies.add(filePath);
 						}
 					}
-				} 
+				}
 
 				this.dependencies.add(relativePath);
 			}
@@ -579,17 +579,17 @@ export class Mission {
 			desc: this.info.desc,
 			gameMode: this.info.gamemode,
 
-			qualifyingTime: this.info.time? MisParser.parseNumber(this.info.time) : undefined,
-			goldTime: this.info.goldtime? MisParser.parseNumber(this.info.goldtime) : undefined,
-			platinumTime: this.info.platinumtime? MisParser.parseNumber(this.info.platinumtime) : undefined,
-			ultimateTime: this.info.ultimatetime? MisParser.parseNumber(this.info.ultimatetime) : undefined,
-			awesomeTime: this.info.awesometime? MisParser.parseNumber(this.info.awesometime) : undefined,
+			qualifyingTime: this.info.time ? MisParser.parseNumber(this.info.time) : undefined,
+			goldTime: this.info.goldtime ? MisParser.parseNumber(this.info.goldtime) : undefined,
+			platinumTime: this.info.platinumtime ? MisParser.parseNumber(this.info.platinumtime) : undefined,
+			ultimateTime: this.info.ultimatetime ? MisParser.parseNumber(this.info.ultimatetime) : undefined,
+			awesomeTime: this.info.awesometime ? MisParser.parseNumber(this.info.awesometime) : undefined,
 
-			qualifyingScore: (this.info.score || this.info.score0)? MisParser.parseNumber(this.info.score || this.info.score0) : undefined,
-			goldScore: (this.info.goldscore || this.info.goldscore0)? MisParser.parseNumber(this.info.goldscore || this.info.goldscore0) : undefined,
-			platinumScore: (this.info.platinumscore || this.info.platinumscore0)? MisParser.parseNumber(this.info.platinumscore || this.info.platinumscore0) : undefined,
-			ultimateScore: (this.info.ultimatescore || this.info.ultimatescore0)? MisParser.parseNumber(this.info.ultimatescore || this.info.ultimatescore0) : undefined,
-			awesomeScore: (this.info.awesomescore || this.info.awesomescore0)? MisParser.parseNumber(this.info.awesomescore || this.info.awesomescore0) : undefined,
+			qualifyingScore: (this.info.score || this.info.score0) ? MisParser.parseNumber(this.info.score || this.info.score0) : undefined,
+			goldScore: (this.info.goldscore || this.info.goldscore0) ? MisParser.parseNumber(this.info.goldscore || this.info.goldscore0) : undefined,
+			platinumScore: (this.info.platinumscore || this.info.platinumscore0) ? MisParser.parseNumber(this.info.platinumscore || this.info.platinumscore0) : undefined,
+			ultimateScore: (this.info.ultimatescore || this.info.ultimatescore0) ? MisParser.parseNumber(this.info.ultimatescore || this.info.ultimatescore0) : undefined,
+			awesomeScore: (this.info.awesomescore || this.info.awesomescore0) ? MisParser.parseNumber(this.info.awesomescore || this.info.awesomescore0) : undefined,
 
 			gems: this.gems,
 			hasEasterEgg: this.hasEasterEgg,
@@ -643,7 +643,7 @@ export class Mission {
 		if (requesterDoc?.curator && this.curatorVotes) {
 			const curatorIds = Object.keys(this.curatorVotes).map(Number);
 			const accounts = await db.accounts.findAsync({ _id: { $in: curatorIds } }) as AccountDoc[];
-			
+
 			// Resolve accounts to ProfileInfo objects
 			curatorVoteDetails = await Promise.all(accounts.map(async acc => ({
 				profile: await getProfileInfo(acc),
@@ -877,7 +877,7 @@ export class Mission {
 				queue.push(...element.elements);
 			} else if (element._type === MissionElementType.StaticShape) {
 				if (
-					element.datablock && 
+					element.datablock &&
 					element.datablock.toLowerCase() === 'pathnode' &&
 					cameraPathNodeRegEx.test(element._name)
 				) {
@@ -899,26 +899,26 @@ export class Mission {
 
 	/** Remove all mission curator votes from this account */
 	static async removeVotes(accountId: number) {
-        let missions = await db.missions.findAsync({ [`curatorVotes.${accountId}`]: { $exists: true } }) as MissionDoc[];
+		let missions = await db.missions.findAsync({ [`curatorVotes.${accountId}`]: { $exists: true } }) as MissionDoc[];
 
-        // Process updates
+		// Process updates
 		let updates = missions.map(async (doc) => {
 			let mission = Mission.fromDoc(doc);
 			mission.setVote(accountId, null);
 			return db.missions.updateAsync({ _id: mission.id }, mission.createDoc());
 		});
 		await Promise.all(updates);
-    }
+	}
 
 	/** Add or remove an account's curator vote */
 	setVote(accountId: number, vote: boolean | null) {
-        if (!this.curatorVotes) this.curatorVotes = {};
+		if (!this.curatorVotes) this.curatorVotes = {};
 
 		// Apply vote
-        if (vote === null || vote === undefined) {
-            delete this.curatorVotes[accountId];
-        } else {
-            this.curatorVotes[accountId] = !!vote;
-        }
-    }
+		if (vote === null || vote === undefined) {
+			delete this.curatorVotes[accountId];
+		} else {
+			this.curatorVotes[accountId] = !!vote;
+		}
+	}
 }
