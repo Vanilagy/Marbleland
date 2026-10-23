@@ -19,96 +19,91 @@
 	<p v-else class="alreadySignedIn">You're already signed in!</p>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { SignInInfo } from '../../../shared/types';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import { Head } from '@unhead/vue/components';
+import { useStore } from '../../ts/store';
 
-export default defineComponent({
-	components: {
-		ButtonWithIcon,
-		Head
-	},
-	data() {
-		return {
-			password: '',
-			passwordAgain: '',
-			waitingForResponse: false,
-			responseError: '',
-			token: ''
-		};
-	},
-	computed: {
-		filledOut(): boolean {
-			return !!(this.password && this.passwordAgain);
-		},
-		problems(): string[] {
-			let problems: string[] = [];
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
 
-			if (!this.filledOut) return problems;
+const password = ref('');
+const passwordAgain = ref('');
+const waitingForResponse = ref(false);
+const responseError = ref('');
+let token = '';
 
-			if (this.password.length < 8) problems.push("Your password needs to be 8 or more characters long.");
-			if (this.password !== this.passwordAgain) problems.push("Passwords don't match.");
+const filledOut = computed(() => {
+	return !!(password.value && passwordAgain.value);
+});
+const problems = computed(() => {
+	let problems: string[] = [];
 
-			return problems;
-		},
-		canSubmit(): boolean {
-			return this.filledOut && this.problems.length === 0 && !this.waitingForResponse;
-		}
-	},
-	mounted() {
-		// Get token from URL query parameter
-		this.token = this.$route.query.token as string;
-		if (!this.token) {
-			this.responseError = 'Invalid reset link. Please request a new password reset.';
-		}
-	},
-	methods: {
-		async submit() {
-			if (!this.canSubmit || !this.token) return;
+	if (!filledOut.value) return problems;
 
-			this.responseError = '';
-			this.waitingForResponse = true;
+	if (password.value.length < 8) problems.push("Your password needs to be 8 or more characters long.");
+	if (password.value !== passwordAgain.value) problems.push("Passwords don't match.");
 
-			try {
-				const response = await fetch('/api/account/reset-password', {
-					method: 'POST',
-					body: JSON.stringify({
-						token: this.token,
-						password: this.password
-					}),
-					headers: {
-						'Content-Type': 'application/json'
-					}
-				});
+	return problems;
+});
+const canSubmit = computed(() => {
+	return filledOut.value && problems.value.length === 0 && !waitingForResponse.value;
+});
 
-				const json = await response.json() as {
-					status: 'success' | 'error',
-					reason?: string,
-					token?: string,
-					signInInfo?: SignInInfo
-				};
-
-				if (json.status === 'error') {
-					this.responseError = json.reason;
-					this.waitingForResponse = false;
-				} else {
-					// Password reset successful, user is now signed in
-					this.$store.state.loggedInAccount = json.signInInfo.profile;
-					this.$store.state.ownPacks = json.signInInfo.packs;
-					this.$store.state.acknowledgedGuidelines = json.signInInfo.acknowledgedGuidelines;
-					this.$store.state.curatorVotes = json.signInInfo.curatorVotes ?? null;
-					this.$store.state.nextInfoBannerMessage = "Password reset successfully!";
-					this.$router.replace({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
-				}
-			} catch (error) {
-				this.responseError = 'Network error. Please try again.';
-				this.waitingForResponse = false;
-			}
-		}
+onMounted(() => {
+	// Get token from URL query parameter
+	token = route.query.token as string;
+	if (!token) {
+		responseError.value = 'Invalid reset link. Please request a new password reset.';
 	}
 });
+
+const submit = async () => {
+	if (!canSubmit.value || !token) return;
+
+	responseError.value = '';
+	waitingForResponse.value = true;
+
+	try {
+		const response = await fetch('/api/account/reset-password', {
+			method: 'POST',
+			body: JSON.stringify({
+				token: token,
+				password: password.value
+			}),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+
+		const json = await response.json() as {
+			status: 'success' | 'error',
+			reason?: string,
+			token?: string,
+			signInInfo?: SignInInfo
+		};
+
+		if (json.status === 'error') {
+			responseError.value = json.reason;
+			waitingForResponse.value = false;
+		} else {
+			// Password reset successful, user is now signed in
+			store.state.loggedInAccount = json.signInInfo.profile;
+			store.state.ownPacks = json.signInInfo.packs;
+			store.state.acknowledgedGuidelines = json.signInInfo.acknowledgedGuidelines;
+			store.state.curatorVotes = json.signInInfo.curatorVotes ?? null;
+			store.state.nextInfoBannerMessage = "Password reset successfully!";
+			router.replace({ name: 'Profile', params: { id: json.signInInfo.profile.id } });
+		}
+	} catch (error) {
+		responseError.value = 'Network error. Please try again.';
+		waitingForResponse.value = false;
+	}
+};
 </script>
 
 <style scoped>

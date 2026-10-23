@@ -5,22 +5,21 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
-export default defineComponent({
-	data() {
-		return {
-			shown: false,
-			content: ''
-		}
-	},
-	mounted() {
-		// If the store contains information about the next message to display, display it and then reset the store. Otherwise don't show.
-		if (this.$store.state.nextInfoBannerMessage) {
-			this.content = this.$store.state.nextInfoBannerMessage;
-			this.$store.state.nextInfoBannerMessage = null;
-			this.shown = true;
-		}
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue';
+import { useStore } from '../../ts/store';
+
+const store = useStore();
+
+const shown = ref(false);
+const content = ref('');
+
+onMounted(() => {
+	// If the store contains information about the next message to display, display it and then reset the store. Otherwise don't show.
+	if (store.state.nextInfoBannerMessage) {
+		content.value = store.state.nextInfoBannerMessage;
+		store.state.nextInfoBannerMessage = null;
+		shown.value = true;
 	}
 });
 </script>

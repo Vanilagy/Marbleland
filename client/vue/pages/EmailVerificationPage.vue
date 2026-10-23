@@ -27,26 +27,16 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { useRoute } from 'vue-router';
 import { Head } from '@unhead/vue/components';
 
-export default defineComponent({
-	components: {
-		Head
-	},
-	data() {
-		return {
-			email: this.$route.query.email as string || '',
-			source: this.$route.query.source as string || ''
-		};
-	},
-	computed: {
-		isFromSignIn(): boolean {
-			return this.source === 'signIn';
-		}
-	}
-});
+const route = useRoute();
+
+const email = route.query.email as string || '';
+const source = route.query.source as string || '';
+
+const isFromSignIn = source === 'signIn';
 </script>
 
 <style scoped>

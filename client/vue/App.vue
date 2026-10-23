@@ -21,26 +21,13 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
 import NavigationBar from './components/NavigationBar.vue';
 import { Head } from '@unhead/vue/components';
 import { ORIGIN } from '../../shared/constants';
 
-export default defineComponent({
-	components: {
-		NavigationBar,
-		Head
-	},
-	computed: {
-		origin(): string {
-			return ORIGIN;
-		},
-		isBrowser(): boolean {
-			return typeof window !== 'undefined';
-		}
-	}
-});
+const origin = ORIGIN;
+const isBrowser = typeof window !== 'undefined';
 </script>
 
 <style>

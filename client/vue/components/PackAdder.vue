@@ -10,82 +10,81 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
-import { SignInInfo } from '../../../shared/types';
+<script lang="ts" setup>
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue';
 import { emitter } from '../../ts/emitter';
-export default defineComponent({
-	props: {
-		levelId: Number as PropType<number>
-	},
-	data() {
-		return {
-			shown: false
-		};
-	},
-	computed: {
-		packs(): SignInInfo["packs"] {
-			return this.$store.state.ownPacks;
-		}
-	},
-	methods: {
-		contains(packId: number) {
-			return this.$store.state.ownPacks.some(x => x.id === packId && x.levelIds.includes(this.levelId));
-		},
-		rowTitle(packId: number) {
-			let contains = this.contains(packId);
-			let pack = this.packs.find(x => x.id === packId);
-			return (!contains)? `Add level to pack "${pack.name}"` : `Remove level from pack "${pack.name}"`;
-		},
-		async selectPack(packId: number) {
-			let contains = this.contains(packId); // See if the selected pack already contains the level
-			let pack = this.packs.find(x => x.id === packId); // Find the selected pack
+import { useStore } from '../../ts/store';
 
-			if (contains) {
-				// Remove the level
-				let levelIndex = pack.levelIds.indexOf(this.levelId);
-				if (levelIndex !== -1) pack.levelIds.splice(levelIndex, 1);
-			} else {
-				// Add the level
-				pack.levelIds.push(this.levelId);
-			}
+const props = defineProps<{
+	levelId?: number
+}>();
 
-			this.shown = false;
+const store = useStore();
 
-			// Sync the changes with the server
-			await fetch(`/api/pack/${packId}/set-levels`, {
-				method: 'POST',
-				body: JSON.stringify(pack.levelIds),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
+const shown = ref(false);
 
-			// Emit the update
-			emitter.emit('packUpdate', {
-				id: packId,
-				levelIds: pack.levelIds
-			});
-		},
-		show() {
-			this.shown = true;
-		},
-		mouseUpListener() {
-			if (this.shown) setTimeout(() => this.shown = false);
-		}
-	},
-	mounted() {
-		window.addEventListener('mouseup', this.mouseUpListener);
-	},
-	activated() {
-		window.addEventListener('mouseup', this.mouseUpListener);
-	},
-	deactivated() {
-		window.removeEventListener('mouseup', this.mouseUpListener);
-	},
-	unmounted() {
-		window.removeEventListener('mouseup', this.mouseUpListener);
+const packs = computed(() => {
+	return store.state.ownPacks;
+});
+
+const contains = (packId: number) => {
+	return store.state.ownPacks.some(x => x.id === packId && x.levelIds.includes(props.levelId));
+};
+const rowTitle = (packId: number) => {
+	let packContains = contains(packId);
+	let pack = packs.value.find(x => x.id === packId);
+	return (!packContains)? `Add level to pack "${pack.name}"` : `Remove level from pack "${pack.name}"`;
+};
+const selectPack = async (packId: number) => {
+	let packContains = contains(packId); // See if the selected pack already contains the level
+	let pack = packs.value.find(x => x.id === packId); // Find the selected pack
+
+	if (packContains) {
+		// Remove the level
+		let levelIndex = pack.levelIds.indexOf(props.levelId);
+		if (levelIndex !== -1) pack.levelIds.splice(levelIndex, 1);
+	} else {
+		// Add the level
+		pack.levelIds.push(props.levelId);
 	}
+
+	shown.value = false;
+
+	// Sync the changes with the server
+	await fetch(`/api/pack/${packId}/set-levels`, {
+		method: 'POST',
+		body: JSON.stringify(pack.levelIds),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+
+	// Emit the update
+	emitter.emit('packUpdate', {
+		id: packId,
+		levelIds: pack.levelIds
+	});
+};
+const show = () => {
+	shown.value = true;
+};
+const mouseUpListener = () => {
+	if (shown.value) setTimeout(() => shown.value = false);
+};
+
+defineExpose({ show });
+
+onMounted(() => {
+	window.addEventListener('mouseup', mouseUpListener);
+});
+onActivated(() => {
+	window.addEventListener('mouseup', mouseUpListener);
+});
+onDeactivated(() => {
+	window.removeEventListener('mouseup', mouseUpListener);
+});
+onUnmounted(() => {
+	window.removeEventListener('mouseup', mouseUpListener);
 });
 </script>
 

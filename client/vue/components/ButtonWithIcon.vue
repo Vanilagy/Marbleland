@@ -5,14 +5,11 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
-export default defineComponent({
-	props: {
-		icon: String as PropType<string>,
-		noMargin: Boolean as PropType<boolean>
-	}
-});
+<script lang="ts" setup>
+defineProps<{
+	icon?: string,
+	noMargin?: boolean
+}>();
 </script>
 
 <style scoped>

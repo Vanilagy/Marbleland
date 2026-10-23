@@ -1,6 +1,6 @@
 import App from '../client/vue/App.vue';
 import * as vue from 'vue';
-import { store as defaultStore, createNewStore } from '../client/ts/store';
+import { store as defaultStore, createNewStore, storeKey } from '../client/ts/store';
 import { createNewRouter } from '../client/ts/router';
 import { createHead as createClientHead } from '@unhead/vue/client';
 import { createHead as createServerHead } from '@unhead/vue/server';
@@ -13,7 +13,7 @@ export const createApp = () => {
 	let head = isServer? createServerHead({ disableDefaults: true }) : createClientHead();
 	let store = isServer? createNewStore() : defaultStore;
 
-	app.use(store);
+	app.use(store, storeKey);
 	app.use(router);
 	app.use(head);
 

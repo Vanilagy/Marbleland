@@ -17,9 +17,6 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue';
-import DropdownComponent from './DropdownComponent.vue';
-
 export interface SearchBarConfig {
 	query: string,
 	filterShown: boolean,
@@ -33,28 +30,18 @@ export interface SearchBarConfig {
 	}>,
 	reversed: boolean
 }
+</script>
 
-export default defineComponent({
-	props: {
-		config: Object as PropType<SearchBarConfig>,
-		placeholder: String as PropType<string>
-	},
-	data() {
-		return {
-			focused: false
-		};
-	},
-	computed: {
-		styleObject(): object {
-			return {
-				'background': this.focused? 'red' : ''
-			};
-		}
-	},
-	components: {
-		DropdownComponent
-	}
-});
+<script lang="ts" setup>
+import { ref } from 'vue';
+import DropdownComponent from './DropdownComponent.vue';
+
+defineProps<{
+	config?: SearchBarConfig,
+	placeholder?: string
+}>();
+
+const focused = ref(false);
 </script>
 
 <style>

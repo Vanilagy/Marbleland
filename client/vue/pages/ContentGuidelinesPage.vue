@@ -33,55 +33,49 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { Head } from '@unhead/vue/components';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
+import { useStore } from '../../ts/store';
 
-export default defineComponent({
-	components: {
-		Head,
-		ButtonWithIcon,
-		ProgressBar
-	},
-	data() {
-		return {
-			progress: 0,
-			timeoutId: -1,
-			processing: false
-		};
-	},
-	mounted() {
-		const start = performance.now();
+const store = useStore();
+const router = useRouter();
 
-		this.timeoutId = setInterval(() => {
-			this.progress = Math.min((performance.now() - start) / 60000, 1);
-		}, 1000/60) as unknown as number;
-	},
-	unmounted() {
-		clearInterval(this.timeoutId);
-	},
-	methods: {
-		async acknowledgeGuidelines() {
-			this.processing = true;
+const progress = ref(0);
+const processing = ref(false);
+let timeoutId = -1;
 
-			try {
-				await fetch(`/api/account/acknowledge-guidelines`, {
-					method: 'POST'
-				});
+onMounted(() => {
+	const start = performance.now();
 
-				this.$store.state.acknowledgedGuidelines = true;
-				this.$router.push({ name: 'Upload' });
-			} catch (e) {
-				console.error(e);
-				alert("Something went wrong, try again.");
-			} finally {
-				this.processing = false;
-			}
-		}
-	}
+	timeoutId = setInterval(() => {
+		progress.value = Math.min((performance.now() - start) / 60000, 1);
+	}, 1000/60) as unknown as number;
 });
+onUnmounted(() => {
+	clearInterval(timeoutId);
+});
+
+const acknowledgeGuidelines = async () => {
+	processing.value = true;
+
+	try {
+		await fetch(`/api/account/acknowledge-guidelines`, {
+			method: 'POST'
+		});
+
+		store.state.acknowledgedGuidelines = true;
+		router.push({ name: 'Upload' });
+	} catch (e) {
+		console.error(e);
+		alert("Something went wrong, try again.");
+	} finally {
+		processing.value = false;
+	}
+};
 </script>
 
 <style scoped>

@@ -6,23 +6,23 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
-export default defineComponent({
-	props: {
-		icon: String as PropType<string>,
-		name: String as PropType<string>,
-		description: String as PropType<string>,
-		path: String as PropType<string>
-	},
-	methods: {
-		navigate() {
-			// Go to a relative path or an absolute one, depending on the URL
-			if (this.path.startsWith('/')) this.$router.push(this.path);
-			else location.href = this.path;
-		}
-	}
-});
+<script lang="ts" setup>
+import { useRouter } from 'vue-router';
+
+const props = defineProps<{
+	icon?: string,
+	name?: string,
+	description?: string,
+	path?: string
+}>();
+
+const router = useRouter();
+
+const navigate = () => {
+	// Go to a relative path or an absolute one, depending on the URL
+	if (props.path.startsWith('/')) router.push(props.path);
+	else location.href = props.path;
+};
 </script>
 
 <style scoped>

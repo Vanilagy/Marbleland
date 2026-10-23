@@ -21,7 +21,7 @@
 				<img src="/assets/svg/west_black_24dp.svg" v-if="actions && actions.swapLeft" title="Swap to the left" @click.stop="actions.swapLeft(levelInfo)" class="basicIcon">
 				<img src="/assets/svg/east_black_24dp.svg" v-if="actions && actions.swapRight" title="Swap to the right" @click.stop="actions.swapRight(levelInfo)" class="basicIcon">
 				<img src="/assets/svg/remove_circle_outline_black_24dp.svg" v-if="actions && actions.removeFromPack" title="Remove level from this pack" @click.stop="actions.removeFromPack(levelInfo)" class="basicIcon">
-				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions && actions.addToPack" title="Add level to pack" @click.stop="($refs.packAdder as any).show()" class="basicIcon">
+				<img src="/assets/svg/create_new_folder_black_24dp.svg" v-if="actions && actions.addToPack" title="Add level to pack" @click.stop="packAdder.show()" class="basicIcon">
 				<img src="/assets/svg/download_black_24dp.svg" title="Download level" @click.stop="download" class="basicIcon">
 			</div>
 		</div>
@@ -30,10 +30,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue';
 import { LevelInfo } from '../../../shared/types';
-import { Util } from '../../ts/util';
-import PackAdder from './PackAdder.vue';
 
 /** Specifies options actions a level panel can display. */
 export interface LevelPanelActions {
@@ -42,89 +39,91 @@ export interface LevelPanelActions {
 	swapLeft?: (info: LevelInfo) => void,
 	swapRight?: (info: LevelInfo) => void
 }
+</script>
 
-export default defineComponent({
-	props: {
-		levelInfo: Object as PropType<LevelInfo>,
-		actions: Object as PropType<LevelPanelActions>
-	},
-	data() {
-		return {
-			imageShown: true
-		};
-	},
-	computed: {
-		imageSource(): string {
-			return `/api/level/${this.levelInfo.id}/image?version=${this.levelInfo.currentVersion ?? 1}`;
-		},
-		actionsStyle(): Record<string, string> {
-			return {
-				display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the actions if there's no hovering on the device
-			};
-		},
-		isCurator(): boolean {
-			return !!this.$store.state.loggedInAccount?.isCurator;
-		},
-		yourVote(): boolean {
-			return this.$store.state.curatorVotes?.[this.levelInfo.id] ?? null;
-		}
-	},
-	methods: {
-		clicked(): void {
-			this.$router.push({ name: 'Level', params: { id: this.levelInfo.id } });
-		},
-		imageLoadError() {
-			this.imageShown = false;
-		},
-		download() {
-			window.location.href = window.location.origin + `/api/level/${this.levelInfo.id}/zip`;
-		},
-		/** Casts or removes a curator vote on this level, mirroring the voting behavior on the level page. */
-		async submitVote(voteType: boolean) {
-			if (!this.isCurator) return;
+<script lang="ts" setup>
+import { computed, ref, useTemplateRef } from 'vue';
+import { useRouter } from 'vue-router';
+import { Util } from '../../ts/util';
+import { useStore } from '../../ts/store';
+import PackAdder from './PackAdder.vue';
 
-			const getScoreVal = (vote: boolean): number => {
-				if (vote === true) return 1;
-				if (vote === false) return -1;
-				return 0;
-			};
-			const setStoredVote = (vote: boolean) => {
-				if (!this.$store.state.curatorVotes) this.$store.state.curatorVotes = {};
-				if (vote === null) delete this.$store.state.curatorVotes[this.levelInfo.id];
-				else this.$store.state.curatorVotes[this.levelInfo.id] = vote;
-			};
+const props = defineProps<{
+	levelInfo?: LevelInfo,
+	actions?: LevelPanelActions
+}>();
 
-			let oldVote = this.yourVote;
-			let newVote = (oldVote === voteType)? null : voteType;
-			let diff = getScoreVal(newVote) - getScoreVal(oldVote);
+const store = useStore();
+const router = useRouter();
+const packAdder = useTemplateRef<InstanceType<typeof PackAdder>>('packAdder');
 
-			// Optimistic UI
-			setStoredVote(newVote);
-			this.levelInfo.curationScore = (this.levelInfo.curationScore || 0) + diff;
+const imageShown = ref(true);
 
-			try {
-				let response = await fetch(`/api/level/${this.levelInfo.id}/curate-vote`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ vote: newVote })
-				});
-
-				if (!response.ok) {
-					let text = await response.text();
-					alert("Failed to submit vote: " + text);
-					throw new Error("Vote failed");
-				}
-			} catch (e) {
-				// Revert to old state
-				setStoredVote(oldVote);
-				this.levelInfo.curationScore = (this.levelInfo.curationScore || 0) - diff;
-			}
-		}
-	},
-	components: {
-		PackAdder
-	}
+const imageSource = computed(() => {
+	return `/api/level/${props.levelInfo.id}/image?version=${props.levelInfo.currentVersion ?? 1}`;
 });
+const actionsStyle = computed(() => {
+	return {
+		display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the actions if there's no hovering on the device
+	};
+});
+const isCurator = computed(() => {
+	return !!store.state.loggedInAccount?.isCurator;
+});
+const yourVote = computed((): boolean => {
+	return store.state.curatorVotes?.[props.levelInfo.id] ?? null;
+});
+
+const clicked = () => {
+	router.push({ name: 'Level', params: { id: props.levelInfo.id } });
+};
+const imageLoadError = () => {
+	imageShown.value = false;
+};
+const download = () => {
+	window.location.href = window.location.origin + `/api/level/${props.levelInfo.id}/zip`;
+};
+/** Casts or removes a curator vote on this level, mirroring the voting behavior on the level page. */
+const submitVote = async (voteType: boolean) => {
+	if (!isCurator.value) return;
+
+	const getScoreVal = (vote: boolean): number => {
+		if (vote === true) return 1;
+		if (vote === false) return -1;
+		return 0;
+	};
+	const setStoredVote = (vote: boolean) => {
+		if (!store.state.curatorVotes) store.state.curatorVotes = {};
+		if (vote === null) delete store.state.curatorVotes[props.levelInfo.id];
+		else store.state.curatorVotes[props.levelInfo.id] = vote;
+	};
+
+	let oldVote = yourVote.value;
+	let newVote = (oldVote === voteType)? null : voteType;
+	let diff = getScoreVal(newVote) - getScoreVal(oldVote);
+
+	// Optimistic UI
+	setStoredVote(newVote);
+	props.levelInfo.curationScore = (props.levelInfo.curationScore || 0) + diff;
+
+	try {
+		let response = await fetch(`/api/level/${props.levelInfo.id}/curate-vote`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ vote: newVote })
+		});
+
+		if (!response.ok) {
+			let text = await response.text();
+			alert("Failed to submit vote: " + text);
+			throw new Error("Vote failed");
+		}
+	} catch (e) {
+		// Revert to old state
+		setStoredVote(oldVote);
+		props.levelInfo.curationScore = (props.levelInfo.curationScore || 0) - diff;
+	}
+};
 </script>
 
 <style scoped>

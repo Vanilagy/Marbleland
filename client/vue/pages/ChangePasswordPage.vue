@@ -16,74 +16,68 @@
 	<p v-else class="notSignedIn">You're not signed in.</p>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import { Head } from '@unhead/vue/components';
+import { useStore } from '../../ts/store';
 
-export default defineComponent({
-	props: {
-		type: String as PropType<'signUp' | 'signIn'>
-	},
-	components: {
-		ButtonWithIcon,
-		Head
-	},
-	data() {
-		return {
-			currentPassword: '',
-			newPassword: '',
-			newPasswordAgain: '',
-			waitingForResponse: false
-		};
-	},
-	computed: {
-		filledOut(): boolean {
-			return !!(this.currentPassword && this.newPassword && this.newPasswordAgain);
-		},
-		/** Returns a list of problems with the current input. */
-		problems(): string[] {
-			let problems: string[] = [];
+const props = defineProps<{
+	type?: 'signUp' | 'signIn'
+}>();
 
-			if (!this.filledOut) return problems;
+const store = useStore();
+const router = useRouter();
 
-			if (this.newPassword.length < 8) problems.push("Your password needs to be 8 or more characters long.")
-			if (this.newPassword !== this.newPasswordAgain) problems.push("Passwords don't match.");
+const currentPassword = ref('');
+const newPassword = ref('');
+const newPasswordAgain = ref('');
+const waitingForResponse = ref(false);
 
-			return problems;
-		},
-		canSubmit(): boolean {
-			return this.filledOut && this.problems.length === 0;
-		}
-	},
-	methods: {
-		async submit() {
-			if (!this.canSubmit) return;
-
-			this.waitingForResponse = true;
-
-			// Send the request and wait for the response
-			let response = await fetch('/api/account/change-password', {
-				method: 'POST',
-				body: JSON.stringify({
-					currentPassword: this.currentPassword,
-					newPassword: this.newPassword
-				}),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
-
-			if (!response.ok) {
-				alert("Something went wrong.");
-				this.waitingForResponse = false;
-			} else {
-				if (this.type === 'signUp') this.$store.state.nextInfoBannerMessage = "Password changed successfully!";
-				this.$router.replace({ name: 'Profile', params: { id: this.$store.state.loggedInAccount.id } });
-			}
-		}
-	}
+const filledOut = computed(() => {
+	return !!(currentPassword.value && newPassword.value && newPasswordAgain.value);
 });
+/** Returns a list of problems with the current input. */
+const problems = computed(() => {
+	let problems: string[] = [];
+
+	if (!filledOut.value) return problems;
+
+	if (newPassword.value.length < 8) problems.push("Your password needs to be 8 or more characters long.")
+	if (newPassword.value !== newPasswordAgain.value) problems.push("Passwords don't match.");
+
+	return problems;
+});
+const canSubmit = computed(() => {
+	return filledOut.value && problems.value.length === 0;
+});
+
+const submit = async () => {
+	if (!canSubmit.value) return;
+
+	waitingForResponse.value = true;
+
+	// Send the request and wait for the response
+	let response = await fetch('/api/account/change-password', {
+		method: 'POST',
+		body: JSON.stringify({
+			currentPassword: currentPassword.value,
+			newPassword: newPassword.value
+		}),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+
+	if (!response.ok) {
+		alert("Something went wrong.");
+		waitingForResponse.value = false;
+	} else {
+		if (props.type === 'signUp') store.state.nextInfoBannerMessage = "Password changed successfully!";
+		router.replace({ name: 'Profile', params: { id: store.state.loggedInAccount.id } });
+	}
+};
 </script>
 
 <style scoped>

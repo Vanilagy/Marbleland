@@ -90,267 +90,261 @@
 	<p v-else class="notSignedIn">You need to be signed in to upload a level.</p>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 import PanelList from '../components/PanelList.vue';
 import { Head } from '@unhead/vue/components';
 import { LevelInfo, PackInfo } from '../../../shared/types';
+import { useStore } from '../../ts/store';
 
-export default defineComponent({
-	components: {
-		ButtonWithIcon,
-		ProgressBar,
-		PanelList,
-		Head
-	},
-	data() {
-		return {
-			uploading: false,
-			uploadLoaded: 0,
-			uploadTotal: 1,
-			/** The state of the progress bar */
-			uploadState: 'neutral' as 'neutral' | 'negative' | 'positive',
-			problems: [] as string[],
-			successResponse: null as {
-				uploadId: string,
-				missions: {
-					misFilePath: string,
-					name: string
-				}[],
-				packs: PackInfo[],
-				warnings: string[]
-			},
-			currentIndex: 0,
-			remarks: [] as string[],
-			selectedPacks: [] as number[],
-			createNewPack: false,
-			newPackName: "",
-			newPackDescription: "",
-			submitting: false,
-			dragEntered: false,
-			updateId: this.$route.query['update-id'] ? Number(this.$route.query['update-id']) : null,
-			/** The current state of the level being updated. Fetched on mount when updateId is set. */
-			updateTarget: null as LevelInfo,
-			updateTargetMissing: false
-		};
-	},
-	async mounted() {
-		if (this.updateId === null) return;
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
 
-		// Fetch the metadata of the level being updated
-		let response = await fetch(`/api/level/${this.updateId}/info`);
-		if (response.ok) {
-			this.updateTarget = await response.json();
-		} else {
-			this.updateTargetMissing = true;
-		}
-	},
-	methods: {
-		/** Show a file dialog that allows the user to select a .zip file, then upload it to the server. */
-		selectFile() {
-			let fileInput = document.createElement('input');
-			fileInput.setAttribute('type', 'file');
-			fileInput.setAttribute('accept', 'application/zip');
-			fileInput.click();
+const uploading = ref(false);
+const uploadLoaded = ref(0);
+const uploadTotal = ref(1);
+/** The state of the progress bar */
+const uploadState = ref<'neutral' | 'negative' | 'positive'>('neutral');
+const problems = ref<string[]>([]);
+const successResponse = ref<{
+	uploadId: string,
+	missions: {
+		misFilePath: string,
+		name: string
+	}[],
+	packs: PackInfo[],
+	warnings: string[]
+}>(null);
+const currentIndex = ref(0);
+const remarks = ref<string[]>([]);
+const selectedPacks = ref<number[]>([]);
+const createNewPack = ref(false);
+const newPackName = ref("");
+const newPackDescription = ref("");
+const submitting = ref(false);
+const dragEntered = ref(false);
+const updateId = route.query['update-id'] ? Number(route.query['update-id']) : null;
+/** The current state of the level being updated. Fetched on mount when updateId is set. */
+const updateTarget = ref<LevelInfo>(null);
+const updateTargetMissing = ref(false);
 
-			fileInput.addEventListener('change', () => {
-				let file = fileInput.files[0];
-				if (file) this.uploadZipFile(file);
-			});
-		},
-		selectFolder() {
-			let fileInput = document.createElement('input');
-			fileInput.setAttribute('type', 'file');
-			fileInput.setAttribute('webkitdirectory', '');
-			fileInput.click();
+onMounted(async () => {
+	if (updateId === null) return;
 
-			fileInput.addEventListener('change', () => {
-				if (fileInput.files.length > 0) {
-					this.uploadFiles([...fileInput.files]);
-				}
-			});
-		},
-		uploadZipFile(file: File) {
-			if (!file.name.endsWith('.zip')) {
-				alert("You can only upload .zip files.");
-				return;
-			}
-
-			if (file.size > 100e6) {
-				alert("Your .zip is too large (max 100 MB).");
-				return;
-			}
-
-			let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
-			request.open('POST', this.getUploadEndpoint(), true);
-			request.setRequestHeader('Content-Type', 'application/zip');
-			request.withCredentials = true;
-			request.send(file);
-
-			this.handleUpload(request);
-		},
-		getUploadEndpoint() {
-			return this.updateId? `/api/level/${this.updateId}/upload` : '/api/level/upload';
-		},
-		uploadFiles(files: File[]) {
-			let totalSizeSum = files.reduce((sum, file) => sum + file.size, 0);
-			if (totalSizeSum > 100e6) {
-				alert("The total size of the files you selected is too large (max 100 MB).");
-				return;
-			}
-
-			let formData = new FormData();
-			for (let file of files) formData.append('files', file);
-
-			let request = new XMLHttpRequest();
-			request.open('POST', this.getUploadEndpoint(), true);
-			request.withCredentials = true;
-			request.send(formData);
-
-			this.handleUpload(request);
-		},
-		handleUpload(request: XMLHttpRequest) {
-			this.resetUpload();
-			this.uploading = true;
-			this.problems = [];
-			this.uploadState = 'neutral';
-
-			request.upload.onprogress = (ev) => {
-				this.uploadLoaded = ev.loaded;
-				this.uploadTotal = ev.total;
-			};
-			request.onloadend = () => {
-				let json = JSON.parse(request.responseText) as {
-					status: 'error' | 'success',
-					problems: string[],
-					uploadId: string,
-					missions: {
-						misFilePath: string,
-						name: string
-					}[],
-					packs: PackInfo[],
-					warnings: string[]
-				};
-
-				if (json.status === 'error') {
-					// There were problems with the upload, show them to the user
-					this.problems = json.problems;
-					this.uploadState = 'negative';
-					this.uploading = false;
-				} else if (json.status === 'success') {
-					// The upload was successful
-					this.successResponse = json;
-					this.uploadState = 'positive';
-					this.remarks = Array(json.missions.length).fill('');
-				}
-			};
-		},
-		resetUpload() {
-			this.uploadLoaded = 0;
-			this.uploadTotal = 1;
-		},
-		/** Submits the already uploaded level. */
-		async submit() {
-			if (this.successResponse.missions.length > 1 && !confirm(`Please confirm the submission of these ${this.successResponse.missions.length} levels.`)) return;
-
-			this.submitting = true;
-
-			const endpoint = this.updateId
-				? `/api/level/${this.updateId}/submit`
-				: `/api/level/submit`;
-
-			// Tell the server to submit the upload
-			let response = await fetch(endpoint, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					uploadId: this.successResponse.uploadId,
-					remarks: this.remarks,
-					addToPacks: this.updateId ? [] : this.selectedPacks, // Don't change pack when updating level
-					newPack: this.createNewPack? {
-						name: this.newPackName,
-						description: this.newPackDescription
-					} : null
-				})
-			});
-
-			if (response.ok) {
-				// The levels have been submitted successfully
-				let json = await response.json() as {
-					levelIds: number[],
-					newPackId?: number
-				};
-				this.$store.state.nextInfoBannerMessage = this.updateId? "Level updated successfully!"
-					: (json.levelIds.length > 1)? `All ${json.levelIds.length} levels submitted successfully!`
-					: "Level submitted successfully!";
-
-				// Navigate either to the level page or the profile page depending on the amount of uploaded levels
-				if (json.levelIds.length > 1) this.$router.push({ name: 'Profile', params: { id: this.$store.state.loggedInAccount.id } });
-				else this.$router.push({ name: 'Level', params: { id: json.levelIds[0] } });
-
-				// Update pack stuff
-
-				if (json.newPackId !== null) this.$store.state.ownPacks.push({
-					id: json.newPackId,
-					name: this.newPackName,
-					levelIds: json.levelIds
-				});
-				 
-				for (let pack of this.$store.state.ownPacks) {
-					if (!this.selectedPacks.includes(pack.id)) continue;
-					pack.levelIds.push(...json.levelIds);
-				}
-			} else {
-				alert("There was an error submitting your level. This is either because of a bug or because you waited too long to submit after initially uploading your .zip. If you want to try again, refresh this page.");
-			}
-		},
-		async dropFile(e: DragEvent) {
-			this.dragEntered = false;
-			let files: File[] = [];
-
-			const readEntry = async (entry: FileSystemEntry) => {
-				if (entry.isFile) {
-					let file = await new Promise<File>((resolve) => {
-						(entry as FileSystemFileEntry).file(resolve);
-					});
-					files.push(file);
-				} else if (entry.isDirectory) {
-					let reader = (entry as FileSystemDirectoryEntry).createReader();
-
-					while (true) {
-						let entries = await new Promise<FileSystemEntry[]>((resolve) => {
-							reader.readEntries(resolve);
-						});
-						if (entries.length === 0) break;
-
-						for (let entry of entries) {
-							await readEntry(entry);
-						}
-					}
-				}
-			};
-
-			for (let item of e.dataTransfer.items) {
-				let entry = item.webkitGetAsEntry();
-				if (!entry) continue;
-
-				await readEntry(entry);
-			}
-
-			if (files.length === 0) return;
-
-			if (files.length === 1 && files[0].type === 'application/zip') {
-				this.uploadZipFile(files[0]);
-			} else {
-				this.uploadFiles(files);
-			}
-		}
+	// Fetch the metadata of the level being updated
+	let response = await fetch(`/api/level/${updateId}/info`);
+	if (response.ok) {
+		updateTarget.value = await response.json();
+	} else {
+		updateTargetMissing.value = true;
 	}
 });
+
+/** Show a file dialog that allows the user to select a .zip file, then upload it to the server. */
+const selectFile = () => {
+	let fileInput = document.createElement('input');
+	fileInput.setAttribute('type', 'file');
+	fileInput.setAttribute('accept', 'application/zip');
+	fileInput.click();
+
+	fileInput.addEventListener('change', () => {
+		let file = fileInput.files[0];
+		if (file) uploadZipFile(file);
+	});
+};
+const selectFolder = () => {
+	let fileInput = document.createElement('input');
+	fileInput.setAttribute('type', 'file');
+	fileInput.setAttribute('webkitdirectory', '');
+	fileInput.click();
+
+	fileInput.addEventListener('change', () => {
+		if (fileInput.files.length > 0) {
+			uploadFiles([...fileInput.files]);
+		}
+	});
+};
+const uploadZipFile = (file: File) => {
+	if (!file.name.endsWith('.zip')) {
+		alert("You can only upload .zip files.");
+		return;
+	}
+
+	if (file.size > 100e6) {
+		alert("Your .zip is too large (max 100 MB).");
+		return;
+	}
+
+	let request = new XMLHttpRequest(); // We use XMLHttpRequest here instead of fetch because it gives us access to upload progress data
+	request.open('POST', getUploadEndpoint(), true);
+	request.setRequestHeader('Content-Type', 'application/zip');
+	request.withCredentials = true;
+	request.send(file);
+
+	handleUpload(request);
+};
+const getUploadEndpoint = () => {
+	return updateId? `/api/level/${updateId}/upload` : '/api/level/upload';
+};
+const uploadFiles = (files: File[]) => {
+	let totalSizeSum = files.reduce((sum, file) => sum + file.size, 0);
+	if (totalSizeSum > 100e6) {
+		alert("The total size of the files you selected is too large (max 100 MB).");
+		return;
+	}
+
+	let formData = new FormData();
+	for (let file of files) formData.append('files', file);
+
+	let request = new XMLHttpRequest();
+	request.open('POST', getUploadEndpoint(), true);
+	request.withCredentials = true;
+	request.send(formData);
+
+	handleUpload(request);
+};
+const handleUpload = (request: XMLHttpRequest) => {
+	resetUpload();
+	uploading.value = true;
+	problems.value = [];
+	uploadState.value = 'neutral';
+
+	request.upload.onprogress = (ev) => {
+		uploadLoaded.value = ev.loaded;
+		uploadTotal.value = ev.total;
+	};
+	request.onloadend = () => {
+		let json = JSON.parse(request.responseText) as {
+			status: 'error' | 'success',
+			problems: string[],
+			uploadId: string,
+			missions: {
+				misFilePath: string,
+				name: string
+			}[],
+			packs: PackInfo[],
+			warnings: string[]
+		};
+
+		if (json.status === 'error') {
+			// There were problems with the upload, show them to the user
+			problems.value = json.problems;
+			uploadState.value = 'negative';
+			uploading.value = false;
+		} else if (json.status === 'success') {
+			// The upload was successful
+			successResponse.value = json;
+			uploadState.value = 'positive';
+			remarks.value = Array(json.missions.length).fill('');
+		}
+	};
+};
+const resetUpload = () => {
+	uploadLoaded.value = 0;
+	uploadTotal.value = 1;
+};
+/** Submits the already uploaded level. */
+const submit = async () => {
+	if (successResponse.value.missions.length > 1 && !confirm(`Please confirm the submission of these ${successResponse.value.missions.length} levels.`)) return;
+
+	submitting.value = true;
+
+	const endpoint = updateId
+		? `/api/level/${updateId}/submit`
+		: `/api/level/submit`;
+
+	// Tell the server to submit the upload
+	let response = await fetch(endpoint, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			uploadId: successResponse.value.uploadId,
+			remarks: remarks.value,
+			addToPacks: updateId ? [] : selectedPacks.value, // Don't change pack when updating level
+			newPack: createNewPack.value? {
+				name: newPackName.value,
+				description: newPackDescription.value
+			} : null
+		})
+	});
+
+	if (response.ok) {
+		// The levels have been submitted successfully
+		let json = await response.json() as {
+			levelIds: number[],
+			newPackId?: number
+		};
+		store.state.nextInfoBannerMessage = updateId? "Level updated successfully!"
+			: (json.levelIds.length > 1)? `All ${json.levelIds.length} levels submitted successfully!`
+			: "Level submitted successfully!";
+
+		// Navigate either to the level page or the profile page depending on the amount of uploaded levels
+		if (json.levelIds.length > 1) router.push({ name: 'Profile', params: { id: store.state.loggedInAccount.id } });
+		else router.push({ name: 'Level', params: { id: json.levelIds[0] } });
+
+		// Update pack stuff
+
+		if (json.newPackId !== null) store.state.ownPacks.push({
+			id: json.newPackId,
+			name: newPackName.value,
+			levelIds: json.levelIds
+		});
+
+		for (let pack of store.state.ownPacks) {
+			if (!selectedPacks.value.includes(pack.id)) continue;
+			pack.levelIds.push(...json.levelIds);
+		}
+	} else {
+		alert("There was an error submitting your level. This is either because of a bug or because you waited too long to submit after initially uploading your .zip. If you want to try again, refresh this page.");
+	}
+};
+const dropFile = async (e: DragEvent) => {
+	dragEntered.value = false;
+	let files: File[] = [];
+
+	const readEntry = async (entry: FileSystemEntry) => {
+		if (entry.isFile) {
+			let file = await new Promise<File>((resolve) => {
+				(entry as FileSystemFileEntry).file(resolve);
+			});
+			files.push(file);
+		} else if (entry.isDirectory) {
+			let reader = (entry as FileSystemDirectoryEntry).createReader();
+
+			while (true) {
+				let entries = await new Promise<FileSystemEntry[]>((resolve) => {
+					reader.readEntries(resolve);
+				});
+				if (entries.length === 0) break;
+
+				for (let entry of entries) {
+					await readEntry(entry);
+				}
+			}
+		}
+	};
+
+	for (let item of e.dataTransfer.items) {
+		let entry = item.webkitGetAsEntry();
+		if (!entry) continue;
+
+		await readEntry(entry);
+	}
+
+	if (files.length === 0) return;
+
+	if (files.length === 1 && files[0].type === 'application/zip') {
+		uploadZipFile(files[0]);
+	} else {
+		uploadFiles(files);
+	}
+};
 </script>
 
 <style scoped>

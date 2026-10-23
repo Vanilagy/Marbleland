@@ -11,58 +11,52 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import ProfileIcon from './ProfileIcon.vue';
 
-export default defineComponent({
-	data() {
-		return {
-			targets: [{
-				path: '/search',
-				icon: '/assets/svg/search_black_24dp.svg',
-				label: 'Search'
-			}, {
-				path: '/packs',
-				icon: '/assets/svg/folder_black_24dp.svg',
-				label: 'Packs'
-			}, {
-				path: '/upload',
-				icon: '/assets/svg/file_upload_black_24dp.svg',
-				label: 'Upload'
-			}, {
-				path: 'https://github.com/Vanilagy/Marbleland/blob/main/docs/api.md',
-				icon: '/assets/svg/code_black_24dp.svg',
-				label: 'API'
-			}],
-			showShadow: true,
-			interval: null as ReturnType<typeof setInterval>
-		};
-	},
-	computed: {
-		currentPath(): string {
-			return this.$route.path;
-		}
-	},
-	methods: {
-		navigate(path: string) {
-			// Go to a relative path or an absolute one, depending on the URL
-			if (path.startsWith('/')) this.$router.push(path);
-			else location.href = path;
-		}
-	},
-	components: {
-		ProfileIcon
-	},
-	mounted() {
-		return; // For now. Can reenable if we want to
-		this.interval = setInterval(() => {
-			this.showShadow = document.documentElement.scrollTop !== 0;
-		}, 1000 / 30);
-	},
-	unmounted() {
-		clearInterval(this.interval);
-	}
+const route = useRoute();
+const router = useRouter();
+
+const targets = [{
+	path: '/search',
+	icon: '/assets/svg/search_black_24dp.svg',
+	label: 'Search'
+}, {
+	path: '/packs',
+	icon: '/assets/svg/folder_black_24dp.svg',
+	label: 'Packs'
+}, {
+	path: '/upload',
+	icon: '/assets/svg/file_upload_black_24dp.svg',
+	label: 'Upload'
+}, {
+	path: 'https://github.com/Vanilagy/Marbleland/blob/main/docs/api.md',
+	icon: '/assets/svg/code_black_24dp.svg',
+	label: 'API'
+}];
+const showShadow = ref(true);
+let interval: ReturnType<typeof setInterval> = null;
+
+const currentPath = computed(() => {
+	return route.path;
+});
+
+const navigate = (path: string) => {
+	// Go to a relative path or an absolute one, depending on the URL
+	if (path.startsWith('/')) router.push(path);
+	else location.href = path;
+};
+
+onMounted(() => {
+	return; // For now. Can reenable if we want to
+	interval = setInterval(() => {
+		showShadow.value = document.documentElement.scrollTop !== 0;
+	}, 1000 / 30);
+});
+onUnmounted(() => {
+	clearInterval(interval);
 });
 </script>
 

@@ -17,78 +17,74 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { PackInfo } from '../../../shared/types';
 import { emitter } from '../../ts/emitter';
 import { Util } from '../../ts/util';
 
-export default defineComponent({
-	props: {
-		packInfo: Object as PropType<PackInfo>,
-		selectedPacks: Array as PropType<number[]>
-	},
-	data() {
-		return {
-			imageShown: true,
-			imageVersion: 0,
-			selected: false
-		};
-	},
-	computed: {
-		imageSource(): string {
-			return `/api/pack/${this.packInfo.id}/image?version=${this.imageVersion}`;
-		},
-		avatarSrc(): string {
-			if (!this.packInfo.createdBy.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
-			return `/api/account/${this.packInfo.createdBy.id}/avatar?size=32`;
-		},
-		avatarOpacity(): number {
-			return this.packInfo.createdBy.hasAvatar? 1 : 0.75;
-		},
-		actionsStyle(): Record<string, string> {
-			return {
-				display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the actions if there's no hovering on the device
-			};
+const props = defineProps<{
+	packInfo?: PackInfo,
+	selectedPacks?: number[]
+}>();
+
+const router = useRouter();
+
+const imageShown = ref(true);
+const imageVersion = ref(0);
+
+const imageSource = computed(() => {
+	return `/api/pack/${props.packInfo.id}/image?version=${imageVersion.value}`;
+});
+const avatarSrc = computed(() => {
+	if (!props.packInfo.createdBy.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
+	return `/api/account/${props.packInfo.createdBy.id}/avatar?size=32`;
+});
+const avatarOpacity = computed(() => {
+	return props.packInfo.createdBy.hasAvatar? 1 : 0.75;
+});
+const actionsStyle = computed(() => {
+	return {
+		display: (!Util.deviceSupportsHover())? 'block' : '' // Make sure to alawys show the actions if there's no hovering on the device
+	};
+});
+
+const clicked = () => {
+	if (props.selectedPacks) {
+		// Toggle the presence of this pack in the list
+		if (props.selectedPacks.includes(props.packInfo.id)) {
+			props.selectedPacks.splice(props.selectedPacks.indexOf(props.packInfo.id), 1);
+		} else {
+			props.selectedPacks.push(props.packInfo.id);
 		}
-	},
-	methods: {
-		clicked(): void {
-			if (this.selectedPacks) {
-				// Toggle the presence of this pack in the list
-				if (this.selectedPacks.includes(this.packInfo.id)) {
-					this.selectedPacks.splice(this.selectedPacks.indexOf(this.packInfo.id), 1);
-				} else {
-					this.selectedPacks.push(this.packInfo.id);
-				}
 
-				return;
-			}
-
-			this.$router.push({ name: 'Pack', params: { id: this.packInfo.id } });
-		},
-		imageLoadError() {
-			this.imageShown = false;
-		},
-		download() {
-			window.location.href = window.location.origin + `/api/pack/${this.packInfo.id}/zip`;
-		},
-		onPackUpdate(updateInfo: { id: number, levelIds?: number[] }) {
-			if (updateInfo.id !== this.packInfo.id) return; // Check if the update is about us
-
-			if (updateInfo.levelIds) {
-				this.imageVersion++;
-				this.packInfo.levelIds = updateInfo.levelIds;
-			}
-		}
-	},
-	mounted() {
-		// Listen for any pack updates to then change accordingly
-		emitter.on('packUpdate', this.onPackUpdate);
-	},
-	unmounted() {
-		emitter.off('packUpdate', this.onPackUpdate);
+		return;
 	}
+
+	router.push({ name: 'Pack', params: { id: props.packInfo.id } });
+};
+const imageLoadError = () => {
+	imageShown.value = false;
+};
+const download = () => {
+	window.location.href = window.location.origin + `/api/pack/${props.packInfo.id}/zip`;
+};
+const onPackUpdate = (updateInfo: { id: number, levelIds?: number[] }) => {
+	if (updateInfo.id !== props.packInfo.id) return; // Check if the update is about us
+
+	if (updateInfo.levelIds) {
+		imageVersion.value++;
+		props.packInfo.levelIds = updateInfo.levelIds;
+	}
+};
+
+onMounted(() => {
+	// Listen for any pack updates to then change accordingly
+	emitter.on('packUpdate', onPackUpdate);
+});
+onUnmounted(() => {
+	emitter.off('packUpdate', onPackUpdate);
 });
 </script>
 

@@ -17,63 +17,56 @@
 	<p v-else class="notSignedIn">You need to be signed in to create a level pack.</p>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import { Head } from '@unhead/vue/components';
+import { useStore } from '../../ts/store';
 
-export default defineComponent({
-	components: {
-		ButtonWithIcon,
-		Head
-	},
-	data() {
-		return {
-			name: '',
-			description: '',
-			creating: false
-		};
-	},
-	computed: {
-		canCreate(): boolean {
-			return !!(this.name && this.description);
-		}
-	},
-	methods: {
-		async create() {
-			if (!this.canCreate) return;
+const store = useStore();
+const router = useRouter();
 
-			this.creating = true;
+const name = ref('');
+const description = ref('');
+const creating = ref(false);
 
-			// Send a pack create API call
-			let response = await fetch('/api/pack/create', {
-				method: 'POST',
-				body: JSON.stringify({
-					name: this.name,
-					description: this.description
-				}),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
-
-			if (response.ok) {
-				// Navigate to the freshly created pack with a little banner notice
-				let json = await response.json() as { packId: number };
-				this.$store.state.nextInfoBannerMessage = "Pack created successfully!";
-				this.$router.push({ name: 'Pack', params: { id: json.packId } });
-				this.$store.state.ownPacks.push({
-					id: json.packId,
-					name: this.name,
-					levelIds: []
-				});
-			} else {
-				this.creating = false;
-				alert("Something went wrong.");
-			}
-		}
-	}
+const canCreate = computed(() => {
+	return !!(name.value && description.value);
 });
+
+const create = async () => {
+	if (!canCreate.value) return;
+
+	creating.value = true;
+
+	// Send a pack create API call
+	let response = await fetch('/api/pack/create', {
+		method: 'POST',
+		body: JSON.stringify({
+			name: name.value,
+			description: description.value
+		}),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+
+	if (response.ok) {
+		// Navigate to the freshly created pack with a little banner notice
+		let json = await response.json() as { packId: number };
+		store.state.nextInfoBannerMessage = "Pack created successfully!";
+		router.push({ name: 'Pack', params: { id: json.packId } });
+		store.state.ownPacks.push({
+			id: json.packId,
+			name: name.value,
+			levelIds: []
+		});
+	} else {
+		creating.value = false;
+		alert("Something went wrong.");
+	}
+};
 </script>
 
 <style scoped>

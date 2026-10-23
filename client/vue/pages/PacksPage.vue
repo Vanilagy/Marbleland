@@ -9,8 +9,9 @@
 	<panel-list :entries="filteredPacks" :defaultCount="24" mode="pack" :noEntriesNotice="noEntriesNotice()" showTotal></panel-list>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import SearchBar from '../components/SearchBar.vue';
 import PanelList from '../components/PanelList.vue';
@@ -26,133 +27,120 @@ interface PackInfoWrapper {
 	sortCreator: string
 }
 
-export default defineComponent({
-	name: 'packs',
-	components: {
-		ButtonWithIcon,
-		SearchBar,
-		PanelList,
-		Head
+defineOptions({ name: 'packs' });
+
+const router = useRouter();
+
+const searchBarConfig = reactive({
+	query: '',
+	filterShown: false,
+	filter: {
+		sort: {
+			label: 'Sort by',
+			value: 'date',
+			options: [
+				{ name: 'name', label: "Pack name"},
+				{ name: 'creator', label: 'Pack creator'},
+				{ name: 'date', label: 'Date created'},
+				{ name: 'levelCount', label: 'Level count'},
+				{ name: 'downloads', label: 'Downloads'},
+				{ name: 'lovedCount', label: 'Loves'}
+			]
+		}
 	},
-	data() {
+	reversed: false
+});
+const packs = ref<PackInfoWrapper[]>(null);
+const filteredPacks = ref<PackInfo[]>(null);
+
+const createPack = () => {
+	router.push('/create-pack');
+};
+const fetchPacks = async () => {
+	// Gets the list of all packs from the server
+	let response = await fetch('/api/pack/list');
+	let json = await response.json() as PackInfo[];
+
+	// Precomputes data for faster sorting/searching later on
+	packs.value = json.map(pack => {
+		let searchString = [pack.id, pack.name, pack.createdBy.username].filter(x => x).join(' ');
+		searchString = Util.normalizeString(searchString);
+
+		let sortName = Util.normalizeString(pack.name).trim();
+		let sortCreator = Util.normalizeString(pack.createdBy.username).trim();
+
 		return {
-			searchBarConfig: {
-				query: '',
-				filterShown: false,
-				filter: {
-					sort: {
-						label: 'Sort by',
-						value: 'date',
-						options: [
-							{ name: 'name', label: "Pack name"},
-							{ name: 'creator', label: 'Pack creator'},
-							{ name: 'date', label: 'Date created'},
-							{ name: 'levelCount', label: 'Level count'},
-							{ name: 'downloads', label: 'Downloads'},
-							{ name: 'lovedCount', label: 'Loves'}
-						]
-					}
-				},
-				reversed: false
-			},
-			packs: null as PackInfoWrapper[],
-			filteredPacks: null as PackInfo[]
+			info: pack,
+			searchString,
+			sortName,
+			sortCreator
 		};
-	},
-	methods: {
-		createPack() {
-			this.$router.push('/create-pack');
-		},
-		async fetch() {
-			// Gets the list of all packs from the server
-			let response = await fetch('/api/pack/list');
-			let json = await response.json() as PackInfo[];
+	});
 
-			// Precomputes data for faster sorting/searching later on
-			this.packs = json.map(pack => {
-				let searchString = [pack.id, pack.name, pack.createdBy.username].filter(x => x).join(' ');
-				searchString = Util.normalizeString(searchString);
+	updateFilteredPacks();
+};
+const updateFilteredPacks = () => {
+	if (!packs.value) return;
 
-				let sortName = Util.normalizeString(pack.name).trim();
-				let sortCreator = Util.normalizeString(pack.createdBy.username).trim();
+	let words = searchBarConfig.query.split(' ');
 
-				return {
-					info: pack,
-					searchString,
-					sortName,
-					sortCreator
-				};
-			});
-
-			this.updateFilteredPacks();
-		},
-		updateFilteredPacks() {
-			if (!this.packs) return;
-
-			let words = this.searchBarConfig.query.split(' ');
-
-			// Filter all packs that don't match the search query
-			let result = this.packs.filter(wrapper => {
-				let matchCount = 0;
-				for (let i = 0; i < words.length; i++) {
-					let word = words[i];
-					if (wrapper.searchString.includes(word)) matchCount++;
-					else break;
-				}
-				if (matchCount < words.length) return false;
-
-				return true;
-			});
-
-			const cmpStr = (a: string, b: string) => {
-				if (a < b) return -1;
-				if (a > b) return 1;
-				return 0;
-			};
-
-			// Determine the correct sorting function to use
-			let sortingFunction: (a: PackInfoWrapper, b: PackInfoWrapper) => number;
-			switch (this.searchBarConfig.filter.sort.value) {
-				case 'name': sortingFunction = (a, b) => cmpStr(a.sortName, b.sortName); break;
-				case 'creator': sortingFunction = (a, b) => cmpStr(a.sortCreator, b.sortCreator); break;
-				case 'date': sortingFunction = (a, b) => -(a.info.createdAt - b.info.createdAt); break;
-				case 'levelCount': sortingFunction = (a, b) => a.info.levelIds.length - b.info.levelIds.length; break;
-				case 'downloads': sortingFunction = (a, b) => -(a.info.downloads - b.info.downloads); break;
-				case 'lovedCount': sortingFunction = (a, b) => -(a.info.lovedCount - b.info.lovedCount); break;
-			}
-
-			// Bring the packs into the right order
-			result.sort(sortingFunction);
-			if (this.searchBarConfig.reversed) result.reverse();
-
-			this.filteredPacks = result.map(x => x.info);
-		},
-		checkReload(newPackId: number) {
-			// Reload if the pack ID is not included in the current pack list
-			if (!this.packs.some(x => x.info.id === newPackId)) this.fetch();
-		},
-		searchBarPlaceholder() {
-			return `Search ${!this.packs? 'packs' : this.packs.length + ((this.packs.length === 1)? ' pack' : ' packs')} for name, creator or ID`;
-		},
-		noEntriesNotice(): string {
-			return this.packs?.length? "There are no packs matching your search query." : "There are no packs to search for.";
+	// Filter all packs that don't match the search query
+	let result = packs.value.filter(wrapper => {
+		let matchCount = 0;
+		for (let i = 0; i < words.length; i++) {
+			let word = words[i];
+			if (wrapper.searchString.includes(word)) matchCount++;
+			else break;
 		}
-	},
-	async mounted() {
-		await this.fetch();
-		emitter.on('packView', this.checkReload);
-	},
-	unmounted() {
-		emitter.off('packView', this.checkReload);
-	},
-	watch: {
-		searchBarConfig: {
-			handler() {
-				this.updateFilteredPacks();
-			},
-			deep: true
-		}
+		if (matchCount < words.length) return false;
+
+		return true;
+	});
+
+	const cmpStr = (a: string, b: string) => {
+		if (a < b) return -1;
+		if (a > b) return 1;
+		return 0;
+	};
+
+	// Determine the correct sorting function to use
+	let sortingFunction: (a: PackInfoWrapper, b: PackInfoWrapper) => number;
+	switch (searchBarConfig.filter.sort.value) {
+		case 'name': sortingFunction = (a, b) => cmpStr(a.sortName, b.sortName); break;
+		case 'creator': sortingFunction = (a, b) => cmpStr(a.sortCreator, b.sortCreator); break;
+		case 'date': sortingFunction = (a, b) => -(a.info.createdAt - b.info.createdAt); break;
+		case 'levelCount': sortingFunction = (a, b) => a.info.levelIds.length - b.info.levelIds.length; break;
+		case 'downloads': sortingFunction = (a, b) => -(a.info.downloads - b.info.downloads); break;
+		case 'lovedCount': sortingFunction = (a, b) => -(a.info.lovedCount - b.info.lovedCount); break;
 	}
+
+	// Bring the packs into the right order
+	result.sort(sortingFunction);
+	if (searchBarConfig.reversed) result.reverse();
+
+	filteredPacks.value = result.map(x => x.info);
+};
+const checkReload = (newPackId: number) => {
+	// Reload if the pack ID is not included in the current pack list
+	if (!packs.value.some(x => x.info.id === newPackId)) fetchPacks();
+};
+const searchBarPlaceholder = () => {
+	return `Search ${!packs.value? 'packs' : packs.value.length + ((packs.value.length === 1)? ' pack' : ' packs')} for name, creator or ID`;
+};
+const noEntriesNotice = () => {
+	return packs.value?.length? "There are no packs matching your search query." : "There are no packs to search for.";
+};
+
+onMounted(async () => {
+	await fetchPacks();
+	emitter.on('packView', checkReload);
+});
+onUnmounted(() => {
+	emitter.off('packView', checkReload);
+});
+
+watch(searchBarConfig, () => {
+	updateFilteredPacks();
 });
 </script>
 

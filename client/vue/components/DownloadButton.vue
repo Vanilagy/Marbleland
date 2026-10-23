@@ -8,52 +8,46 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed, ref } from 'vue';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 
-export default defineComponent({
-	props: {
-		mode: String as PropType<'level' | 'pack' | 'multipleLevels'>,
-		id: Number as PropType<number>,
-		version: Number as PropType<number>
-	},
-	data() {
-		return {
-			expanded: false,
-			assuming: [{
-				name: 'platinumquest',
-				label: 'Assuming I have PQ <span style="opacity: 0.5;">(default)</span>'
-			}, {
-				name: 'gold',
-				label: 'Assuming I have MBG'
-			}, {
-				name: 'none',
-				label: 'Including all assets'
-			}]
-		};
-	},
-	computed: {
-		chevronTransform(): string {
-			return this.expanded? 'rotate(180deg)' : '';
-		}
-	},
-	methods: {
-		/** Start downloading the .zip with the correct assumption parameter and version */
-		download(assumption: string, version?: number) {
-			if (this.mode !== 'multipleLevels') {
-				let url = ((this.mode === 'level') ? `/api/level/${this.id}/zip?assuming=${assumption}` : `/api/pack/${this.id}/zip?assuming=${assumption}`);
-				if(version !== undefined)
-					url += `&version=${version}`;
-				window.location.href = window.location.origin + url;
-			}
-			this.$emit('download', assumption);
-		}
-	},
-	components: {
-		ButtonWithIcon
-	}
+const props = defineProps<{
+	mode?: 'level' | 'pack' | 'multipleLevels',
+	id?: number,
+	version?: number
+}>();
+
+const emit = defineEmits<{
+	download: [assumption: string]
+}>();
+
+const expanded = ref(false);
+const assuming = [{
+	name: 'platinumquest',
+	label: 'Assuming I have PQ <span style="opacity: 0.5;">(default)</span>'
+}, {
+	name: 'gold',
+	label: 'Assuming I have MBG'
+}, {
+	name: 'none',
+	label: 'Including all assets'
+}];
+
+const chevronTransform = computed(() => {
+	return expanded.value? 'rotate(180deg)' : '';
 });
+
+/** Start downloading the .zip with the correct assumption parameter and version */
+const download = (assumption: string, version?: number) => {
+	if (props.mode !== 'multipleLevels') {
+		let url = ((props.mode === 'level') ? `/api/level/${props.id}/zip?assuming=${assumption}` : `/api/pack/${props.id}/zip?assuming=${assumption}`);
+		if(version !== undefined)
+			url += `&version=${version}`;
+		window.location.href = window.location.origin + url;
+	}
+	emit('download', assumption);
+};
 </script>
 
 <style scoped>

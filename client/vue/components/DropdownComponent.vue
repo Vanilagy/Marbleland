@@ -10,65 +10,57 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue';
 
-export default defineComponent({
-	props: {
-		options: Array as PropType<{
-			name: string,
-			label: string
-		}[]>,
-		modelValue: String as PropType<string>
-	},
-	data() {
-		return {
-			expanded: false
-		};
-	},
-	computed: {
-		currentLabel(): string {
-			return this.options.find(x => x.name === this.modelValue).label;
-		},
-		chevronStyle(): Record<string, string> {
-			return {
-				transform: this.expanded? 'rotate(180deg)' : ''
-			};
-		},
-		wrapperStyle(): Record<string, string> {
-			return {
-				'box-shadow': this.expanded? '0px 0px 5px #00000052' : '',
-				'z-index': this.expanded? '1' : '' // Make sure to show the thing above everything else
-			};
-		}
-	},
-	methods: {
-		show() {
-			this.expanded = true;
-		},
-		select(name: string) {
-			this.$emit('update:modelValue', name);
-			this.expanded = false;
-		},
-		close() {
-			this.expanded = false;
-		},
-		mouseUpListener() {
-			if (this.expanded) setTimeout(() => this.expanded = false);
-		}
-	},
-	mounted() {
-		window.addEventListener('mouseup', this.mouseUpListener);
-	},
-	activated() {
-		window.addEventListener('mouseup', this.mouseUpListener);
-	},
-	deactivated() {
-		window.removeEventListener('mouseup', this.mouseUpListener);
-	},
-	unmounted() {
-		window.removeEventListener('mouseup', this.mouseUpListener);
-	}
+const props = defineProps<{
+	options?: {
+		name: string,
+		label: string
+	}[]
+}>();
+
+const model = defineModel<string>();
+
+const expanded = ref(false);
+
+const currentLabel = computed(() => {
+	return props.options.find(x => x.name === model.value).label;
+});
+const chevronStyle = computed(() => {
+	return {
+		transform: expanded.value? 'rotate(180deg)' : ''
+	};
+});
+const wrapperStyle = computed(() => {
+	return {
+		'box-shadow': expanded.value? '0px 0px 5px #00000052' : '',
+		'z-index': expanded.value? '1' : '' // Make sure to show the thing above everything else
+	};
+});
+
+const show = () => {
+	expanded.value = true;
+};
+const select = (name: string) => {
+	model.value = name;
+	expanded.value = false;
+};
+const mouseUpListener = () => {
+	if (expanded.value) setTimeout(() => expanded.value = false);
+};
+
+onMounted(() => {
+	window.addEventListener('mouseup', mouseUpListener);
+});
+onActivated(() => {
+	window.addEventListener('mouseup', mouseUpListener);
+});
+onDeactivated(() => {
+	window.removeEventListener('mouseup', mouseUpListener);
+});
+onUnmounted(() => {
+	window.removeEventListener('mouseup', mouseUpListener);
 });
 </script>
 

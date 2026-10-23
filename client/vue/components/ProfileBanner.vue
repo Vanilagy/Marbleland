@@ -8,26 +8,26 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { ProfileInfo } from '../../../shared/types';
-export default defineComponent({
-	props: {
-		profileInfo: Object as PropType<ProfileInfo>,
-		secondaryText: String as PropType<string>
-	},
-	computed: {
-		avatarSrc(): string {
-			if (!this.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
-			return `/api/account/${this.profileInfo.id}/avatar?size=64`;
-		}
-	},
-	methods: {
-		clicked() {
-			this.$router.push({ name: 'Profile', params: { id: this.profileInfo.id } });
-		}
-	}
+
+const props = defineProps<{
+	profileInfo?: ProfileInfo,
+	secondaryText?: string
+}>();
+
+const router = useRouter();
+
+const avatarSrc = computed(() => {
+	if (!props.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
+	return `/api/account/${props.profileInfo.id}/avatar?size=64`;
 });
+
+const clicked = () => {
+	router.push({ name: 'Profile', params: { id: props.profileInfo.id } });
+};
 </script>
 
 <style scoped>

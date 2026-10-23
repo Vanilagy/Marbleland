@@ -24,39 +24,24 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
-import ButtonWithIcon from './ButtonWithIcon.vue';
+<script lang="ts" setup>
+import { computed } from 'vue';
 import { LeaderboardScore } from '../../../shared/types';
 import { Util } from '../../ts/util';
 
-export default defineComponent({
-    components: {
-        ButtonWithIcon
-	},
-	props: {
-		scores: Array as PropType<LeaderboardScore[]>,
-		status: String as PropType<string>
-	},
-    data() {
-        return {
-            next: "Next",
-            previous: "Previous",
-            nextIcon: "/assets/svg/navigate_next_black_24dp.svg",
-			previousIcon: "/assets/svg/navigate_before_black_24dp.svg",
-        };
-	},
-	computed: {
-		leaderboardsView(): { rank: number, name: string, score: string }[] {
-			return this.scores.map((record, i) => {
-				return {
-					rank: record.placement,
-					name: record.username,
-					score: record.score_type === "time" ? Util.secondsToTimeString(record.score / 1000) : `${record.score}`
-				}
-			});
+const props = defineProps<{
+	scores?: LeaderboardScore[],
+	status?: string
+}>();
+
+const leaderboardsView = computed(() => {
+	return props.scores.map((record, i) => {
+		return {
+			rank: record.placement,
+			name: record.username,
+			score: record.score_type === "time" ? Util.secondsToTimeString(record.score / 1000) : `${record.score}`
 		}
-	}
+	});
 });
 </script>
 

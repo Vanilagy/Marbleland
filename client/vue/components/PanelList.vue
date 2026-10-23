@@ -19,70 +19,61 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed, onMounted, ref, watch } from 'vue';
 import { LevelInfo, PackInfo } from '../../../shared/types';
 import LevelPanel, { LevelPanelActions } from './LevelPanel.vue';
 import PanelSkeleton from './PanelSkeleton.vue';
 import PackPanel from './PackPanel.vue';
+import { useStore } from '../../ts/store';
 
-export default defineComponent({
-	props: {
-		mode: String as PropType<'level' | 'pack'>,
-		entries: Array as PropType<LevelInfo[] | PackInfo[]>,
-		noEntriesNotice: String as PropType<string>,
-		defaultCount: Number as PropType<number>,
-		/** Object of additional actions to pass down to the individual level panels */
-		levelPanelActions: Object as PropType<LevelPanelActions>,
-		showTotal: Boolean as PropType<boolean>,
-		noShrink: Boolean as PropType<boolean>,
-		selectedPacks: Array as PropType<number[]>
-	},
-	data() {
-		return {
-			shownCount: this.defaultCount
-		};
-	},
-	mounted() {
-		this.maybeShowAll();
-	},
-	computed: {
-		shownEntries(): (LevelInfo[] | PackInfo[]) {
-			return this.entries.slice(0, this.shownCount);
-		},
-		canShowMore(): boolean {
-			return this.shownEntries.length < this.entries.length;
-		},
-		/** Acts as a proxy that applies a default value. */
-		passedLevelPanelActions(): LevelPanelActions {
-			if (this.levelPanelActions) return this.levelPanelActions;
-			if (this.$store.state.loggedInAccount) return { addToPack: true };
-			return null;
-		}
-	},
-	components: {
-		LevelPanel,
-		PanelSkeleton,
-		PackPanel
-	},
-	methods: {
-		showMore() {
-			this.shownCount += 24;
-			this.maybeShowAll();
-		},
-		/** If there is at most one row of levels still not shown, show them. */
-		maybeShowAll() {
-			if (this.entries && this.shownCount > 4 && this.entries.length - this.shownCount <= 4) {
-				this.shownCount = this.entries.length;
-			}
-		}
-	},
-	watch: {
-		entries() {
-			// Whenever the entry array changes, reset the shown count back to its default
-			if (!this.noShrink) this.shownCount = this.defaultCount;
-		}
+const props = defineProps<{
+	mode?: 'level' | 'pack',
+	entries?: LevelInfo[] | PackInfo[],
+	noEntriesNotice?: string,
+	defaultCount?: number,
+	/** Object of additional actions to pass down to the individual level panels */
+	levelPanelActions?: LevelPanelActions,
+	showTotal?: boolean,
+	noShrink?: boolean,
+	selectedPacks?: number[]
+}>();
+
+const store = useStore();
+
+const shownCount = ref(props.defaultCount);
+
+onMounted(() => {
+	maybeShowAll();
+});
+
+const shownEntries = computed(() => {
+	return props.entries.slice(0, shownCount.value);
+});
+const canShowMore = computed(() => {
+	return shownEntries.value.length < props.entries.length;
+});
+/** Acts as a proxy that applies a default value. */
+const passedLevelPanelActions = computed((): LevelPanelActions => {
+	if (props.levelPanelActions) return props.levelPanelActions;
+	if (store.state.loggedInAccount) return { addToPack: true };
+	return null;
+});
+
+const showMore = () => {
+	shownCount.value += 24;
+	maybeShowAll();
+};
+/** If there is at most one row of levels still not shown, show them. */
+const maybeShowAll = () => {
+	if (props.entries && shownCount.value > 4 && props.entries.length - shownCount.value <= 4) {
+		shownCount.value = props.entries.length;
 	}
+};
+
+watch(() => props.entries, () => {
+	// Whenever the entry array changes, reset the shown count back to its default
+	if (!props.noShrink) shownCount.value = props.defaultCount;
 });
 </script>
 

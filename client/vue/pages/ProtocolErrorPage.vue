@@ -23,15 +23,8 @@
     </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
 import { Head } from '@unhead/vue/components';
-
-export default defineComponent({
-    components: {
-        Head
-    },
-});
 </script>
 
 <style scoped>

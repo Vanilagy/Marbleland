@@ -8,54 +8,44 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed, ref } from 'vue';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 import { GameDefinition } from '../../../shared/types';
 import customProtocolCheck from 'custom-protocol-check';
 
-export default defineComponent({
-	props: {
-		id: Number as PropType<number>,
-		playInfo: Array as PropType<GameDefinition[]>
-	},
-	data() {
-		return {
-			expanded: false,
-			games: this.playInfo.map((game, index) => {
-				return {
-					name: game.id,
-					label: index === 0 ? `Play in ${game.name} <span style="opacity: 0.5;">(default)</span>` : `Play in ${game.name}`,
-				}
-			})
-		};
-	},
-	computed: {
-		chevronTransform(): string {
-			return this.expanded? 'rotate(180deg)' : '';
-		}
-	},
-	methods: {
-		/** Start playing the game in new window */
-		play(id: string) {
-			let chosen = this.playInfo.find(game => game.id === id);
-			if (!chosen.playUrl.startsWith('http')) { // Is a custom protocol
-				customProtocolCheck(chosen.playUrl, () => {
-					document.location.href = `../protocol-error/${chosen.id}`;
-				}, () => {
-					window.open(chosen.playUrl, '_blank');
-				}, 2000, () => {
-					document.location.href = `/protocol-error/${chosen.id}`;
-				});
-			} else {
-				window.open(chosen.playUrl, '_blank');
-			}
-		}
-	},
-	components: {
-		ButtonWithIcon
+const props = defineProps<{
+	id?: number,
+	playInfo?: GameDefinition[]
+}>();
+
+const expanded = ref(false);
+const games = props.playInfo.map((game, index) => {
+	return {
+		name: game.id,
+		label: index === 0 ? `Play in ${game.name} <span style="opacity: 0.5;">(default)</span>` : `Play in ${game.name}`,
 	}
 });
+
+const chevronTransform = computed(() => {
+	return expanded.value? 'rotate(180deg)' : '';
+});
+
+/** Start playing the game in new window */
+const play = (id: string) => {
+	let chosen = props.playInfo.find(game => game.id === id);
+	if (!chosen.playUrl.startsWith('http')) { // Is a custom protocol
+		customProtocolCheck(chosen.playUrl, () => {
+			document.location.href = `../protocol-error/${chosen.id}`;
+		}, () => {
+			window.open(chosen.playUrl, '_blank');
+		}, 2000, () => {
+			document.location.href = `/protocol-error/${chosen.id}`;
+		});
+	} else {
+		window.open(chosen.playUrl, '_blank');
+	}
+};
 </script>
 
 <style scoped>

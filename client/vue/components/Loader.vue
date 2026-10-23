@@ -5,11 +5,8 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
-export default defineComponent({
-	// Thing goes spinny spin
-});
+<script lang="ts" setup>
+// Thing goes spinny spin
 </script>
 
 <style scoped>

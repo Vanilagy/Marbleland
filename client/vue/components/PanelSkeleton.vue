@@ -4,13 +4,6 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
-export default defineComponent({
-	
-});
-</script>
-
 <style scoped>
 @keyframes pulse {
 	0% {background: var(--background-1);}

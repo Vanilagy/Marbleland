@@ -1,4 +1,5 @@
-import { createStore } from "vuex";
+import { createStore, useStore as baseUseStore } from "vuex";
+import type { InjectionKey } from "vue";
 import { ExtendedLevelInfo, ExtendedPackInfo, ExtendedProfileInfo, HomeInfo, LeaderboardScore, ProfileInfo, SignInInfo } from "../../shared/types";
 
 export const createNewStore = () => {
@@ -146,3 +147,7 @@ export const createNewStore = () => {
 // Create a default store that will be used client-side
 export const store = createNewStore();
 export type StoreType = typeof store;
+
+export const storeKey: InjectionKey<StoreType> = Symbol();
+
+export const useStore = () => baseUseStore(storeKey);

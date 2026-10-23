@@ -38,85 +38,74 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, onMounted, onServerPrefetch, ref } from 'vue';
 import { HomeInfo, LevelInfo } from '../../../shared/types';
 import DropdownComponent from '../components/DropdownComponent.vue';
 import HomeAction from '../components/HomeAction.vue';
 import PanelList from '../components/PanelList.vue';
-import { Head } from '@unhead/vue/components';
 import { getHomeInfo } from '../../../server/ts/api/api_home';
+import { useStore } from '../../ts/store';
 
-export default defineComponent({
-	data() {
-		return {
-			currentView: this.$store.state.homeViewPref,
-            viewOptions: [
-				{ name: 'relevant', label: 'Relevant' },
-				{ name: 'all', label: 'All' },
-            ],
-			actions: [{
-				icon: '/assets/svg/search_black_24dp.svg',
-				name: 'Search',
-				description: 'Find custom levels and download them.',
-				path: '/search'
-			}, {
-				icon: '/assets/svg/folder_black_24dp.svg',
-				name: 'Packs',
-				description: 'Get multiple levels at once with packs.',
-				path: '/packs'
-			}, {
-				icon: '/assets/svg/file_upload_black_24dp.svg',
-				name: 'Upload',
-				description: 'Upload and share your own levels.',
-				path: '/upload'
-			}, {
-				icon: '/assets/svg/code_black_24dp.svg',
-				name: 'API',
-				description: 'Access every functionality using code.',
-				path: 'https://github.com/Vanilagy/Marbleland/blob/main/docs/api.md'
-			}],
-			homeInfo: null as HomeInfo
-		};
-	},
-	components: {
-		HomeAction,
-		PanelList,
-		Head,
-		DropdownComponent
-	},
-	computed: {
-        currentLevelList(): LevelInfo[] {
-            if (!this.homeInfo) return null; // Makes the panel list show skeletons instead of a "no levels" notice
-			return this.currentView === 'relevant' ? this.homeInfo.filteredLevels : this.homeInfo.allLevels;
-        },
-    },
-	async mounted() {
-		if (this.$store.state.homePreload) {
-			this.homeInfo = this.$store.state.homePreload;
-			this.$store.state.homePreload = null;
-		} else {
-			let response = await fetch('/api/home/info');
-			let json = await response.json() as HomeInfo;
+const store = useStore();
 
-			this.homeInfo = json;
-		}
-	},
-	async serverPrefetch() {
-		this.homeInfo = await getHomeInfo();
-		this.$store.state.homePreload = this.homeInfo;
-	},
-	methods: {
-		saveViewPref(newVal: string) {
-			this.$store.state.homeViewPref = newVal;
-			// A cookie, not localStorage, so that the server knows which list to render for SSR
-			document.cookie = `homeViewPref=${newVal}; Path=/; Max-Age=${60 * 60 * 24 * 365};`;
-        },
-		showVersionHistory() {
-			location.href = 'https://github.com/Vanilagy/Marbleland/blob/main/version_history.md';
-		}
+const currentView = ref(store.state.homeViewPref);
+const viewOptions = [
+	{ name: 'relevant', label: 'Relevant' },
+	{ name: 'all', label: 'All' },
+];
+const actions = [{
+	icon: '/assets/svg/search_black_24dp.svg',
+	name: 'Search',
+	description: 'Find custom levels and download them.',
+	path: '/search'
+}, {
+	icon: '/assets/svg/folder_black_24dp.svg',
+	name: 'Packs',
+	description: 'Get multiple levels at once with packs.',
+	path: '/packs'
+}, {
+	icon: '/assets/svg/file_upload_black_24dp.svg',
+	name: 'Upload',
+	description: 'Upload and share your own levels.',
+	path: '/upload'
+}, {
+	icon: '/assets/svg/code_black_24dp.svg',
+	name: 'API',
+	description: 'Access every functionality using code.',
+	path: 'https://github.com/Vanilagy/Marbleland/blob/main/docs/api.md'
+}];
+const homeInfo = ref<HomeInfo>(null);
+
+const currentLevelList = computed((): LevelInfo[] => {
+	if (!homeInfo.value) return null; // Makes the panel list show skeletons instead of a "no levels" notice
+	return currentView.value === 'relevant' ? homeInfo.value.filteredLevels : homeInfo.value.allLevels;
+});
+
+onMounted(async () => {
+	if (store.state.homePreload) {
+		homeInfo.value = store.state.homePreload;
+		store.state.homePreload = null;
+	} else {
+		let response = await fetch('/api/home/info');
+		let json = await response.json() as HomeInfo;
+
+		homeInfo.value = json;
 	}
 });
+onServerPrefetch(async () => {
+	homeInfo.value = await getHomeInfo();
+	store.state.homePreload = homeInfo.value;
+});
+
+const saveViewPref = (newVal: string) => {
+	store.state.homeViewPref = newVal;
+	// A cookie, not localStorage, so that the server knows which list to render for SSR
+	document.cookie = `homeViewPref=${newVal}; Path=/; Max-Age=${60 * 60 * 24 * 365};`;
+};
+const showVersionHistory = () => {
+	location.href = 'https://github.com/Vanilagy/Marbleland/blob/main/version_history.md';
+};
 </script>
 
 <style scoped>

@@ -39,8 +39,9 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, onMounted, onServerPrefetch, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { ExtendedPackInfo, LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import ProfileBanner from '../components/ProfileBanner.vue';
@@ -52,221 +53,205 @@ import Loader from '../components/Loader.vue';
 import LoveButton from '../components/LoveButton.vue';
 import { LevelPanelActions } from '../components/LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
+import { useStore } from '../../ts/store';
 import { Head } from '@unhead/vue/components';
 import { ORIGIN } from '../../../shared/constants';
 import { db } from '../../../server/ts/globals';
 import { getExtendedPackInfo, PackDoc } from '../../../server/ts/pack';
 
-export default defineComponent({
-	data() {
-		return {
-			packInfo: null as ExtendedPackInfo,
-			editing: false,
-			deleting: false,
-			notFound: false,
-			hasDownloaded: false
-		};
-	},
-	async mounted() {
-		if (this.$store.state.packPreload) {
-			this.packInfo = this.$store.state.packPreload;
-			this.$store.state.packPreload = null;
-		} else {
-			// Load all necessary info
-			let response = await fetch(`/api/pack/${this.$route.params.id}/info`);
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
 
-			if (response.status === 404) {
-				this.notFound = true;
-				return;
-			}
+const packInfo = ref<ExtendedPackInfo>(null);
+const editing = ref(false);
+const deleting = ref(false);
+const notFound = ref(false);
+let hasDownloaded = false;
 
-			let json = await response.json() as ExtendedPackInfo;
-			this.packInfo = json;
-		}
+onMounted(async () => {
+	if (store.state.packPreload) {
+		packInfo.value = store.state.packPreload;
+		store.state.packPreload = null;
+	} else {
+		// Load all necessary info
+		let response = await fetch(`/api/pack/${route.params.id}/info`);
 
-		emitter.emit('packView', this.packInfo.id); // Trigger a possible update in pack search
-		emitter.on('packUpdate', this.onPackUpdate);
-	},
-	async serverPrefetch() {
-		let doc = await db.packs.findOneAsync({ _id: Number(this.$route.params.id) }) as PackDoc;
-		if (!doc) {
-			this.notFound = true;
+		if (response.status === 404) {
+			notFound.value = true;
 			return;
 		}
 
-		this.packInfo = await getExtendedPackInfo(doc, this.$store.state.loggedInAccount?.id);
-		this.$store.state.packPreload = this.packInfo;
-	},
-	unmounted() {
-		emitter.off('packUpdate', this.onPackUpdate);
-	},
-	computed: {
-		createdText(): string {
-			return `Created this pack on ${Util.formatDate(new Date(this.packInfo.createdAt))}`;
-		},
-		hasOwnershipPermissions(): boolean {
-			return this.packInfo && (this.packInfo.createdBy.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount?.isModerator);
-		},
-		levelPanelActions(): LevelPanelActions {
-			let self = this;
-			if (!this.hasOwnershipPermissions) return null;
+		let json = await response.json() as ExtendedPackInfo;
+		packInfo.value = json;
+	}
 
-			return {
-				addToPack: true,
-				// Add an additional icon that allows direct removal of the level from this pack
-				async removeFromPack(info: LevelInfo) {
-					// Update the locally stored packs
-					self.packInfo.levels = self.packInfo.levels.filter(x => x.id !== info.id);
-					let ownPack = self.$store.state.ownPacks.find(x => x.id === self.packInfo.id);
-					if (ownPack) ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
+	emitter.emit('packView', packInfo.value.id); // Trigger a possible update in pack search
+	emitter.on('packUpdate', onPackUpdate);
+});
+onServerPrefetch(async () => {
+	let doc = await db.packs.findOneAsync({ _id: Number(route.params.id) }) as PackDoc;
+	if (!doc) {
+		notFound.value = true;
+		return;
+	}
 
-					// Send the update request to the server
-					await fetch(`/api/pack/${self.packInfo.id}/set-levels`, {
-						method: 'POST',
-						body: JSON.stringify(self.packInfo.levels.map(x => x.id)),
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					});
+	packInfo.value = await getExtendedPackInfo(doc, store.state.loggedInAccount?.id);
+	store.state.packPreload = packInfo.value;
+});
+onUnmounted(() => {
+	emitter.off('packUpdate', onPackUpdate);
+});
 
-					self.hasDownloaded = false;
+const createdText = computed(() => {
+	return `Created this pack on ${Util.formatDate(new Date(packInfo.value.createdAt))}`;
+});
+const hasOwnershipPermissions = computed(() => {
+	return packInfo.value && (packInfo.value.createdBy.id === store.state.loggedInAccount?.id || store.state.loggedInAccount?.isModerator);
+});
+const levelPanelActions = computed((): LevelPanelActions => {
+	if (!hasOwnershipPermissions.value) return null;
 
-					emitter.emit('packUpdate', {
-						id: self.packInfo.id,
-						levelIds: self.packInfo.levels.map(x => x.id)
-					});
-				},
-				async swapLeft(info: LevelInfo) {
-					self.swapLevels(info.id, -1);
-				},
-				async swapRight(info: LevelInfo) {
-					self.swapLevels(info.id, 1);
-				}
-			};
-		},
-		canSubmitChanges(): boolean {
-			return !!(this.packInfo.name && this.packInfo.description);
-		},
-		description(): string {
-			return Util.linkify(this.packInfo.description);
-		},
-		title(): string {
-			return `[Pack] ${this.packInfo.name} by ${this.packInfo.createdBy.username}`;
-		},
-		origin(): string {
-			return ORIGIN;
-		},
-		isLoggedIn(): boolean {
-			return !!this.$store.state.loggedInAccount
-		}
-	},
-	methods: {
-		onPackUpdate(updateInfo: { id: number, levelIds?: number[] }) {
-			if (this.packInfo.id !== updateInfo.id) return;
-
-			if (updateInfo.levelIds) {
-				// Refresh the level list
-				this.packInfo.levels = this.packInfo.levels.filter(x => updateInfo.levelIds.includes(x.id));
-			}
-		},
-		async submitChanges() {
-			this.editing = false;
-			// Edit the local pack values
-			let ownPack = this.$store.state.ownPacks.find(x => x.id === this.packInfo.id);
-			if (ownPack) ownPack.name = this.packInfo.name;
-
-			// Submit the changes to the server
-			await fetch(`/api/pack/${this.packInfo.id}/edit`, {
-				method: 'PATCH',
-				body: JSON.stringify({
-					name: this.packInfo.name,
-					description: this.packInfo.description
-				}),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
-			
-			this.hasDownloaded = false;
-
-			emitter.emit('packView', -1); // Hack: Pretend that we're viewing a pack with an ID that for sure won't exist, forcing the pack list to re-fetch
-		},
-		async deletePack() {
-			if (!confirm(`Are you sure you want to delete your pack "${this.packInfo.name}"?`)) return;
-
-			this.deleting = true;
-
-			// Tell the server to delete this pack
-			let response = await fetch(`/api/pack/${this.packInfo.id}/delete`, {
-				method: 'DELETE'
-			});
-
-			if (response.ok) {
-				// Edit local pack values
-				this.$store.state.ownPacks = this.$store.state.ownPacks.filter(x => x.id !== this.packInfo.id);
-				emitter.emit('packView', -1); // Same hack as above
-				this.$store.state.nextInfoBannerMessage = `Pack "${this.packInfo.name}" has been deleted successfully.`;
-				this.$router.push({ name: 'Profile', params: { id: this.$store.state.loggedInAccount.id } });
-			} else {
-				this.deleting = false;
-				alert("Something went wrong.");
-			}
-		},
-		async swapLevels(levelId: number, direction: -1 | 1) {
-			let index = this.packInfo.levels.findIndex(x => x.id === levelId);
-			let otherIndex = index + direction;
-			if (otherIndex < 0 || otherIndex >= this.packInfo.levels.length) return; // Can't swap with nothing
-
+	return {
+		addToPack: true,
+		// Add an additional icon that allows direct removal of the level from this pack
+		async removeFromPack(info: LevelInfo) {
 			// Update the locally stored packs
-			let temp = this.packInfo.levels[index];
-			this.packInfo.levels[index] = this.packInfo.levels[otherIndex];
-			this.packInfo.levels[otherIndex] = temp;
-			
-			let ownPack = this.$store.state.ownPacks.find(x => x.id === this.packInfo.id);
-			if (ownPack) ownPack.levelIds = this.packInfo.levels.map(x => x.id);
+			packInfo.value.levels = packInfo.value.levels.filter(x => x.id !== info.id);
+			let ownPack = store.state.ownPacks.find(x => x.id === packInfo.value.id);
+			if (ownPack) ownPack.levelIds = ownPack.levelIds.filter(x => x !== info.id);
 
 			// Send the update request to the server
-			await fetch(`/api/pack/${this.packInfo.id}/set-levels`, {
+			await fetch(`/api/pack/${packInfo.value.id}/set-levels`, {
 				method: 'POST',
-				body: JSON.stringify(this.packInfo.levels.map(x => x.id)),
+				body: JSON.stringify(packInfo.value.levels.map(x => x.id)),
 				headers: {
 					'Content-Type': 'application/json'
 				}
 			});
 
-			this.hasDownloaded = false;
+			hasDownloaded = false;
 
 			emitter.emit('packUpdate', {
-				id: this.packInfo.id,
-				levelIds: this.packInfo.levels.map(x => x.id)
+				id: packInfo.value.id,
+				levelIds: packInfo.value.levels.map(x => x.id)
 			});
 		},
-		incrementDownloads() {
-			if (this.hasDownloaded) return;
-
-			// Note that the count might not always be 100% matching due to IP timeouts on the server
-			this.packInfo.downloads++;
-			this.hasDownloaded = true;
-		}
-	},
-	components: {
-		ProfileBanner,
-		DownloadButton,
-		PanelList,
-		ButtonWithIcon,
-		InfoBanner,
-		Loader,
-		Head,
-		LoveButton
-	},
-	watch: {
-		hasOwnershipPermissions() {
-			if (!this.hasOwnershipPermissions) this.editing = false;
+		async swapLeft(info: LevelInfo) {
+			swapLevels(info.id, -1);
 		},
-		isLoggedIn() {
-			if (this.packInfo) this.packInfo.lovedByYou = false;
+		async swapRight(info: LevelInfo) {
+			swapLevels(info.id, 1);
 		}
+	};
+});
+const canSubmitChanges = computed(() => {
+	return !!(packInfo.value.name && packInfo.value.description);
+});
+const description = computed(() => {
+	return Util.linkify(packInfo.value.description);
+});
+const title = computed(() => {
+	return `[Pack] ${packInfo.value.name} by ${packInfo.value.createdBy.username}`;
+});
+const origin = ORIGIN;
+const isLoggedIn = computed(() => {
+	return !!store.state.loggedInAccount
+});
+
+const onPackUpdate = (updateInfo: { id: number, levelIds?: number[] }) => {
+	if (packInfo.value.id !== updateInfo.id) return;
+
+	if (updateInfo.levelIds) {
+		// Refresh the level list
+		packInfo.value.levels = packInfo.value.levels.filter(x => updateInfo.levelIds.includes(x.id));
 	}
+};
+const submitChanges = async () => {
+	editing.value = false;
+	// Edit the local pack values
+	let ownPack = store.state.ownPacks.find(x => x.id === packInfo.value.id);
+	if (ownPack) ownPack.name = packInfo.value.name;
+
+	// Submit the changes to the server
+	await fetch(`/api/pack/${packInfo.value.id}/edit`, {
+		method: 'PATCH',
+		body: JSON.stringify({
+			name: packInfo.value.name,
+			description: packInfo.value.description
+		}),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+
+	hasDownloaded = false;
+
+	emitter.emit('packView', -1); // Hack: Pretend that we're viewing a pack with an ID that for sure won't exist, forcing the pack list to re-fetch
+};
+const deletePack = async () => {
+	if (!confirm(`Are you sure you want to delete your pack "${packInfo.value.name}"?`)) return;
+
+	deleting.value = true;
+
+	// Tell the server to delete this pack
+	let response = await fetch(`/api/pack/${packInfo.value.id}/delete`, {
+		method: 'DELETE'
+	});
+
+	if (response.ok) {
+		// Edit local pack values
+		store.state.ownPacks = store.state.ownPacks.filter(x => x.id !== packInfo.value.id);
+		emitter.emit('packView', -1); // Same hack as above
+		store.state.nextInfoBannerMessage = `Pack "${packInfo.value.name}" has been deleted successfully.`;
+		router.push({ name: 'Profile', params: { id: store.state.loggedInAccount.id } });
+	} else {
+		deleting.value = false;
+		alert("Something went wrong.");
+	}
+};
+const swapLevels = async (levelId: number, direction: -1 | 1) => {
+	let index = packInfo.value.levels.findIndex(x => x.id === levelId);
+	let otherIndex = index + direction;
+	if (otherIndex < 0 || otherIndex >= packInfo.value.levels.length) return; // Can't swap with nothing
+
+	// Update the locally stored packs
+	let temp = packInfo.value.levels[index];
+	packInfo.value.levels[index] = packInfo.value.levels[otherIndex];
+	packInfo.value.levels[otherIndex] = temp;
+
+	let ownPack = store.state.ownPacks.find(x => x.id === packInfo.value.id);
+	if (ownPack) ownPack.levelIds = packInfo.value.levels.map(x => x.id);
+
+	// Send the update request to the server
+	await fetch(`/api/pack/${packInfo.value.id}/set-levels`, {
+		method: 'POST',
+		body: JSON.stringify(packInfo.value.levels.map(x => x.id)),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+
+	hasDownloaded = false;
+
+	emitter.emit('packUpdate', {
+		id: packInfo.value.id,
+		levelIds: packInfo.value.levels.map(x => x.id)
+	});
+};
+const incrementDownloads = () => {
+	if (hasDownloaded) return;
+
+	// Note that the count might not always be 100% matching due to IP timeouts on the server
+	packInfo.value.downloads++;
+	hasDownloaded = true;
+};
+
+watch(hasOwnershipPermissions, () => {
+	if (!hasOwnershipPermissions.value) editing.value = false;
+});
+watch(isLoggedIn, () => {
+	if (packInfo.value) packInfo.value.lovedByYou = false;
 });
 </script>
 

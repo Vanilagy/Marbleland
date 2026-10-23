@@ -7,94 +7,92 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
-export default defineComponent({
-	data() {
-		return {
-			expanded: false
-		};
-	},
-	computed: {
-		iconSrc(): string {
-			let acc = this.$store.state.loggedInAccount;
-			if (!acc || !acc.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
-			return `/api/account/${acc.id}/avatar?v=${this.$store.state.avatarVersion}&size=64`;
-		},
-		/** Generates a list of options (actions, technically, idk what I was thinking with this nomenclature) that are accessible through the dropdown. */
-		options(): { label: string, onClick: () => void }[] {
-			let self = this;
-			// The theming option is shown always
-			let themeOption = {
-				label: 'Toggle theme',
-				onClick: self.toggleColorTheme
-			};
+<script lang="ts" setup>
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useStore } from '../../ts/store';
 
-			// Show different options based on the logged-in state
-			if (this.$store.state.loggedInAccount === null) {
-				return [{
-					label: 'Sign in',
-					onClick() {
-						self.$router.push('/sign-in');
-					}
-				}, {
-					label: 'Sign up',
-					onClick() {
-						self.$router.push('/sign-up');
-					}
-				}, themeOption];
-			} else {
-				return [{
-					label: 'View profile',
-					onClick() {
-						self.$router.push({ name: 'Profile', params: { id: self.$store.state.loggedInAccount.id } });
-					}
-				}, {
-					label: 'Change password',
-					onClick() {
-						self.$router.push('/change-password');
-					}
-				}, {
-					label: 'Sign out',
-					onClick() {
-						// Sign out the account
-						fetch('/api/account/sign-out', { // Don't await this boy for more instant feedback
-							method: 'POST'
-						});
-						self.$store.state.loggedInAccount = null;
-						self.$store.state.curatorVotes = null;
-					}
-				}, themeOption];
+const store = useStore();
+const router = useRouter();
+
+const expanded = ref(false);
+
+const iconSrc = computed(() => {
+	let acc = store.state.loggedInAccount;
+	if (!acc || !acc.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg";
+	return `/api/account/${acc.id}/avatar?v=${store.state.avatarVersion}&size=64`;
+});
+/** Generates a list of options (actions, technically, idk what I was thinking with this nomenclature) that are accessible through the dropdown. */
+const options = computed((): { label: string, onClick: () => void }[] => {
+	// The theming option is shown always
+	let themeOption = {
+		label: 'Toggle theme',
+		onClick: toggleColorTheme
+	};
+
+	// Show different options based on the logged-in state
+	if (store.state.loggedInAccount === null) {
+		return [{
+			label: 'Sign in',
+			onClick() {
+				router.push('/sign-in');
 			}
-		}
-	},
-	methods: {
-		toggleColorTheme() {
-			// Toggle the theme by adding/removing a class on the root (<html>) element
-			if (document.documentElement.classList.contains('dark')) {
-				document.documentElement.classList.remove('dark');
-				localStorage.setItem('colorTheme', 'light');
-			} else {
-				document.documentElement.classList.add('dark');
-				localStorage.setItem('colorTheme', 'dark');
+		}, {
+			label: 'Sign up',
+			onClick() {
+				router.push('/sign-up');
 			}
-		},
-		mouseUpListener() {
-			if (this.expanded) setTimeout(() => this.expanded = false);
-		}
-	},
-	mounted() {
-		window.addEventListener('mouseup', this.mouseUpListener);
-	},
-	activated() {
-		window.addEventListener('mouseup', this.mouseUpListener);
-	},
-	deactivated() {
-		window.removeEventListener('mouseup', this.mouseUpListener);
-	},
-	unmounted() {
-		window.removeEventListener('mouseup', this.mouseUpListener);
+		}, themeOption];
+	} else {
+		return [{
+			label: 'View profile',
+			onClick() {
+				router.push({ name: 'Profile', params: { id: store.state.loggedInAccount.id } });
+			}
+		}, {
+			label: 'Change password',
+			onClick() {
+				router.push('/change-password');
+			}
+		}, {
+			label: 'Sign out',
+			onClick() {
+				// Sign out the account
+				fetch('/api/account/sign-out', { // Don't await this boy for more instant feedback
+					method: 'POST'
+				});
+				store.state.loggedInAccount = null;
+				store.state.curatorVotes = null;
+			}
+		}, themeOption];
 	}
+});
+
+const toggleColorTheme = () => {
+	// Toggle the theme by adding/removing a class on the root (<html>) element
+	if (document.documentElement.classList.contains('dark')) {
+		document.documentElement.classList.remove('dark');
+		localStorage.setItem('colorTheme', 'light');
+	} else {
+		document.documentElement.classList.add('dark');
+		localStorage.setItem('colorTheme', 'dark');
+	}
+};
+const mouseUpListener = () => {
+	if (expanded.value) setTimeout(() => expanded.value = false);
+};
+
+onMounted(() => {
+	window.addEventListener('mouseup', mouseUpListener);
+});
+onActivated(() => {
+	window.addEventListener('mouseup', mouseUpListener);
+});
+onDeactivated(() => {
+	window.removeEventListener('mouseup', mouseUpListener);
+});
+onUnmounted(() => {
+	window.removeEventListener('mouseup', mouseUpListener);
 });
 </script>
 

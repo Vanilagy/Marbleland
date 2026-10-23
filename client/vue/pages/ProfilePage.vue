@@ -136,230 +136,218 @@
 	</Modal>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, onMounted, onServerPrefetch, ref, useTemplateRef } from 'vue';
+import { useRoute } from 'vue-router';
 import { ExtendedProfileInfo } from '../../../shared/types';
 import InfoBanner from '../components/InfoBanner.vue';
 import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
-import PackPanel from '../components/PackPanel.vue';
 import Loader from '../components/Loader.vue';
 import Modal from '../components/Modal.vue';
 import { Util } from '../../ts/util';
+import { useStore } from '../../ts/store';
 import { Head } from '@unhead/vue/components';
 import { db } from '../../../server/ts/globals';
 import { AccountDoc, getExtendedProfileInfo } from '../../../server/ts/account';
 import { ORIGIN } from '../../../shared/constants';
 
-export default defineComponent({
-	data() {
-		return {
-			profileInfo: null as ExtendedProfileInfo,
-			editingBio: false,
-			notFound: false,
-			acknowledgedSuspensionConsequences: false,
-			usernameConfirmation: '',
-			suspensionReason: '',
-			curatorModalIsRevoke: false,
-		};
-	},
-	async mounted() {
-		if (this.$store.state.profilePreload) {
-			this.profileInfo = this.$store.state.profilePreload;
-			this.$store.state.profilePreload = null;
-		} else {
-			// Load the profile info
-			let accountId = Number(this.$route.params.id);
-			let response = await fetch(`/api/account/${accountId}/info`);
+const store = useStore();
+const route = useRoute();
+const suspendConfirmationModal = useTemplateRef<InstanceType<typeof Modal>>('suspendConfirmationModal');
+const curatorConfirmationModal = useTemplateRef<InstanceType<typeof Modal>>('curatorConfirmationModal');
 
-			if (response.status === 404) {
-				this.notFound = true;
-				return;
-			}
+const profileInfo = ref<ExtendedProfileInfo>(null);
+const editingBio = ref(false);
+const notFound = ref(false);
+const acknowledgedSuspensionConsequences = ref(false);
+const usernameConfirmation = ref('');
+const suspensionReason = ref('');
+const curatorModalIsRevoke = ref(false);
 
-			let json = await response.json() as ExtendedProfileInfo;
-			this.profileInfo = json;
-		}
-	},
-	async serverPrefetch() {
-		let doc = await db.accounts.findOneAsync({ _id: Number(this.$route.params.id) }) as AccountDoc;
-		if (!doc) {
-			this.notFound = true;
+onMounted(async () => {
+	if (store.state.profilePreload) {
+		profileInfo.value = store.state.profilePreload;
+		store.state.profilePreload = null;
+	} else {
+		// Load the profile info
+		let accountId = Number(route.params.id);
+		let response = await fetch(`/api/account/${accountId}/info`);
+
+		if (response.status === 404) {
+			notFound.value = true;
 			return;
 		}
 
-		this.profileInfo = await getExtendedProfileInfo(doc);
-		this.$store.state.profilePreload = this.profileInfo;
-	},
-	computed: {
-		avatarSrc(): string {
-			if (!this.profileInfo.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg"; // Default to the icon if no avatar has been set
-			return `/api/account/${this.profileInfo.id}/avatar?v=${this.$store.state.avatarVersion}&size=256`;
-		},
-		shouldSetAvatar(): boolean {
-			return this.profileInfo.id === this.$store.state.loggedInAccount?.id && !this.profileInfo.hasAvatar;
-		},
-		isOwnProfile(): boolean {
-			return this.profileInfo?.id === this.$store.state.loggedInAccount?.id;
-		},
-		isModerator(): boolean {
-			return this.$store.state.loggedInAccount?.isModerator;
-		},
-		hasOwnershipPermissions(): boolean {
-			return this.isModerator || this.isOwnProfile;
-		},
-		bio(): string {
-			return Util.linkify(this.profileInfo.bio) || "This user hasn't set a bio.";
-		},
-		origin(): string {
-			return ORIGIN;
-		},
-		levelDownloads(): number {
-			return this.profileInfo.uploadedLevels.reduce((a, b) => a + b.downloads, 0);
-		},
-		levelLoves(): number {
-			return this.profileInfo.uploadedLevels.reduce((a, b) => a + b.lovedCount, 0);
-		},
-		packDownloads(): number {
-			return this.profileInfo.createdPacks.reduce((a, b) => a + b.downloads, 0);
-		},
-		packLoves(): number {
-			return this.profileInfo.createdPacks.reduce((a, b) => a + b.lovedCount, 0);
-		},
-		canSuspend(): boolean {
-			return this.acknowledgedSuspensionConsequences && 
-			       this.usernameConfirmation === this.profileInfo?.username &&
-			       this.suspensionReason.trim().length > 0;
-		}
-	},
-	methods: {
-		/** Pops up a file selection dialog to allow the user to upload a new avatar image. */
-		chooseAvatar() {
-			let fileInput = document.createElement('input');
-			fileInput.setAttribute('type', 'file');
-			fileInput.setAttribute('accept', 'image/*'); // Allow only images
-			fileInput.click();
-
-			fileInput.addEventListener('change', async () => {
-				let file = fileInput.files[0];
-				if (!file) return;
-
-				// Upload the new image to the server
-				let response = await fetch(`/api/account/${this.profileInfo.id}/set-avatar`, {
-					method: 'POST',
-					body: file,
-					headers: {
-						'Content-Type': 'application/octet-stream'
-					}
-				});
-
-				if (response.ok) {
-					this.profileInfo.hasAvatar = true;
-					this.$store.state.loggedInAccount.hasAvatar = true;
-					this.$store.state.avatarVersion++; // to cause image update
-				} else {
-					alert("Something went wrong.");
-				}
-			});
-		},
-		saveBio() {
-			this.editingBio = false;
-
-			// Send the new bio to the server
-			fetch(`/api/account/${this.profileInfo.id}/set-bio`, {
-				method: 'POST',
-				body: this.profileInfo.bio ?? '',
-				headers: {
-					'Content-Type': 'text/plain'
-				}
-			});
-		},
-		showSuspendConfirmation() {
-			this.acknowledgedSuspensionConsequences = false;
-			this.usernameConfirmation = '';
-			this.suspensionReason = '';
-			(this.$refs.suspendConfirmationModal as any).show();
-		},
-		closeSuspendConfirmationModal() {
-			(this.$refs.suspendConfirmationModal as any).hide();
-		},
-		async suspendAccount() {
-			this.closeSuspendConfirmationModal();
-
-			let response = await fetch(`/api/account/${this.profileInfo.id}/suspend`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					reason: this.suspensionReason.trim()
-				})
-			});
-
-			if (response.ok) {
-				alert(`Account "${this.profileInfo.username}" has been suspended successfully.`);
-				// Reload the page to fetch updated content
-				window.location.reload();
-			} else {
-				alert("Something went wrong while suspending the account.");
-			}
-		},
-		async unsuspendAccount() {
-			if (!confirm(`Are you sure you want to unsuspend "${this.profileInfo.username}"? This will not restore any content that got deleted during suspension.`)) return;
-
-			let response = await fetch(`/api/account/${this.profileInfo.id}/unsuspend`, {
-				method: 'POST'
-			});
-
-			if (response.ok) {
-				alert(`Account "${this.profileInfo.username}" has been unsuspended successfully.`);
-				// Reload the page to fetch updated content
-				window.location.reload();
-			} else {
-				alert("Something went wrong while unsuspending the account.");
-			}
-		},
-		showCuratorConfirmation() {
-			this.curatorModalIsRevoke = !!this.profileInfo?.isCurator;
-			(this.$refs.curatorConfirmationModal as any).show();
-		},
-		closeCuratorConfirmationModal() {
-			(this.$refs.curatorConfirmationModal as any).hide();
-		},
-		async toggleCurator() {
-			this.closeCuratorConfirmationModal();
-
-			const newStatus = !this.curatorModalIsRevoke;
-			
-			try {
-				let response = await fetch(`/api/account/${this.profileInfo.id}/set-curator`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ isCurator: newStatus })
-				});
-
-				if (response.ok) {
-					let json = await response.json();
-					this.profileInfo.isCurator = json.isCurator;
-				} else {
-					alert("Action failed.");
-				}
-			} catch (e) {
-				console.error(e);
-				alert("Network error.");
-			}
-		},
-	},
-	components: {
-		InfoBanner,
-		PanelList,
-		ButtonWithIcon,
-		PackPanel,
-		Loader,
-		Head,
-		Modal
+		let json = await response.json() as ExtendedProfileInfo;
+		profileInfo.value = json;
 	}
 });
+onServerPrefetch(async () => {
+	let doc = await db.accounts.findOneAsync({ _id: Number(route.params.id) }) as AccountDoc;
+	if (!doc) {
+		notFound.value = true;
+		return;
+	}
+
+	profileInfo.value = await getExtendedProfileInfo(doc);
+	store.state.profilePreload = profileInfo.value;
+});
+
+const avatarSrc = computed(() => {
+	if (!profileInfo.value.hasAvatar) return "/assets/svg/account_circle_black_24dp.svg"; // Default to the icon if no avatar has been set
+	return `/api/account/${profileInfo.value.id}/avatar?v=${store.state.avatarVersion}&size=256`;
+});
+const shouldSetAvatar = computed(() => {
+	return profileInfo.value.id === store.state.loggedInAccount?.id && !profileInfo.value.hasAvatar;
+});
+const isOwnProfile = computed(() => {
+	return profileInfo.value?.id === store.state.loggedInAccount?.id;
+});
+const isModerator = computed(() => {
+	return store.state.loggedInAccount?.isModerator;
+});
+const hasOwnershipPermissions = computed(() => {
+	return isModerator.value || isOwnProfile.value;
+});
+const bio = computed(() => {
+	return Util.linkify(profileInfo.value.bio) || "This user hasn't set a bio.";
+});
+const origin = ORIGIN;
+const levelDownloads = computed(() => {
+	return profileInfo.value.uploadedLevels.reduce((a, b) => a + b.downloads, 0);
+});
+const levelLoves = computed(() => {
+	return profileInfo.value.uploadedLevels.reduce((a, b) => a + b.lovedCount, 0);
+});
+const packDownloads = computed(() => {
+	return profileInfo.value.createdPacks.reduce((a, b) => a + b.downloads, 0);
+});
+const packLoves = computed(() => {
+	return profileInfo.value.createdPacks.reduce((a, b) => a + b.lovedCount, 0);
+});
+const canSuspend = computed(() => {
+	return acknowledgedSuspensionConsequences.value &&
+	       usernameConfirmation.value === profileInfo.value?.username &&
+	       suspensionReason.value.trim().length > 0;
+});
+
+/** Pops up a file selection dialog to allow the user to upload a new avatar image. */
+const chooseAvatar = () => {
+	let fileInput = document.createElement('input');
+	fileInput.setAttribute('type', 'file');
+	fileInput.setAttribute('accept', 'image/*'); // Allow only images
+	fileInput.click();
+
+	fileInput.addEventListener('change', async () => {
+		let file = fileInput.files[0];
+		if (!file) return;
+
+		// Upload the new image to the server
+		let response = await fetch(`/api/account/${profileInfo.value.id}/set-avatar`, {
+			method: 'POST',
+			body: file,
+			headers: {
+				'Content-Type': 'application/octet-stream'
+			}
+		});
+
+		if (response.ok) {
+			profileInfo.value.hasAvatar = true;
+			store.state.loggedInAccount.hasAvatar = true;
+			store.state.avatarVersion++; // to cause image update
+		} else {
+			alert("Something went wrong.");
+		}
+	});
+};
+const saveBio = () => {
+	editingBio.value = false;
+
+	// Send the new bio to the server
+	fetch(`/api/account/${profileInfo.value.id}/set-bio`, {
+		method: 'POST',
+		body: profileInfo.value.bio ?? '',
+		headers: {
+			'Content-Type': 'text/plain'
+		}
+	});
+};
+const showSuspendConfirmation = () => {
+	acknowledgedSuspensionConsequences.value = false;
+	usernameConfirmation.value = '';
+	suspensionReason.value = '';
+	suspendConfirmationModal.value.show();
+};
+const closeSuspendConfirmationModal = () => {
+	suspendConfirmationModal.value.hide();
+};
+const suspendAccount = async () => {
+	closeSuspendConfirmationModal();
+
+	let response = await fetch(`/api/account/${profileInfo.value.id}/suspend`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			reason: suspensionReason.value.trim()
+		})
+	});
+
+	if (response.ok) {
+		alert(`Account "${profileInfo.value.username}" has been suspended successfully.`);
+		// Reload the page to fetch updated content
+		window.location.reload();
+	} else {
+		alert("Something went wrong while suspending the account.");
+	}
+};
+const unsuspendAccount = async () => {
+	if (!confirm(`Are you sure you want to unsuspend "${profileInfo.value.username}"? This will not restore any content that got deleted during suspension.`)) return;
+
+	let response = await fetch(`/api/account/${profileInfo.value.id}/unsuspend`, {
+		method: 'POST'
+	});
+
+	if (response.ok) {
+		alert(`Account "${profileInfo.value.username}" has been unsuspended successfully.`);
+		// Reload the page to fetch updated content
+		window.location.reload();
+	} else {
+		alert("Something went wrong while unsuspending the account.");
+	}
+};
+const showCuratorConfirmation = () => {
+	curatorModalIsRevoke.value = !!profileInfo.value?.isCurator;
+	curatorConfirmationModal.value.show();
+};
+const closeCuratorConfirmationModal = () => {
+	curatorConfirmationModal.value.hide();
+};
+const toggleCurator = async () => {
+	closeCuratorConfirmationModal();
+
+	const newStatus = !curatorModalIsRevoke.value;
+
+	try {
+		let response = await fetch(`/api/account/${profileInfo.value.id}/set-curator`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ isCurator: newStatus })
+		});
+
+		if (response.ok) {
+			let json = await response.json();
+			profileInfo.value.isCurator = json.isCurator;
+		} else {
+			alert("Action failed.");
+		}
+	} catch (e) {
+		console.error(e);
+		alert("Network error.");
+	}
+};
 </script>
 
 <style scoped>

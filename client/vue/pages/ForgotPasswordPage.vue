@@ -18,68 +18,56 @@
 	<p v-else class="alreadySignedIn">You're already signed in!</p>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, ref } from 'vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import { Head } from '@unhead/vue/components';
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
-export default defineComponent({
-	components: {
-		ButtonWithIcon,
-		Head
-	},
-	data() {
-		return {
-			email: '',
-			waitingForResponse: false,
-			responseError: '',
-			successMessage: ''
-		};
-	},
-	computed: {
-		canSubmit(): boolean {
-			return !!this.email && emailRegEx.test(this.email) && !this.waitingForResponse;
-		}
-	},
-	methods: {
-		async submit() {
-			if (!this.canSubmit) return;
+const email = ref('');
+const waitingForResponse = ref(false);
+const responseError = ref('');
+const successMessage = ref('');
 
-			this.responseError = '';
-			this.successMessage = '';
-			this.waitingForResponse = true;
-
-			try {
-				const response = await fetch('/api/account/forgot-password', {
-					method: 'POST',
-					body: JSON.stringify({ email: this.email }),
-					headers: {
-						'Content-Type': 'application/json'
-					}
-				});
-
-				const json = await response.json() as {
-					status: 'success' | 'error',
-					reason?: string,
-					message?: string
-				};
-
-				if (json.status === 'error') {
-					this.responseError = json.reason;
-				} else {
-					this.successMessage = json.message;
-					this.email = ''; // Clear the form
-				}
-			} catch (error) {
-				this.responseError = 'Network error. Please try again.';
-			}
-
-			this.waitingForResponse = false;
-		}
-	}
+const canSubmit = computed(() => {
+	return !!email.value && emailRegEx.test(email.value) && !waitingForResponse.value;
 });
+
+const submit = async () => {
+	if (!canSubmit.value) return;
+
+	responseError.value = '';
+	successMessage.value = '';
+	waitingForResponse.value = true;
+
+	try {
+		const response = await fetch('/api/account/forgot-password', {
+			method: 'POST',
+			body: JSON.stringify({ email: email.value }),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+
+		const json = await response.json() as {
+			status: 'success' | 'error',
+			reason?: string,
+			message?: string
+		};
+
+		if (json.status === 'error') {
+			responseError.value = json.reason;
+		} else {
+			successMessage.value = json.message;
+			email.value = ''; // Clear the form
+		}
+	} catch (error) {
+		responseError.value = 'Network error. Please try again.';
+	}
+
+	waitingForResponse.value = false;
+};
 </script>
 
 <style scoped>

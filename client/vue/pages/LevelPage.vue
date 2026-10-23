@@ -32,7 +32,7 @@
 					<span v-if="viewedContent.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
 				<div v-if="isCurator" class="curationPanel">
-					<h3 @click="($refs.curatorDetailsModal as any).show();" class="curatorScore">Curator score</h3>
+					<h3 @click="curatorDetailsModal.show();" class="curatorScore">Curator score</h3>
 
 					<div class="voteContainer">
 						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true, disabled: isOwnLevel }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
@@ -52,7 +52,7 @@
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="showDeleteConfirmation" class="basicIcon">
 					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="updateLevel" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing || !isLatestVersion }" @click="editing = true" class="basicIcon">
-					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" :class="{ disabled: !isLatestVersion }" @click="($refs.packAdder as any).show()" class="basicIcon">
+					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" :class="{ disabled: !isLatestVersion }" @click="packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
 				<template v-if="!editing">
@@ -162,14 +162,15 @@
 			</div>
 			<hr />
 			<div style="display: flex; justify-content: flex-end;">
-				<ButtonWithIcon @click="($refs.curatorDetailsModal as any).hide()">Close</ButtonWithIcon>
+				<ButtonWithIcon @click="curatorDetailsModal.hide()">Close</ButtonWithIcon>
 			</div>
 		</Modal>
 	</template>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { computed, nextTick, onBeforeUnmount, onMounted, onServerPrefetch, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { CommentInfo, ExtendedLevelInfo, LevelContentInfo, ReducedLeaderboardDefinition, LeaderboardScore, Modification, PackInfo, ProfileInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
 import PlayButton from '../components/PlayButton.vue';
@@ -179,13 +180,13 @@ import PackAdder from '../components/PackAdder.vue';
 import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import CommentElement from '../components/CommentElement.vue';
-import DropdownComponent from '../components/DropdownComponent.vue';
 import LoveButton from '../components/LoveButton.vue';
 import Loader from '../components/Loader.vue';
 import LevelLeaderboards from '../components/LevelLeaderboards.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
+import { useStore } from '../../ts/store';
 import { Head } from '@unhead/vue/components';
 import { db } from '../../../server/ts/globals';
 import { MissionDoc, Mission } from '../../../server/ts/mission';
@@ -198,512 +199,495 @@ const COUNT_DOWN_MODES = ['collection', 'elimination', 'gemMadness', 'ghosts', '
 
 const MISSION_INFO_REGEX = /((?:[a-zA-Z]|\$|_)(?:\w|\d|\$|_)*)( *= *)("((?:[^"\\\n]|\\.)*)")( *;)/g;
 
-export default defineComponent({
-	components: {
-		DropdownComponent,
-		DownloadButton,
-		PlayButton,
-		ProfileBanner,
-		InfoBanner,
-		PackAdder,
-		PanelList,
-		ButtonWithIcon,
-		CommentElement,
-		Loader,
-		Head,
-		LoveButton,
-		Modal,
-		LevelLeaderboards
-	},
-	data() {
-		return {
-			levelInfo: null as ExtendedLevelInfo,
-			editing: false,
-			showLBs: false,
-			submittingEdit: false,
-			/** Is true when we're currently waiting for the server to delete this level. */
-			deleting: false,
-			commentInput: '',
-			sendingComment: false,
-			notFound: false,
-			imageHidden: false,
-			prevImageHidden: false,
-			/** The version number the user has cycled to, or null if they haven't cycled (meaning the current version is shown). */
-			selectedVersion: null as number,
-			editedRemarks: '',
-			editedMissionInfo: null as Record<string, string>,
-			missionInfoCode: '',
-			editor: null as CodeJar,
-			missionInfoCodeProblems: '',
-			hasDownloaded: false,
-			acknowledgedDeletionConsequences: false,
-			currentLBs: null as ReducedLeaderboardDefinition,
-			currentLeaderboardScores: [] as LeaderboardScore[],
-			lbUpdateToken: 0,
-			lbStatusMessage: ''
-		};
-	},
-	async mounted() {
-		if (this.$store.state.levelPreload) {
-			this.levelInfo = this.$store.state.levelPreload;
-			this.$store.state.levelPreload = null;
-		} else {
-			// Load all the level info
-			let id = Number(this.$route.params.id);
-			let response = await fetch(`/api/level/${id}/extended-info`);
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
+const topPart = useTemplateRef<HTMLDivElement>('topPart');
+const editorElement = useTemplateRef<HTMLDivElement>('editor');
+const packAdder = useTemplateRef<InstanceType<typeof PackAdder>>('packAdder');
+const deleteConfirmationModal = useTemplateRef<InstanceType<typeof Modal>>('deleteConfirmationModal');
+const curatorDetailsModal = useTemplateRef<InstanceType<typeof Modal>>('curatorDetailsModal');
 
-			if (response.status === 404) {
-				this.notFound = true;
-				return;
-			}
+const levelInfo = ref<ExtendedLevelInfo>(null);
+const editing = ref(false);
+const showLBs = ref(false);
+const submittingEdit = ref(false);
+/** Is true when we're currently waiting for the server to delete this level. */
+const deleting = ref(false);
+const commentInput = ref('');
+const sendingComment = ref(false);
+const notFound = ref(false);
+const imageHidden = ref(false);
+const prevImageHidden = ref(false);
+/** The version number the user has cycled to, or null if they haven't cycled (meaning the current version is shown). */
+const selectedVersion = ref<number>(null);
+const editedRemarks = ref('');
+let editedMissionInfo: Record<string, string> = null;
+let missionInfoCode = '';
+let codeJar: CodeJar = null;
+const missionInfoCodeProblems = ref('');
+let hasDownloaded = false;
+const acknowledgedDeletionConsequences = ref(false);
+const currentLBs = ref<ReducedLeaderboardDefinition>(null);
+const currentLeaderboardScores = ref<LeaderboardScore[]>([]);
+let lbUpdateToken = 0;
+const lbStatusMessage = ref('');
 
-			let levelInfo = await response.json() as ExtendedLevelInfo;
-			this.levelInfo = levelInfo;
-		}
-		if (this.$store.state.leaderboardsPreload) {
-			this.currentLeaderboardScores = this.$store.state.leaderboardsPreload;
-			this.currentLBs = this.levelInfo.leaderboardInfo[0] ?? null;
-			this.$store.state.leaderboardsPreload = null;
-		} else {
-			if (this.levelInfo.leaderboardInfo.length > 0) {
-				await this.setLeaderboards(this.levelInfo.leaderboardInfo[0]);
-			}
-		}
+onMounted(async () => {
+	if (store.state.levelPreload) {
+		levelInfo.value = store.state.levelPreload;
+		store.state.levelPreload = null;
+	} else {
+		// Load all the level info
+		let id = Number(route.params.id);
+		let response = await fetch(`/api/level/${id}/extended-info`);
 
-		// Incase the level search doesn't include this level yet, make it refresh
-		Search.checkForRefresh(this.levelInfo.id);
-		emitter.on('packUpdate', this.updatePacks);
-
-		this.setMissionInfoCode();
-		this.editedRemarks = this.levelInfo.remarks;
-
-		// CodeJar touches the DOM on import, so it can only be loaded here on the client
-		const { CodeJar } = await import('codejar');
-
-		// Do nextTick because the ref will only be there once the DOM populates
-		this.$nextTick(() => {
-			if (!(this.$refs as any).editor) return;
-
-			// Create the small code editor for MissionInfo
-			let jar = CodeJar((this.$refs as any).editor, editor => {
-				let code = editor.innerHTML;
-
-				// Perform primitive syntax highlighting
-				MISSION_INFO_REGEX.lastIndex = 0;
-				let highlightedHtml = code.replace(MISSION_INFO_REGEX, `<span style="color: #4d9fd1;">$1</span>$2<span style="color: #ff8d00;">$3</span>$5`);
-
-				editor.innerHTML = highlightedHtml;
-			});
-
-			this.editor = jar;
-			jar.updateCode(this.missionInfoCode);
-			jar.onUpdate(code => this.onMissionInfoCodeChange(code));
-		});
-	},
-	beforeUnmount() {
-		this.editor?.destroy();
-	},
-	async serverPrefetch() {
-		let doc = await db.missions.findOneAsync({ _id: Number(this.$route.params.id) }) as MissionDoc;
-		if (!doc) {
-			this.notFound = true;
+		if (response.status === 404) {
+			notFound.value = true;
 			return;
 		}
-		
-		let mission = Mission.fromDoc(doc);
-		this.levelInfo = await mission.createExtendedLevelInfo(this.$store.state.loggedInAccount?.id);
 
-		this.$store.state.levelPreload = this.levelInfo;
-	},
-	unmounted() {
-		emitter.off('packUpdate', this.updatePacks);
-	},
-	computed: {
-		imageSource(): string {
-			return `/api/level/${this.levelInfo.id}/image?version=${this.viewedVersion}`;
-		},
-		/** The version number currently being viewed. */
-		viewedVersion(): number {
-			return this.selectedVersion ?? this.levelInfo.currentVersion ?? 1;
-		},
-		/** The content of the version currently being viewed. The level info itself doubles as the current version's content. */
-		viewedContent(): LevelContentInfo {
-			if (this.isLatestVersion) return this.levelInfo;
-			return this.levelInfo.previousVersions[this.viewedVersion - 1] ?? this.levelInfo;
-		},
-		/** When the currently viewed version was added. */
-		viewedAddedAt(): number {
-			// versionMetadata[n] describes version n+2; the first version was added at the level's addedAt
-			return this.levelInfo.versionMetadata?.[this.viewedVersion - 2]?.addedAt ?? this.levelInfo.addedAt;
-		},
-		/** The changelog of the currently viewed version. Empty for the first version. */
-		viewedChangelog(): string {
-			return this.levelInfo.versionMetadata?.[this.viewedVersion - 2]?.changelog ?? '';
-		},
-		isLatestVersion(): boolean {
-			return this.viewedVersion === (this.levelInfo.currentVersion ?? 1);
-		},
-		hasMultipleVersions(): boolean {
-			return (this.levelInfo.previousVersions?.length ?? 0) > 0;
-		},
-		/** Construct an object of metadata about the currently viewed version of this level. */
-		levelDetails(): Record<string, number | string> {
-			let result: Record<string, number | string> = {};
-			let info = this.viewedContent;
-
-			result["Modification"] = this.prettyModification(info.modification);
-			result["Game type"] = info.gameType === 'single'? 'Singleplayer' : 'Multiplayer';
-			if (info.gameMode && info.gameMode !== 'null')
-				result["Game mode"] = info.gameMode.split(' ').filter(x => x !== 'null').map(x => Util.splitWords(x).join(' ')).join(', ');
-			result["Gem count"] = info.gems;
-			result["Has Easter Egg"] = info.hasEasterEgg? 'Yes' : 'No';
-
-			let timeName = info.gameMode?.split(' ').some(x => COUNT_DOWN_MODES.includes(x))? 'Time' : 'Qualifying time';
-
-			if (info.qualifyingTime) result[timeName] = Util.secondsToTimeString(Number(info.qualifyingTime) / 1000);
-			if (info.goldTime) result[info.modification === Modification.Platinum? "Platinum time" : "Gold time"] = Util.secondsToTimeString(Number(info.goldTime) / 1000);
-			if (info.platinumTime) result["Platinum time"] = Util.secondsToTimeString(Number(info.platinumTime) / 1000);
-			if (info.ultimateTime) result["Ultimate time"] = Util.secondsToTimeString(Number(info.ultimateTime) / 1000);
-			if (info.awesomeTime) result["Awesome time"] = "🤔";
-
-			if (info.qualifyingScore) result["Par score"] = info.qualifyingScore;
-			if (info.goldScore) result["Gold score"] = info.goldScore;
-			if (info.platinumScore) result["Platinum score"] = info.platinumScore;
-			if (info.ultimateScore) result["Ultimate score"] = info.ultimateScore;
-			if (info.awesomeScore) result["Awesome score"] = "🤔";
-
-			return result;
-		},
-		hasOwnershipPermissions(): boolean {
-			return !!this.$store.state.loggedInAccount && (this.levelInfo.addedBy?.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount.isModerator);
-		},
-		canComment(): boolean {
-			return !!this.commentInput;
-		},
-		description(): string {
-			return Util.linkify(this.viewedContent.desc);
-		},
-		remarks(): string {
-			return Util.linkify(this.levelInfo.remarks);
-		},
-		linkifiedChangelog(): string {
-			return Util.linkify(this.viewedChangelog);
-		},
-		title(): string {
-			return this.levelInfo.name + (this.levelInfo.artist? ' by ' + this.levelInfo.artist : '');
-		},
-		origin(): string {
-			return ORIGIN;
-		},
-		isLoggedIn(): boolean {
-			return !!this.$store.state.loggedInAccount
-		},
-		isCurator(): boolean {
-            const acc = this.$store.state.loggedInAccount;
-            return !!acc && acc.isCurator;
-        },
-		isOwnLevel(): boolean {
-			const acc = this.$store.state.loggedInAccount;
-			return !!acc && this.levelInfo.addedBy?.id === acc.id;
-		},
-		upvoters(): ProfileInfo[] {
-			return (this.levelInfo.curatorVotes || []).filter(v => v.vote === true).map(v => v.profile);
-		},
-		downvoters(): ProfileInfo[] {
-			return (this.levelInfo.curatorVotes || []).filter(v => v.vote === false).map(v => v.profile);
-		}
-	},
-	methods: {
-		/** Turns the modification value into a pretty string. */
-		prettyModification(mod: Modification) {
-			switch (mod) {
-				case Modification.Gold: return 'Gold';
-				case Modification.Platinum: return 'Platinum';
-				case Modification.Fubar: return 'Fubar';
-				case Modification.Ultra: return 'Ultra';
-				case Modification.PlatinumQuest: return 'PlatinumQuest';
-			}
-		},
-		async updatePacks() {
-			let response = await fetch(`/api/level/${this.levelInfo.id}/packs`);
-			let json = await response.json() as PackInfo[];
-			
-			this.levelInfo.packs = json;
-		},
-		async submitChanges() {
-			this.submittingEdit = true;
-
-			// Submit the changes to the server and wait for the response
-			let response = await fetch(`/api/level/${this.levelInfo.id}/edit`, {
-				method: 'PATCH',
-				body: JSON.stringify({
-					missionInfo: this.editedMissionInfo,
-					remarks: this.editedRemarks ?? null
-				}),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
-
-			this.submittingEdit = false;
-
-			if (response.ok) {				
-				let json = await response.json() as ExtendedLevelInfo;
-
-				this.editedMissionInfo = null;
-				this.editing = false;
-				this.levelInfo = json; // Update level info
-				this.hasDownloaded = false; // Allow the download count to increase again
-
-				// Show a small animation
-				let element = this.$refs.topPart as HTMLDivElement;;
-				element.style.animation = 'none';
-				element.clientWidth; // Force layout
-				element.style.animation = '0.5s ease-out edit-succeed';
-
-				document.documentElement.scrollTop = 0;
-			} else {
-				alert("Level edit failed. Consult an admin for details.");;
-			}
-		},
-		cancelEditing() {
-			this.editing = false;
-
-			this.editedRemarks = this.levelInfo.remarks;
-			this.missionInfoCodeProblems = '';
-			this.setMissionInfoCode(); // Reset this boy
-			this.editor.updateCode(this.missionInfoCode);
-		},
-		showDeleteConfirmation() {
-			if (this.levelInfo.downloads < 5 && confirm("Are you sure you want to delete this level?")) {
-				// If the level hasn't been downloaded much (and probably is new), don't go too overboard with the warnings
-				this.deleteLevel();
-			} else {
-				this.acknowledgedDeletionConsequences = false;
-				(this.$refs.deleteConfirmationModal as any).show();
-			}
-		},
-		closeDeleteConfirmationModal() {
-			(this.$refs.deleteConfirmationModal as any).hide();
-		},
-		async updateLevel() {
-			this.$router.push({ name: 'Upload', query: { 'update-id': this.levelInfo.id } });
-		},
-		/** Cycles the viewed version by the given delta (clamped to the range of existing versions). */
-		cycleVersion(delta: number) {
-			let target = this.viewedVersion + delta;
-			if (target < 1 || target > (this.levelInfo.currentVersion ?? 1)) return;
-
-			this.selectedVersion = target;
-			this.imageHidden = false;
-			this.prevImageHidden = false;
-		},
-		async deleteLevel() {
-			this.closeDeleteConfirmationModal();
-			this.deleting = true;
-
-			// Do the level delete API call
-			let response = await fetch(`/api/level/${this.levelInfo.id}/delete`, {
-				method: 'DELETE'
-			});
-
-			if (response.ok) {
-				// Remove the level from all own packs
-				for (let pack of this.$store.state.ownPacks) {
-					pack.levelIds = pack.levelIds.filter(x => x !== this.levelInfo.id);
-				}
-
-				Search.checkForRefresh(-1); // Same hack as the one we use in Pack.vue
-				emitter.emit('packView', -1); // Reload all packs
-
-				this.$store.state.nextInfoBannerMessage = `Level "${this.levelInfo.name}" has been deleted successfully.`;
-				this.$router.push({ name: 'Profile', params: { id: this.$store.state.loggedInAccount.id } });
-			} else {
-				this.deleting = false;
-				alert("Something went wrong.");
-			}
-		},
-		/** Add a comment to the level. */
-		async comment() {
-			this.sendingComment = true;
-
-			// Send the comment to the server
-			let response = await fetch(`/api/level/${this.levelInfo.id}/comment`, {
-				method: 'POST',
-				body: JSON.stringify({
-					content: this.commentInput
-				}),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
-			let json = await response.json() as CommentInfo[];
-
-			// Reload all of the comments
-			this.levelInfo.comments = json;
-			this.commentInput = '';
-			this.sendingComment = false;
-		},
-		async deleteComment(commentId: number) {
-			if (!confirm("Are you sure you want to delete this comment?")) return;
-
-			let response = await fetch(`/api/comment/${commentId}/delete`, {
-				method: 'DELETE'
-			});
-			let json = await response.json();
-
-			// Reload all of the comments
-			this.levelInfo.comments = json;
-		},
-		/** Generates the code that represents the MissionInfo object. */
-		setMissionInfoCode() {
-			this.missionInfoCode = '';
-
-			for (let key of Object.keys(this.levelInfo.missionInfo).sort()) {
-				this.missionInfoCode += `${key} = ${JSON.stringify('' + this.levelInfo.missionInfo[key])};\n`;
-			}
-		},
-		/** Verify and process the modified MissionInfo code. */
-		onMissionInfoCodeChange(code: string) {
-			MISSION_INFO_REGEX.lastIndex = 0;
-
-			// We first check if the code is syntactically correct by seeing if there are any non-whitespace residuals when we strip out all regex matches:
-			let withoutMatches = code.replace(MISSION_INFO_REGEX, '');
-			if (withoutMatches.trim()) {
-				this.missionInfoCodeProblems = `MissionInfo code has syntactical errors. It must follow the following pattern: key1 = "value1"; key2 = "value2"; ...`;
-				return;
-			}
-
-			this.missionInfoCodeProblems = '';
-
-			// Parse the code into an object
-			let obj: Record<string, string> = {};
-			MISSION_INFO_REGEX.lastIndex = 0;
-			let match: RegExpExecArray;
-			while ((match = MISSION_INFO_REGEX.exec(code)) !== null) {
-				obj[match[1].toLowerCase()] = JSON.parse(match[3]);
-			}
-
-			let problems: string[] = [];
-			if (!obj.name) problems.push(`MissionInfo is missing "name".`);
-			if (!obj.artist) problems.push(`MissionInfo is missing "artist".`);
-
-			// Check for changed immutable properties
-			for (let key of new Set([...Object.keys(obj), ...Object.keys(this.levelInfo.missionInfo)])) {
-				if (obj[key] !== this.levelInfo.missionInfo[key] && !MUTABLE_MISSION_INFO_FIELDS.includes(key)) {
-					problems.push(`Property "${key}" is not allowed to change. (was: ${this.levelInfo.missionInfo[key]})`); // Yes this can print "undefined" and it's actually intended!
-				}
-			}
-
-			// Test if the mission gets classified differently than before with the new MissionInfo (not allowed!)
-			let fakeRelativePath = this.levelInfo.gameType === 'multi' ? 'multiplayer/' : '';
-			let gameType = guessGameType(obj as any, fakeRelativePath, this.levelInfo.dependencies);
-			let modification = guessModification(obj as any, this.levelInfo.hasEasterEgg, this.levelInfo.dependencies);
-
-			if (gameType !== this.levelInfo.gameType)
-				problems.push(`The changes to MissionInfo would reclassify this level to have a different game type, which is disallowed.`);
-			if (modification !== this.levelInfo.modification)
-				problems.push(`The changes to MissionInfo would reclassify this level to have a different modification, which is disallowed.`);
-
-			// Display all the problems
-			if (problems.length > 0) {
-				this.missionInfoCodeProblems = "There are problems with your changes to MissionInfo:\n\n" + problems.map(x => '- ' + x).join('\n');
-			}
-
-			this.editedMissionInfo = obj;
-		},
-		formatDate(time: number) {
-			let date = new Date(time);
-			let hours = ('00' + date.getHours()).slice(-2);
-			let minutes = ('00' + date.getMinutes()).slice(-2);
-
-			return `on ${Util.formatDate(date)} at ${hours}:${minutes}`;
-		},
-		incrementDownloads() {
-			if (this.hasDownloaded) return;
-
-			// Note that the count might not always be 100% matching due to IP timeouts on the server
-			this.levelInfo.downloads++;
-			this.hasDownloaded = true;
-		},
-		toggleLBs() {
-			this.showLBs = !this.showLBs;
-		},
-		async setLeaderboards(lb: ReducedLeaderboardDefinition) {
-			this.currentLBs = lb;
-			this.currentLeaderboardScores = [];
-			this.lbStatusMessage = 'Fetching scores...';
-			let nextToken = this.lbUpdateToken + 1;
-			this.lbUpdateToken++;
-
-			try {
-				let resp = await fetch(`/api/level/${this.levelInfo.id}/leaderboards/${this.currentLBs.id}`);
-				let jsonData = await resp.json();
-				if (nextToken !== this.lbUpdateToken) return;
-				this.currentLeaderboardScores = jsonData.scores;
-				if (this.currentLeaderboardScores.length === 0) {
-					this.lbStatusMessage = 'No scores yet.';
-				} else {
-					this.lbStatusMessage = '';
-				}
-			} catch (e) {
-				if (nextToken !== this.lbUpdateToken) return;
-				this.lbStatusMessage = 'An error has occurred while fetching scores.';
-			}
-		},
-		async submitVote(voteType: boolean) {
-            if (!this.isCurator || !this.levelInfo) return;
-
-			let getScoreVal = (vote: boolean): number => {
-				if (vote === true) return 1;
-				if (vote === false) return -1;
-				return 0;
-			};
-
-            let oldVote = this.levelInfo.yourVote;
-
-            let newVote = voteType;
-            if (oldVote === voteType) newVote = null;
-
-			const setStoredVote = (vote: boolean) => {
-				if (!this.$store.state.curatorVotes) this.$store.state.curatorVotes = {};
-				if (vote === null) delete this.$store.state.curatorVotes[this.levelInfo.id];
-				else this.$store.state.curatorVotes[this.levelInfo.id] = vote;
-			};
-
-            // Optimistic UI
-            let oldVal = getScoreVal(oldVote);
-            let newVal = getScoreVal(newVote);
-            let diff = newVal - oldVal;
-
-            this.levelInfo = {...this.levelInfo,yourVote: newVote, curationScore: (this.levelInfo.curationScore || 0) + diff };
-			setStoredVote(newVote);
-
-            try {
-                let response = await fetch(`/api/level/${this.levelInfo.id}/curate-vote`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vote: newVote })
-                });
-
-                if (response.ok) {
-                } else {
-					let text = await response.text();
-					alert("Failed to submit vote: " + text);
-                    throw new Error("Vote failed");
-                }
-            } catch (e) {
-                // Revert to old state
-                this.levelInfo = { ...this.levelInfo, yourVote: oldVote, curationScore: (this.levelInfo.curationScore || 0) - diff };
-				setStoredVote(oldVote);
-            }
-        }
-	},
-	watch: {
-		isLoggedIn() {
-			if (this.levelInfo) this.levelInfo.lovedByYou = false;
+		let json = await response.json() as ExtendedLevelInfo;
+		levelInfo.value = json;
+	}
+	if (store.state.leaderboardsPreload) {
+		currentLeaderboardScores.value = store.state.leaderboardsPreload;
+		currentLBs.value = levelInfo.value.leaderboardInfo[0] ?? null;
+		store.state.leaderboardsPreload = null;
+	} else {
+		if (levelInfo.value.leaderboardInfo.length > 0) {
+			await setLeaderboards(levelInfo.value.leaderboardInfo[0]);
 		}
 	}
+
+	// Incase the level search doesn't include this level yet, make it refresh
+	Search.checkForRefresh(levelInfo.value.id);
+	emitter.on('packUpdate', updatePacks);
+
+	setMissionInfoCode();
+	editedRemarks.value = levelInfo.value.remarks;
+
+	// CodeJar touches the DOM on import, so it can only be loaded here on the client
+	const { CodeJar } = await import('codejar');
+
+	// Do nextTick because the ref will only be there once the DOM populates
+	nextTick(() => {
+		if (!editorElement.value) return;
+
+		// Create the small code editor for MissionInfo
+		let jar = CodeJar(editorElement.value, editor => {
+			let code = editor.innerHTML;
+
+			// Perform primitive syntax highlighting
+			MISSION_INFO_REGEX.lastIndex = 0;
+			let highlightedHtml = code.replace(MISSION_INFO_REGEX, `<span style="color: #4d9fd1;">$1</span>$2<span style="color: #ff8d00;">$3</span>$5`);
+
+			editor.innerHTML = highlightedHtml;
+		});
+
+		codeJar = jar;
+		jar.updateCode(missionInfoCode);
+		jar.onUpdate(code => onMissionInfoCodeChange(code));
+	});
+});
+onBeforeUnmount(() => {
+	codeJar?.destroy();
+});
+onServerPrefetch(async () => {
+	let doc = await db.missions.findOneAsync({ _id: Number(route.params.id) }) as MissionDoc;
+	if (!doc) {
+		notFound.value = true;
+		return;
+	}
+
+	let mission = Mission.fromDoc(doc);
+	levelInfo.value = await mission.createExtendedLevelInfo(store.state.loggedInAccount?.id);
+
+	store.state.levelPreload = levelInfo.value;
+});
+onUnmounted(() => {
+	emitter.off('packUpdate', updatePacks);
+});
+
+const imageSource = computed(() => {
+	return `/api/level/${levelInfo.value.id}/image?version=${viewedVersion.value}`;
+});
+/** The version number currently being viewed. */
+const viewedVersion = computed(() => {
+	return selectedVersion.value ?? levelInfo.value.currentVersion ?? 1;
+});
+/** The content of the version currently being viewed. The level info itself doubles as the current version's content. */
+const viewedContent = computed((): LevelContentInfo => {
+	if (isLatestVersion.value) return levelInfo.value;
+	return levelInfo.value.previousVersions[viewedVersion.value - 1] ?? levelInfo.value;
+});
+/** When the currently viewed version was added. */
+const viewedAddedAt = computed(() => {
+	// versionMetadata[n] describes version n+2; the first version was added at the level's addedAt
+	return levelInfo.value.versionMetadata?.[viewedVersion.value - 2]?.addedAt ?? levelInfo.value.addedAt;
+});
+/** The changelog of the currently viewed version. Empty for the first version. */
+const viewedChangelog = computed(() => {
+	return levelInfo.value.versionMetadata?.[viewedVersion.value - 2]?.changelog ?? '';
+});
+const isLatestVersion = computed(() => {
+	return viewedVersion.value === (levelInfo.value.currentVersion ?? 1);
+});
+const hasMultipleVersions = computed(() => {
+	return (levelInfo.value.previousVersions?.length ?? 0) > 0;
+});
+/** Construct an object of metadata about the currently viewed version of this level. */
+const levelDetails = computed(() => {
+	let result: Record<string, number | string> = {};
+	let info = viewedContent.value;
+
+	result["Modification"] = prettyModification(info.modification);
+	result["Game type"] = info.gameType === 'single'? 'Singleplayer' : 'Multiplayer';
+	if (info.gameMode && info.gameMode !== 'null')
+		result["Game mode"] = info.gameMode.split(' ').filter(x => x !== 'null').map(x => Util.splitWords(x).join(' ')).join(', ');
+	result["Gem count"] = info.gems;
+	result["Has Easter Egg"] = info.hasEasterEgg? 'Yes' : 'No';
+
+	let timeName = info.gameMode?.split(' ').some(x => COUNT_DOWN_MODES.includes(x))? 'Time' : 'Qualifying time';
+
+	if (info.qualifyingTime) result[timeName] = Util.secondsToTimeString(Number(info.qualifyingTime) / 1000);
+	if (info.goldTime) result[info.modification === Modification.Platinum? "Platinum time" : "Gold time"] = Util.secondsToTimeString(Number(info.goldTime) / 1000);
+	if (info.platinumTime) result["Platinum time"] = Util.secondsToTimeString(Number(info.platinumTime) / 1000);
+	if (info.ultimateTime) result["Ultimate time"] = Util.secondsToTimeString(Number(info.ultimateTime) / 1000);
+	if (info.awesomeTime) result["Awesome time"] = "🤔";
+
+	if (info.qualifyingScore) result["Par score"] = info.qualifyingScore;
+	if (info.goldScore) result["Gold score"] = info.goldScore;
+	if (info.platinumScore) result["Platinum score"] = info.platinumScore;
+	if (info.ultimateScore) result["Ultimate score"] = info.ultimateScore;
+	if (info.awesomeScore) result["Awesome score"] = "🤔";
+
+	return result;
+});
+const hasOwnershipPermissions = computed(() => {
+	return !!store.state.loggedInAccount && (levelInfo.value.addedBy?.id === store.state.loggedInAccount?.id || store.state.loggedInAccount.isModerator);
+});
+const canComment = computed(() => {
+	return !!commentInput.value;
+});
+const description = computed(() => {
+	return Util.linkify(viewedContent.value.desc);
+});
+const remarks = computed(() => {
+	return Util.linkify(levelInfo.value.remarks);
+});
+const linkifiedChangelog = computed(() => {
+	return Util.linkify(viewedChangelog.value);
+});
+const title = computed(() => {
+	return levelInfo.value.name + (levelInfo.value.artist? ' by ' + levelInfo.value.artist : '');
+});
+const origin = ORIGIN;
+const isLoggedIn = computed(() => {
+	return !!store.state.loggedInAccount
+});
+const isCurator = computed(() => {
+	const acc = store.state.loggedInAccount;
+	return !!acc && acc.isCurator;
+});
+const isOwnLevel = computed(() => {
+	const acc = store.state.loggedInAccount;
+	return !!acc && levelInfo.value.addedBy?.id === acc.id;
+});
+const upvoters = computed((): ProfileInfo[] => {
+	return (levelInfo.value.curatorVotes || []).filter(v => v.vote === true).map(v => v.profile);
+});
+const downvoters = computed((): ProfileInfo[] => {
+	return (levelInfo.value.curatorVotes || []).filter(v => v.vote === false).map(v => v.profile);
+});
+
+/** Turns the modification value into a pretty string. */
+const prettyModification = (mod: Modification) => {
+	switch (mod) {
+		case Modification.Gold: return 'Gold';
+		case Modification.Platinum: return 'Platinum';
+		case Modification.Fubar: return 'Fubar';
+		case Modification.Ultra: return 'Ultra';
+		case Modification.PlatinumQuest: return 'PlatinumQuest';
+	}
+};
+const updatePacks = async () => {
+	let response = await fetch(`/api/level/${levelInfo.value.id}/packs`);
+	let json = await response.json() as PackInfo[];
+
+	levelInfo.value.packs = json;
+};
+const submitChanges = async () => {
+	submittingEdit.value = true;
+
+	// Submit the changes to the server and wait for the response
+	let response = await fetch(`/api/level/${levelInfo.value.id}/edit`, {
+		method: 'PATCH',
+		body: JSON.stringify({
+			missionInfo: editedMissionInfo,
+			remarks: editedRemarks.value ?? null
+		}),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+
+	submittingEdit.value = false;
+
+	if (response.ok) {
+		let json = await response.json() as ExtendedLevelInfo;
+
+		editedMissionInfo = null;
+		editing.value = false;
+		levelInfo.value = json; // Update level info
+		hasDownloaded = false; // Allow the download count to increase again
+
+		// Show a small animation
+		let element = topPart.value;
+		element.style.animation = 'none';
+		element.clientWidth; // Force layout
+		element.style.animation = '0.5s ease-out edit-succeed';
+
+		document.documentElement.scrollTop = 0;
+	} else {
+		alert("Level edit failed. Consult an admin for details.");
+	}
+};
+const cancelEditing = () => {
+	editing.value = false;
+
+	editedRemarks.value = levelInfo.value.remarks;
+	missionInfoCodeProblems.value = '';
+	setMissionInfoCode(); // Reset this boy
+	codeJar.updateCode(missionInfoCode);
+};
+const showDeleteConfirmation = () => {
+	if (levelInfo.value.downloads < 5 && confirm("Are you sure you want to delete this level?")) {
+		// If the level hasn't been downloaded much (and probably is new), don't go too overboard with the warnings
+		deleteLevel();
+	} else {
+		acknowledgedDeletionConsequences.value = false;
+		deleteConfirmationModal.value.show();
+	}
+};
+const closeDeleteConfirmationModal = () => {
+	deleteConfirmationModal.value.hide();
+};
+const updateLevel = async () => {
+	router.push({ name: 'Upload', query: { 'update-id': levelInfo.value.id } });
+};
+/** Cycles the viewed version by the given delta (clamped to the range of existing versions). */
+const cycleVersion = (delta: number) => {
+	let target = viewedVersion.value + delta;
+	if (target < 1 || target > (levelInfo.value.currentVersion ?? 1)) return;
+
+	selectedVersion.value = target;
+	imageHidden.value = false;
+	prevImageHidden.value = false;
+};
+const deleteLevel = async () => {
+	closeDeleteConfirmationModal();
+	deleting.value = true;
+
+	// Do the level delete API call
+	let response = await fetch(`/api/level/${levelInfo.value.id}/delete`, {
+		method: 'DELETE'
+	});
+
+	if (response.ok) {
+		// Remove the level from all own packs
+		for (let pack of store.state.ownPacks) {
+			pack.levelIds = pack.levelIds.filter(x => x !== levelInfo.value.id);
+		}
+
+		Search.checkForRefresh(-1); // Same hack as the one we use in Pack.vue
+		emitter.emit('packView', -1); // Reload all packs
+
+		store.state.nextInfoBannerMessage = `Level "${levelInfo.value.name}" has been deleted successfully.`;
+		router.push({ name: 'Profile', params: { id: store.state.loggedInAccount.id } });
+	} else {
+		deleting.value = false;
+		alert("Something went wrong.");
+	}
+};
+/** Add a comment to the level. */
+const comment = async () => {
+	sendingComment.value = true;
+
+	// Send the comment to the server
+	let response = await fetch(`/api/level/${levelInfo.value.id}/comment`, {
+		method: 'POST',
+		body: JSON.stringify({
+			content: commentInput.value
+		}),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+	let json = await response.json() as CommentInfo[];
+
+	// Reload all of the comments
+	levelInfo.value.comments = json;
+	commentInput.value = '';
+	sendingComment.value = false;
+};
+const deleteComment = async (commentId: number) => {
+	if (!confirm("Are you sure you want to delete this comment?")) return;
+
+	let response = await fetch(`/api/comment/${commentId}/delete`, {
+		method: 'DELETE'
+	});
+	let json = await response.json();
+
+	// Reload all of the comments
+	levelInfo.value.comments = json;
+};
+/** Generates the code that represents the MissionInfo object. */
+const setMissionInfoCode = () => {
+	missionInfoCode = '';
+
+	for (let key of Object.keys(levelInfo.value.missionInfo).sort()) {
+		missionInfoCode += `${key} = ${JSON.stringify('' + levelInfo.value.missionInfo[key])};\n`;
+	}
+};
+/** Verify and process the modified MissionInfo code. */
+const onMissionInfoCodeChange = (code: string) => {
+	MISSION_INFO_REGEX.lastIndex = 0;
+
+	// We first check if the code is syntactically correct by seeing if there are any non-whitespace residuals when we strip out all regex matches:
+	let withoutMatches = code.replace(MISSION_INFO_REGEX, '');
+	if (withoutMatches.trim()) {
+		missionInfoCodeProblems.value = `MissionInfo code has syntactical errors. It must follow the following pattern: key1 = "value1"; key2 = "value2"; ...`;
+		return;
+	}
+
+	missionInfoCodeProblems.value = '';
+
+	// Parse the code into an object
+	let obj: Record<string, string> = {};
+	MISSION_INFO_REGEX.lastIndex = 0;
+	let match: RegExpExecArray;
+	while ((match = MISSION_INFO_REGEX.exec(code)) !== null) {
+		obj[match[1].toLowerCase()] = JSON.parse(match[3]);
+	}
+
+	let problems: string[] = [];
+	if (!obj.name) problems.push(`MissionInfo is missing "name".`);
+	if (!obj.artist) problems.push(`MissionInfo is missing "artist".`);
+
+	// Check for changed immutable properties
+	for (let key of new Set([...Object.keys(obj), ...Object.keys(levelInfo.value.missionInfo)])) {
+		if (obj[key] !== levelInfo.value.missionInfo[key] && !MUTABLE_MISSION_INFO_FIELDS.includes(key)) {
+			problems.push(`Property "${key}" is not allowed to change. (was: ${levelInfo.value.missionInfo[key]})`); // Yes this can print "undefined" and it's actually intended!
+		}
+	}
+
+	// Test if the mission gets classified differently than before with the new MissionInfo (not allowed!)
+	let fakeRelativePath = levelInfo.value.gameType === 'multi' ? 'multiplayer/' : '';
+	let gameType = guessGameType(obj as any, fakeRelativePath, levelInfo.value.dependencies);
+	let modification = guessModification(obj as any, levelInfo.value.hasEasterEgg, levelInfo.value.dependencies);
+
+	if (gameType !== levelInfo.value.gameType)
+		problems.push(`The changes to MissionInfo would reclassify this level to have a different game type, which is disallowed.`);
+	if (modification !== levelInfo.value.modification)
+		problems.push(`The changes to MissionInfo would reclassify this level to have a different modification, which is disallowed.`);
+
+	// Display all the problems
+	if (problems.length > 0) {
+		missionInfoCodeProblems.value = "There are problems with your changes to MissionInfo:\n\n" + problems.map(x => '- ' + x).join('\n');
+	}
+
+	editedMissionInfo = obj;
+};
+const formatDate = (time: number) => {
+	let date = new Date(time);
+	let hours = ('00' + date.getHours()).slice(-2);
+	let minutes = ('00' + date.getMinutes()).slice(-2);
+
+	return `on ${Util.formatDate(date)} at ${hours}:${minutes}`;
+};
+const incrementDownloads = () => {
+	if (hasDownloaded) return;
+
+	// Note that the count might not always be 100% matching due to IP timeouts on the server
+	levelInfo.value.downloads++;
+	hasDownloaded = true;
+};
+const toggleLBs = () => {
+	showLBs.value = !showLBs.value;
+};
+const setLeaderboards = async (lb: ReducedLeaderboardDefinition) => {
+	currentLBs.value = lb;
+	currentLeaderboardScores.value = [];
+	lbStatusMessage.value = 'Fetching scores...';
+	let nextToken = lbUpdateToken + 1;
+	lbUpdateToken++;
+
+	try {
+		let resp = await fetch(`/api/level/${levelInfo.value.id}/leaderboards/${currentLBs.value.id}`);
+		let jsonData = await resp.json();
+		if (nextToken !== lbUpdateToken) return;
+		currentLeaderboardScores.value = jsonData.scores;
+		if (currentLeaderboardScores.value.length === 0) {
+			lbStatusMessage.value = 'No scores yet.';
+		} else {
+			lbStatusMessage.value = '';
+		}
+	} catch (e) {
+		if (nextToken !== lbUpdateToken) return;
+		lbStatusMessage.value = 'An error has occurred while fetching scores.';
+	}
+};
+const submitVote = async (voteType: boolean) => {
+	if (!isCurator.value || !levelInfo.value) return;
+
+	let getScoreVal = (vote: boolean): number => {
+		if (vote === true) return 1;
+		if (vote === false) return -1;
+		return 0;
+	};
+
+	let oldVote = levelInfo.value.yourVote;
+
+	let newVote = voteType;
+	if (oldVote === voteType) newVote = null;
+
+	const setStoredVote = (vote: boolean) => {
+		if (!store.state.curatorVotes) store.state.curatorVotes = {};
+		if (vote === null) delete store.state.curatorVotes[levelInfo.value.id];
+		else store.state.curatorVotes[levelInfo.value.id] = vote;
+	};
+
+	// Optimistic UI
+	let oldVal = getScoreVal(oldVote);
+	let newVal = getScoreVal(newVote);
+	let diff = newVal - oldVal;
+
+	levelInfo.value = {...levelInfo.value,yourVote: newVote, curationScore: (levelInfo.value.curationScore || 0) + diff };
+	setStoredVote(newVote);
+
+	try {
+		let response = await fetch(`/api/level/${levelInfo.value.id}/curate-vote`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ vote: newVote })
+		});
+
+		if (response.ok) {
+		} else {
+			let text = await response.text();
+			alert("Failed to submit vote: " + text);
+			throw new Error("Vote failed");
+		}
+	} catch (e) {
+		// Revert to old state
+		levelInfo.value = { ...levelInfo.value, yourVote: oldVote, curationScore: (levelInfo.value.curationScore || 0) - diff };
+		setStoredVote(oldVote);
+	}
+};
+
+watch(isLoggedIn, () => {
+	if (levelInfo.value) levelInfo.value.lovedByYou = false;
 });
 </script>
 

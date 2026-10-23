@@ -6,38 +6,39 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue';
+<script lang="ts" setup>
+import { computed } from 'vue';
 import { CommentInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
+import { useStore } from '../../ts/store';
 import ProfileBanner from './ProfileBanner.vue';
 
-export default defineComponent({
-	props: {
-		commentInfo: Object as PropType<CommentInfo>
-	},
-	computed: {
-		/** Formats the date the comment was sent. */
-		sentDate(): string {
-			let date = new Date(this.commentInfo.time);
-			let hours = ('00' + date.getHours()).slice(-2);
-			let minutes = ('00' + date.getMinutes()).slice(-2);
+const props = defineProps<{
+	commentInfo?: CommentInfo
+}>();
 
-			return `on ${Util.formatDate(date)} at ${hours}:${minutes}`;
-		},
-		hasOwnershipPermissions(): boolean {
-			return this.commentInfo.author.id === this.$store.state.loggedInAccount?.id || this.$store.state.loggedInAccount?.isModerator;
-		},
-		deleteDisplayStyle(): string {
-			return Util.deviceSupportsHover()? '' : 'block';
-		},
-		content(): string {
-			return Util.linkify(this.commentInfo.content);
-		}
-	},
-	components: {
-		ProfileBanner
-	}
+defineEmits<{
+	delete: []
+}>();
+
+const store = useStore();
+
+/** Formats the date the comment was sent. */
+const sentDate = computed(() => {
+	let date = new Date(props.commentInfo.time);
+	let hours = ('00' + date.getHours()).slice(-2);
+	let minutes = ('00' + date.getMinutes()).slice(-2);
+
+	return `on ${Util.formatDate(date)} at ${hours}:${minutes}`;
+});
+const hasOwnershipPermissions = computed(() => {
+	return props.commentInfo.author.id === store.state.loggedInAccount?.id || store.state.loggedInAccount?.isModerator;
+});
+const deleteDisplayStyle = computed(() => {
+	return Util.deviceSupportsHover()? '' : 'block';
+});
+const content = computed(() => {
+	return Util.linkify(props.commentInfo.content);
 });
 </script>
 
