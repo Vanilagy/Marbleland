@@ -3,8 +3,8 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElement, MissionElementBase, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './io/mis_parser';
 import * as hxDif from '../lib/hxDif';
+import * as hxDts from '../lib/hxDts';
 import { Util } from './util';
-import { DtsParser } from './io/dts_parser';
 import { Config } from './config';
 import { config, datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
 import { Modification, GameType, LevelInfo, LevelContentInfo, ExtendedLevelInfo, PackInfo, CuratorVoteInfo } from '../../shared/types';
@@ -474,7 +474,8 @@ export class Mission {
 
 		// Read in the .dts
 		let buffer = (await fs.readFile(fullPath)).buffer;
-		let dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
+		let dtsFile = new hxDts.DtsFile();
+		dtsFile.read(buffer);
 
 		// Add all used materials as dependencies
 		for (let matName of dtsFile.matNames) {

@@ -5,9 +5,9 @@ import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementType } from './io/mis_parser';
 import { Config } from './config';
 import * as hxDif from '../lib/hxDif';
+import * as hxDts from '../lib/hxDts';
 import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission, MissionDoc, extractMissionContent } from './mission';
 import { Util } from './util';
-import { DtsFile, DtsParser } from './io/dts_parser';
 import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
@@ -507,10 +507,11 @@ export class MissionUpload {
 
 			// Read in the .dts
 			let buffer = await found.async('arraybuffer');
-			let dtsFile: DtsFile;
+			let dtsFile: hxDts.DtsFile;
 
 			try {
-				dtsFile = new DtsParser(buffer).parse(true); // Only read up until materials, we don't care about the rest
+				dtsFile = new hxDts.DtsFile();
+				dtsFile.read(buffer);
 			} catch (e) {
 				this.problems.add(`Shape file ${dependency} failed to parse and is likely invalid.`);
 				continue;
