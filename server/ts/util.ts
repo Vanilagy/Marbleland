@@ -5,6 +5,10 @@ import { DirectoryStructure } from './globals';
 import { DataDefinitionBase } from '../../shared/types';
 import { Mission } from './mission';
 
+// Images beyond 8K in either dimension aren't legitimate for us, and decoding them could exhaust memory
+export const MAX_IMAGE_DIMENSION = 8192;
+export const MAX_IMAGE_PIXELS = MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
+
 export class Util {
 	/** Gets the index of a substring like String.prototype.indexOf, but only if that index lies outside of string literals. */
 	static indexOfIgnoreStringLiterals(str: string, searchString: string, position = 0, strLiteralToken = '"') {
@@ -210,6 +214,9 @@ export class Util {
 	 * @param permittedExtensions The extensions that are accepted.
 	 */
 	static async findFile(fileName: string, relativePath: string, baseDirectories: string[], walkUp = true, permittedExtensions?: string[]): Promise<string> {
+		// Paths come from user-uploaded files, so they must never resolve to anything outside the base directories
+		if (Util.containsParentReference(fileName) || Util.containsParentReference(relativePath)) return null;
+
 		let concatted: string[] = [];
 		for (let baseDirectory of baseDirectories) {
 			let { files } = await Util.readdirCached(path.join(baseDirectory, relativePath));
@@ -235,6 +242,9 @@ export class Util {
 	 * full path to the file in the first base directory in which it was found.
 	*/
 	static async findPath(relativeFilePath: string, baseDirectories: string[]) {
+		// Paths come from user-uploaded files, so they must never resolve to anything outside the base directories
+		if (Util.containsParentReference(relativeFilePath)) return null;
+
 		let relativeDirectory = relativeFilePath.substring(0, relativeFilePath.lastIndexOf('/'));
 		let lowerCase = Util.getFileName(relativeFilePath).toLowerCase();
 
@@ -245,6 +255,11 @@ export class Util {
 		}
 		
 		return null;
+	}
+
+	/** Checks if a path contains a ".." segment, with either kind of slash as the separator. */
+	static containsParentReference(filePath: string) {
+		return filePath.split(/[/\\]/).includes('..');
 	}
 
 	/** Performs multiple string replacement operations at the same time to avoid the replaced text screwing up other stuff. */

@@ -19,8 +19,8 @@ export const setViteDevServer = (server: ViteDevServer, httpServer: http.Server)
 	devHttpServer = httpServer;
 };
 
-export const startHTTPServer = (port: number) => {
-	app.set('trust proxy', true);
+export const startHTTPServer = (port: number, host: string | null) => {
+	app.set('trust proxy', 1);
 
 	if (import.meta.env.DEV) {
 		app.use(viteDevServer.middlewares);
@@ -48,8 +48,8 @@ export const startHTTPServer = (port: number) => {
 	// In dev, the HTTP server also carries Vite's HMR WebSocket, so it was created before Vite
 	let httpServer = import.meta.env.DEV ? devHttpServer : http.createServer();
 	httpServer.on('request', app);
-	httpServer.listen(port, () => {
-		console.log(`Started HTTP server on port ${port}.`);
+	httpServer.listen(port, host ?? undefined, () => {
+		console.log(`Started HTTP server on ${host ?? '*'}:${port}.`);
 	});
 };
 

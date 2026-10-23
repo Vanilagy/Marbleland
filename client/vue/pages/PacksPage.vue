@@ -10,14 +10,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import SearchBar from '../components/SearchBar.vue';
 import PanelList from '../components/PanelList.vue';
 import { PackInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
-import { emitter } from '../../ts/emitter';
+import { useStore } from '../../ts/store';
 import { Head } from '@unhead/vue/components';
 
 interface PackInfoWrapper {
@@ -29,6 +29,7 @@ interface PackInfoWrapper {
 
 defineOptions({ name: 'packs' });
 
+const store = useStore();
 const router = useRouter();
 
 const searchBarConfig = reactive({
@@ -120,10 +121,6 @@ const updateFilteredPacks = () => {
 
 	filteredPacks.value = result.map(x => x.info);
 };
-const checkReload = (newPackId: number) => {
-	// Reload if the pack ID is not included in the current pack list
-	if (!packs.value.some(x => x.info.id === newPackId)) fetchPacks();
-};
 const searchBarPlaceholder = () => {
 	return `Search ${!packs.value? 'packs' : packs.value.length + ((packs.value.length === 1)? ' pack' : ' packs')} for name, creator or ID`;
 };
@@ -131,16 +128,19 @@ const noEntriesNotice = () => {
 	return packs.value?.length? "There are no packs matching your search query." : "There are no packs to search for.";
 };
 
-onMounted(async () => {
-	await fetchPacks();
-	emitter.on('packView', checkReload);
-});
-onUnmounted(() => {
-	emitter.off('packView', checkReload);
+onMounted(() => {
+	fetchPacks();
 });
 
 watch(searchBarConfig, () => {
 	updateFilteredPacks();
+});
+watch(() => store.state.packListVersion, () => {
+	fetchPacks();
+});
+watch(() => store.state.viewedPackId, viewedPackId => {
+	// Reload if the pack isn't in the list. While the list is still loading, the fetch in flight will include it anyway.
+	if (packs.value && !packs.value.some(x => x.info.id === viewedPackId)) fetchPacks();
 });
 </script>
 

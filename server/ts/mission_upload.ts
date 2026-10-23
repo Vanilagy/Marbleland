@@ -20,6 +20,10 @@ export const ongoingUploads = new Map<string, MissionUpload>();
 const UPLOAD_TTL = 1000 * 60 * 60 * 24; // After a day, the chance of the upload still being submitted is extremely low, so the upload will be killed at that point.
 /** The maximum allowed length, in characters, of a single dependency's normalized file path (the path it ends up under in the generated .zip). */
 const MAX_DEPENDENCY_PATH_LENGTH = 255;
+// In bytes. Protects against zip bombs; the compressed upload itself is capped at 100 MB.
+const MAX_DECOMPRESSED_ARCHIVE_SIZE = 256 * 1024**2;
+// Pending uploads are held in memory, so each account only gets to keep its most recent few
+const MAX_PENDING_UPLOADS_PER_ACCOUNT = 2;
 
 setInterval(async () => {
 	// Once a day, clean up the expired uploads
@@ -27,6 +31,17 @@ setInterval(async () => {
 		if (upload.hasExpired()) ongoingUploads.delete(key);
 	}
 }, 1000 * 60 * 60 * 24);
+
+/** Adds an upload to the pending ones, dropping the owner's oldest pending uploads beyond the per-account cap. */
+export const registerPendingUpload = (upload: MissionUpload) => {
+	ongoingUploads.set(upload.id, upload);
+
+	// Map iteration follows insertion order, so the owner's oldest uploads come first
+	let ownUploads = [...ongoingUploads.values()].filter(x => x.ownerId === upload.ownerId);
+	for (let i = 0; i < ownUploads.length - MAX_PENDING_UPLOADS_PER_ACCOUNT; i++) {
+		ongoingUploads.delete(ownUploads[i].id);
+	}
+};
 
 /** Stores data for each mission uploaded through an archive. */
 interface MissionGroup {
@@ -44,9 +59,11 @@ interface MissionGroup {
 /** Represents a mission upload process. Handles processing, verification and submission of the uploaded missions. */
 export class MissionUpload {
 	/** A ID to uniquely identify this upload. */
-	id = Math.random().toString(); // Plenty safe for this usecase 🥴
+	id = crypto.randomBytes(32).toString('base64url');
 	/** Used to check expiration */
 	started = Date.now();
+	/** The account that uploaded this. */
+	ownerId: number;
 	zip: jszip;
 	/** Stores a list of problems with the uploaded mission. A problematic mission can't be uploaded. */
 	problems = new Set<string>();
@@ -56,8 +73,9 @@ export class MissionUpload {
 	/** Optionally specify if we are updating a level */
 	updateId?: number
 
-	constructor(zip: jszip, updateId?: number) {
+	constructor(zip: jszip, ownerId: number, updateId?: number) {
 		this.zip = zip;
+		this.ownerId = ownerId;
 		this.updateId = updateId;
 	}
 
@@ -73,6 +91,17 @@ export class MissionUpload {
 	 * not be included in the normalized directory.
 	*/
 	async process() {
+		let withinSizeLimit = await this.checkDecompressedSize();
+		if (!withinSizeLimit) return;
+
+		// File names end up in the .zips people download, where some Windows tools treat backslashes as folder separators. That
+		// could make extracting a level write files outside the target folder, so such names aren't accepted at all.
+		let invalidNames = Object.keys(this.zip.files).filter(x => /[\\\x00-\x1f\x7f]/.test(x));
+		if (invalidNames.length > 0) {
+			this.problems.add(`The following file names contain backslashes or control characters, which aren't allowed: ${invalidNames.join(', ')}`);
+			return;
+		}
+
 		this.sanitizeArchive();
 		this.createMissionGroups();
 
@@ -102,6 +131,38 @@ export class MissionUpload {
 		if (excludedFiles.length > 0) {
 			this.warnings.add(`The .zip contains additional files that won't be submitted because they haven't been detected to be dependency: ${excludedFiles.join(', ')}`);
 		}
+	}
+
+	/** Decompresses the whole archive once without keeping the data, only to find out its true unpacked size. The sizes
+	 * declared inside the archive can't be trusted. */
+	async checkDecompressedSize() {
+		let totalSize = 0;
+
+		for (let filePath in this.zip.files) {
+			let file = this.zip.files[filePath];
+			if (file.dir) continue;
+
+			let withinLimit = await new Promise<boolean>((resolve, reject) => {
+				let stream = file.nodeStream('nodebuffer');
+				stream.on('data', (chunk: Buffer) => {
+					totalSize += chunk.length;
+					if (totalSize > MAX_DECOMPRESSED_ARCHIVE_SIZE) {
+						stream.pause();
+						stream.removeAllListeners();
+						resolve(false);
+					}
+				});
+				stream.on('end', () => resolve(true));
+				stream.on('error', reject);
+			});
+
+			if (!withinLimit) {
+				this.problems.add(`The archive is too large when unpacked (more than ${MAX_DECOMPRESSED_ARCHIVE_SIZE / 1024**2} MB).`);
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	sanitizeArchive() {
@@ -297,6 +358,12 @@ export class MissionUpload {
 	 * this mission is dependening on an asset that cannot be found and therefore, the mission can't be submitted.
 	 */
 	async registerDependency(group: MissionGroup, dependency: string, matchType: 'exact' | 'extension-agnostic', requiredBy: string, permittedExtensions?: string[], interiorsMbgFallback = false, originalDependency?: string): Promise<{ found: jszip.JSZipObject, relativeDirectory: string }> {;
+		// The path determines where the file gets written to on submission, so it must not be able to escape the level directory
+		if (Util.containsParentReference(dependency)) {
+			this.problems.add(`The dependency ${dependency}, required by ${requiredBy}, contains ".." in its path, which isn't allowed.`);
+			return null;
+		}
+
 		// First, disect the dependency part into its different piecess
 		let fileName = Util.getFileName(dependency);
 		let dataIndex = dependency.indexOf('data/');
@@ -525,12 +592,11 @@ export class MissionUpload {
 	async submit(submitter: AccountDoc, requestBody: {
 		remarks: string[],
 		addToPacks: number[],
-		existingLevelId? : number,
 		newPack?: {
 			name: string,
 			description: string
 		}
-	}) {
+	}, existingLevelId?: number) {
 		if (this.hasExpired()) throw new Error("Expired.");
 
 		const writeGroupToDisk = async (group: MissionGroup, levelId: number, version?: number) => {
@@ -578,9 +644,9 @@ export class MissionUpload {
 		let finalDocs: MissionDoc[] = [];
 		let stalePackDocs: PackDoc[] = [];
 
-		if (requestBody.existingLevelId !== undefined) {
+		if (existingLevelId !== undefined) {
 			// --- UPDATE PATH ---
-			let missionDoc = await db.missions.findOneAsync({ _id: requestBody.existingLevelId }) as MissionDoc;
+			let missionDoc = await db.missions.findOneAsync({ _id: existingLevelId }) as MissionDoc;
 			if (!missionDoc) throw new Error("Level not found.");
 
 			// Snapshot the current version's content and record the new version's metadata

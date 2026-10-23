@@ -6,6 +6,8 @@ import { MissionDoc } from "./mission";
 import { PackDoc } from "./pack";
 import { SERVER_DIR } from "./paths";
 
+const MAX_COMMAND_ARGUMENTS_LENGTH = 30000;
+
 export const initBackup = () => {
 	setInterval(doBackup, config.backupPeriod * 1000);
 	setTimeout(doBackup, 2000); // Chill a lil' before starting it
@@ -18,18 +20,18 @@ const doBackup = async () => {
 	try {
 		// Create a new, empty repository if necessary
 		if (!fs.existsSync(path.join(config.backupRepositoryPath, '.git'))) {
-			await execShellCommand('git init', config.backupRepositoryPath);
+			await execCommand('git', ['init'], config.backupRepositoryPath);
 		}
 
 		console.info("Writing...");
 
 		try {
 			// Check if rsync exists
-			await execShellCommand('rsync --version', config.backupRepositoryPath);
+			await execCommand('rsync', ['--version'], config.backupRepositoryPath);
 
 			console.log("Copying using rsync...");
 
-			await execShellCommand(`rsync -avu --delete "${path.join(SERVER_DIR, 'storage/levels')}/" "${path.join(config.backupRepositoryPath, 'levels')}"`, config.backupRepositoryPath);
+			await execCommand('rsync', ['-avu', '--delete', `${path.join(SERVER_DIR, 'storage/levels')}/`, path.join(config.backupRepositoryPath, 'levels')], config.backupRepositoryPath);
 		} catch (e) {
 			console.log("Copying manually...");
 			// Delete the old level backup
@@ -78,7 +80,7 @@ const doBackup = async () => {
 		for (let i = 0; i < maxAllowedIterations; i++) {
 			// See which files have changed. -z gives us NUL-separated, unquoted paths, which regular
 			// --porcelain doesn't: there, paths with spaces or non-ASCII get wrapped in quotes, which fucks up our logic.
-			let output = await execShellCommand('git status --porcelain -u -z', config.backupRepositoryPath);
+			let output = await execCommand('git', ['status', '--porcelain', '-u', '-z'], config.backupRepositoryPath);
 			let lines = output.split('\0').filter(Boolean);
 			let toAdd: string[] = [];
 			let totalBytes = 0;
@@ -110,39 +112,40 @@ const doBackup = async () => {
 				break;
 			};
 
-			// Since shell commands have a length limit, split the 'git add'ing into multiple commands
-			let commands = toAdd.reduce((arr, file) => {
-				let last = arr[arr.length - 1];
-				if (last.length > 4000) {
-					last = '';
-					arr.push(last);
+			// The OS caps a single command's argument length, so split the 'git add' into batches
+			let batches: string[][] = [[]];
+			let currentLength = 0;
+			for (let file of toAdd) {
+				// Each path also costs a separating space and, on Windows, possibly a pair of quotes
+				let length = file.length + 3;
+				if (currentLength > 0 && currentLength + length > MAX_COMMAND_ARGUMENTS_LENGTH) {
+					batches.push([]);
+					currentLength = 0;
 				}
-
-				last += `"${file}" `;
-				arr[arr.length - 1] = last;
-
-				return arr;
-			}, ['']);
+				batches[batches.length - 1].push(file);
+				currentLength += length;
+			}
 
 			console.info(`Adding ${toAdd.length} files to repository...`);
 
-			for (let command of commands) {
-				await execShellCommand(`git add ${command}`, config.backupRepositoryPath);
+			for (let batch of batches) {
+				// The '--' makes git treat everything after it as a path
+				await execCommand('git', ['add', '--', ...batch], config.backupRepositoryPath);
 			}
 
 			console.info("Added.");
-	
+
 			// This boy can fail when there are no changes. We want that, empty commits are weird.
 			try {
 				// Commit that thing
-				await execShellCommand('git commit -m "Automated commit"', config.backupRepositoryPath);
+				await execCommand('git', ['commit', '-m', 'Automated commit'], config.backupRepositoryPath);
 			} catch (e) {
 				console.error("Error committing:", e);
 			}
-	
+
 			// Push to the remote specified. The remote path should include authorization if necessary.
 			console.info(`Pushing...`);
-			await execShellCommand(`git push ${config.backupRepositoryRemote} --all`, config.backupRepositoryPath);
+			await execCommand('git', ['push', config.backupRepositoryRemote, '--all'], config.backupRepositoryPath);
 			console.info(`Pushed.`);
 		}
 	} catch (e) {
@@ -153,9 +156,10 @@ const doBackup = async () => {
 	console.info("Repository backup routine ended.");
 };
 
-const execShellCommand = (cmd: string, cwd: string) => {
+// Runs a command with its arguments passed as an array, not a shell string, so file names and the remote can't inject commands
+const execCommand = (command: string, args: string[], cwd: string) => {
 	return new Promise<string>((resolve, reject) => {
-		childProcess.exec(cmd, { cwd, maxBuffer: 1024**3 }, (error, stdout, stderr) => {
+		childProcess.execFile(command, args, { cwd, maxBuffer: 1024**3 }, (error, stdout, stderr) => {
 			if (error) reject(error);
 			resolve(stdout? stdout : stderr);
 		});

@@ -39,7 +39,7 @@ watch(enabled, () => {
 });
 
 const updateStyle = (animate = true) => {
-	let img = button.value.$refs.icon as HTMLImageElement;
+	let img = button.value.iconElement;
 
 	if (enabled.value) {
 		icon.value = "/assets/svg/favorite_black_24dp.svg";

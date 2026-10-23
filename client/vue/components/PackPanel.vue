@@ -18,17 +18,18 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { PackInfo } from '../../../shared/types';
-import { emitter } from '../../ts/emitter';
 import { Util } from '../../ts/util';
+import { useStore } from '../../ts/store';
 
 const props = defineProps<{
 	packInfo?: PackInfo,
 	selectedPacks?: number[]
 }>();
 
+const store = useStore();
 const router = useRouter();
 
 const imageShown = ref(true);
@@ -70,21 +71,11 @@ const imageLoadError = () => {
 const download = () => {
 	window.location.href = window.location.origin + `/api/pack/${props.packInfo.id}/zip`;
 };
-const onPackUpdate = (updateInfo: { id: number, levelIds?: number[] }) => {
-	if (updateInfo.id !== props.packInfo.id) return; // Check if the update is about us
 
-	if (updateInfo.levelIds) {
-		imageVersion.value++;
-		props.packInfo.levelIds = updateInfo.levelIds;
-	}
-};
-
-onMounted(() => {
-	// Listen for any pack updates to then change accordingly
-	emitter.on('packUpdate', onPackUpdate);
-});
-onUnmounted(() => {
-	emitter.off('packUpdate', onPackUpdate);
+// When this pack's levels change somewhere, its thumbnail does too
+watch(() => store.state.packLevelIds[props.packInfo.id], levelIds => {
+	imageVersion.value++;
+	props.packInfo.levelIds = levelIds;
 });
 </script>
 

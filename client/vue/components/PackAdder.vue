@@ -1,8 +1,8 @@
 <template>
 	<div class="outer notSelectable" v-if="shown">
-		<p v-if="packs.length === 0" class="noPacks">You haven't created any packs that you could add this level to.</p>
+		<p v-if="store.state.ownPacks.length === 0" class="noPacks">You haven't created any packs that you could add this level to.</p>
 		<template v-else>
-			<div v-for="pack of packs" :key="pack.id" class="row" :title="rowTitle(pack.id)" @click="selectPack(pack.id)">
+			<div v-for="pack of store.state.ownPacks" :key="pack.id" class="row" :title="rowTitle(pack.id)" @click="selectPack(pack.id)">
 				<p :style="{ 'font-weight': contains(pack.id)? 'bold' : '' }">{{ pack.name }}</p>
 				<p class="removeFromPack" v-if="contains(pack.id)">Click to remove from pack</p>
 			</div>
@@ -11,8 +11,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue';
-import { emitter } from '../../ts/emitter';
+import { onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue';
 import { useStore } from '../../ts/store';
 
 const props = defineProps<{
@@ -23,21 +22,17 @@ const store = useStore();
 
 const shown = ref(false);
 
-const packs = computed(() => {
-	return store.state.ownPacks;
-});
-
 const contains = (packId: number) => {
 	return store.state.ownPacks.some(x => x.id === packId && x.levelIds.includes(props.levelId));
 };
 const rowTitle = (packId: number) => {
 	let packContains = contains(packId);
-	let pack = packs.value.find(x => x.id === packId);
+	let pack = store.state.ownPacks.find(x => x.id === packId);
 	return (!packContains)? `Add level to pack "${pack.name}"` : `Remove level from pack "${pack.name}"`;
 };
 const selectPack = async (packId: number) => {
 	let packContains = contains(packId); // See if the selected pack already contains the level
-	let pack = packs.value.find(x => x.id === packId); // Find the selected pack
+	let pack = store.state.ownPacks.find(x => x.id === packId); // Find the selected pack
 
 	if (packContains) {
 		// Remove the level
@@ -59,11 +54,7 @@ const selectPack = async (packId: number) => {
 		}
 	});
 
-	// Emit the update
-	emitter.emit('packUpdate', {
-		id: packId,
-		levelIds: pack.levelIds
-	});
+	store.state.packLevelIds[packId] = [...pack.levelIds];
 };
 const show = () => {
 	shown.value = true;

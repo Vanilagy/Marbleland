@@ -2,7 +2,7 @@
 	<div :class="{ disabled: waitingForResponse }" v-if="!$store.state.loggedInAccount">
 		<h1>{{ (type === 'signUp')? 'Create an account' : 'Sign in to an account' }}</h1>
 		<input type="email" :placeholder="emailPlaceholder" v-model.trim="email" @keydown.enter="submit" autofocus name="email" :autocomplete="(type === 'signIn')? 'username' : 'off'" class="basicTextInput">
-		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" maxlength="24" name="username" autocomplete="off" class="basicTextInput">
+		<input type="text" placeholder="Username" v-model.trim="username" v-if="type === 'signUp'" @keydown.enter="submit" :maxlength="USERNAME_MAX_LENGTH" name="username" autocomplete="off" class="basicTextInput">
 		<input type="password" placeholder="Password" v-model="password" @keydown.enter="submit" :name="(type === 'signIn')? 'current-password' : 'new-password'" :autocomplete="(type === 'signIn')? 'current-password' : 'new-password'" class="basicTextInput">
 		<input type="password" placeholder="Password (again)" v-model="passwordAgain" v-if="type === 'signUp'" @keydown.enter="submit" class="basicTextInput">
 		<p v-for="problem of problems" :key="problem" class="problem">- {{ problem }}</p>
@@ -24,6 +24,7 @@ import { useRouter } from 'vue-router';
 import { SignInInfo } from '../../../shared/types';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 import { useStore } from '../../ts/store';
+import { USERNAME_MAX_LENGTH } from '../../../shared/constants';
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 

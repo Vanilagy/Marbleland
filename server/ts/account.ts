@@ -19,10 +19,13 @@ export interface AccountDoc {
 	passwordHash: string,
 	created: number,
 	tokens: {
+		/** The SHA-256 hash of the token. */
 		value: string,
 		/** The UNIX timestamp in milliseconds when the token was last utilized for authorization. */
 		lastUsed: number
 	}[],
+	/** Set once the account's tokens have been migrated from plaintext to their hashes. */
+	tokensHashed?: boolean,
 	bio: string,
 	moderator?: boolean,
 	curator?: boolean,
@@ -47,6 +50,25 @@ export interface PendingRegistrationDoc {
 
 export const generateNewAccessToken = () => {
 	return crypto.randomBytes(32).toString('base64');
+};
+
+// Tokens are 32 random bytes, so a plain fast hash is enough; there's nothing to brute-force
+export const hashToken = (token: string) => {
+	return crypto.createHash('sha256').update(token).digest('base64');
+};
+
+/** Hashes the plaintext tokens of all accounts that predate token hashing. */
+export const migrateTokensToHashes = async () => {
+	let accounts = await db.accounts.findAsync({ tokensHashed: { $ne: true } }) as AccountDoc[];
+	for (let account of accounts) {
+		let tokens = account.tokens.map(x => ({
+			value: hashToken(x.value),
+			lastUsed: x.lastUsed
+		}));
+		await db.accounts.updateAsync({ _id: account._id }, { $set: { tokens, tokensHashed: true } });
+	}
+
+	if (accounts.length > 0) console.log(`Migrated the tokens of ${accounts.length} accounts to hashes.`);
 };
 
 export const generateVerificationToken = () => {
@@ -93,25 +115,32 @@ const getTokenFromCookie = (req: express.Request) => {
 };
 
 export const setTokenCookie = (res: express.Response, token: string) => {
-	res.set('Set-Cookie', `token=${token}; Path=/; Max-Age=${60 * 60 * 24 * 30};`);
+	res.set('Set-Cookie', `token=${token}; Path=/; Max-Age=${60 * 60 * 24 * 30}; HttpOnly; SameSite=Lax`);
+};
+
+export const clearTokenCookie = (res: express.Response) => {
+	res.set('Set-Cookie', `token=; Path=/; Max-Age=1; HttpOnly; SameSite=Lax`);
 };
 
 /** Finds the account belonging to a token specified in the Authorization header. If an account is found, also updates the `lastUsed` field. */
 export const authorize = async (req: express.Request) => {
 	let tokenString = getTokenFromAuthHeader(req);
-	let doc = await db.accounts.findOneAsync({ 'tokens.value': tokenString }) as AccountDoc;
+	let doc: AccountDoc = null;
+	if (tokenString) {
+		doc = await db.accounts.findOneAsync({ 'tokens.value': hashToken(tokenString) }) as AccountDoc;
+	}
 	if (!doc) {
 		// Check the cookie
 		tokenString = getTokenFromCookie(req);
 		if (tokenString) {
-			doc = await db.accounts.findOneAsync({ 'tokens.value': tokenString }) as AccountDoc;
+			doc = await db.accounts.findOneAsync({ 'tokens.value': hashToken(tokenString) }) as AccountDoc;
 		}
 	}
 
 	if (!doc) return { doc: null, token: null };
 
 	let now = Date.now();
-	let token = doc.tokens.find(x => x.value === tokenString);
+	let token = doc.tokens.find(x => x.value === hashToken(tokenString));
 	if (now - token.lastUsed >= TOKEN_TTL) return { doc: null, token: null };
 
 	token.lastUsed = Date.now();
@@ -249,57 +278,19 @@ export const sendVerificationEmail = async (email: string, username: string, tok
 	}
 
 	const verificationUrl = `${ORIGIN}/api/account/verify-email?token=${encodeURIComponent(token)}`;
-	
+
 	const isSignIn = context === 'signIn';
-	const greeting = `Hey ${username},`;
-	const mainMessage = isSignIn 
+	const mainMessage = isSignIn
 		? `Your account still requires email verification before you can sign in. Please verify your email address by clicking the link below:`
 		: `Thank you for creating your Marbleland account! To complete your registration, please verify your email address by clicking the link below:`;
 	const disclaimerMessage = isSignIn
 		? `If you didn't trigger this action, you can safely ignore this email.`
 		: `If you didn't create this account, you can safely ignore this email.`;
-	
-	const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="UTF-8">
-</head>
-<body>
-	<p>${greeting}</p>
+
+	await sendEmail(email, username, 'Verify your Marbleland account', `
 	<p>${mainMessage}</p>
 	<p><a href="${verificationUrl}">Verify account</a></p>
-	<p>${disclaimerMessage}</p>
-	<p>Best regards,<br>The Marbleland Team</p>
-</body>
-</html>
-	`;
-
-	const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-		method: 'POST',
-		headers: {
-			'Accept': 'application/json',
-			'Content-Type': 'application/json',
-			'api-key': config.brevoApiKey!
-		},
-		body: JSON.stringify({
-			sender: {
-				name: config.brevoSenderName,
-				email: config.brevoSenderEmail
-			},
-			to: [{
-				email: email,
-				name: username
-			}],
-			subject: 'Verify your Marbleland account',
-			htmlContent: emailHtml
-		})
-	});
-
-	if (!response.ok) {
-		const errorText = await response.text();
-		throw new Error(`Failed to send verification email: ${response.status} ${errorText}`);
-	}
+	<p>${disclaimerMessage}</p>`);
 };
 
 export const sendPasswordResetEmail = async (email: string, username: string, token: string) => {
@@ -308,7 +299,33 @@ export const sendPasswordResetEmail = async (email: string, username: string, to
 	}
 
 	const resetUrl = `${ORIGIN}/reset-password?token=${encodeURIComponent(token)}`;
-	
+
+	await sendEmail(email, username, 'Reset your Marbleland password', `
+	<p>You requested a password reset. Click the link below to set a new password:</p>
+	<p><a href="${resetUrl}">Reset password</a></p>
+	<p>This link will expire in 1 hour.</p>
+	<p>If you didn't request this password reset, you can safely ignore this email.</p>`);
+};
+
+export const sendAccountExistsEmail = async (email: string, username: string) => {
+	if (!isEmailVerificationEnabled()) {
+		throw new Error('Email verification is not configured');
+	}
+
+	await sendEmail(email, username, 'Your Marbleland account', `
+	<p>Someone tried to create a new Marbleland account with this email address, but you already have an account with it.</p>
+	<p>If you forgot your password, you can <a href="${ORIGIN}/forgot-password">reset it here</a>.</p>
+	<p>If this wasn't you, you can safely ignore this email.</p>`);
+};
+
+const sendEmail = async (email: string, username: string, subject: string, bodyHtml: string) => {
+	// Usernames can contain any printable characters, so they must not be interpreted as HTML
+	const escapedUsername = username
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
+
 	const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -316,11 +333,7 @@ export const sendPasswordResetEmail = async (email: string, username: string, to
 	<meta charset="UTF-8">
 </head>
 <body>
-	<p>Hey ${username},</p>
-	<p>You requested a password reset. Click the link below to set a new password:</p>
-	<p><a href="${resetUrl}">Reset password</a></p>
-	<p>This link will expire in 1 hour.</p>
-	<p>If you didn't request this password reset, you can safely ignore this email.</p>
+	<p>Hey ${escapedUsername},</p>${bodyHtml}
 	<p>Best regards,<br>The Marbleland Team</p>
 </body>
 </html>
@@ -342,14 +355,14 @@ export const sendPasswordResetEmail = async (email: string, username: string, to
 				email: email,
 				name: username
 			}],
-			subject: 'Reset your Marbleland password',
+			subject,
 			htmlContent: emailHtml
 		})
 	});
 
 	if (!response.ok) {
 		const errorText = await response.text();
-		throw new Error(`Failed to send password reset email: ${response.status} ${errorText}`);
+		throw new Error(`Failed to send email: ${response.status} ${errorText}`);
 	}
 };
 

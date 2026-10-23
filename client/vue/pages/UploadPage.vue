@@ -67,7 +67,7 @@
 			<h3 v-else>
 				If you want to, add a few additional remarks describing this level ({{ successResponse.missions[currentIndex].name }}) and its creation before submitting it:
 			</h3>
-			<textarea class="remarks basicTextarea" :placeholder="updateId ? `Changes to ${updateTarget?.name ?? 'this level'}` : `Additional remarks on ${successResponse.missions[currentIndex].name}`" :maxlength="$store.state.levelRemarksMaxLength" v-model.trim="remarks[currentIndex]"></textarea>
+			<textarea class="remarks basicTextarea" :placeholder="updateId ? `Changes to ${updateTarget?.name ?? 'this level'}` : `Additional remarks on ${successResponse.missions[currentIndex].name}`" :maxlength="LEVEL_REMARKS_MAX_LENGTH" v-model.trim="remarks[currentIndex]"></textarea>
 
 			<template v-if="!updateId">
 				<hr>
@@ -77,8 +77,8 @@
 				<input type="checkbox" id="createPackCheckbox" class="basicCheckbox" v-model="createNewPack">
 				<label for="createPackCheckbox" class="notSelectable">Create new pack</label>
 				
-				<input type="text" placeholder="Pack name" :maxlength="$store.state.packNameMaxLength" v-model.trim="newPackName" class="basicTextInput newPackName" v-if="createNewPack">
-				<textarea class="basicTextarea newPackDescription" placeholder="Pack description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="newPackDescription" v-if="createNewPack"></textarea>
+				<input type="text" placeholder="Pack name" :maxlength="PACK_NAME_MAX_LENGTH" v-model.trim="newPackName" class="basicTextInput newPackName" v-if="createNewPack">
+				<textarea class="basicTextarea newPackDescription" placeholder="Pack description" :maxlength="PACK_DESCRIPTION_MAX_LENGTH" v-model.trim="newPackDescription" v-if="createNewPack"></textarea>
 			</template>
 
 			<hr>
@@ -99,6 +99,7 @@ import PanelList from '../components/PanelList.vue';
 import { Head } from '@unhead/vue/components';
 import { LevelInfo, PackInfo } from '../../../shared/types';
 import { useStore } from '../../ts/store';
+import { LEVEL_REMARKS_MAX_LENGTH, PACK_DESCRIPTION_MAX_LENGTH, PACK_NAME_MAX_LENGTH } from '../../../shared/constants';
 
 const store = useStore();
 const route = useRoute();
@@ -218,6 +219,14 @@ const handleUpload = (request: XMLHttpRequest) => {
 		uploadTotal.value = ev.total;
 	};
 	request.onloadend = () => {
+		// Only a 400 comes with a list of problems. Anything else that failed (like being rate limited) gets a short message.
+		if (request.status !== 200 && request.status !== 400) {
+			problems.value = [request.status === 429 ? "You've uploaded too much recently. Please try again later." : "Something went wrong during the upload."];
+			uploadState.value = 'negative';
+			uploading.value = false;
+			return;
+		}
+
 		let json = JSON.parse(request.responseText) as {
 			status: 'error' | 'success',
 			problems: string[],
@@ -300,8 +309,11 @@ const submit = async () => {
 			if (!selectedPacks.value.includes(pack.id)) continue;
 			pack.levelIds.push(...json.levelIds);
 		}
+	} else if (response.status === 404) {
+		// The server only forgets uploads once they expire (or get replaced by newer ones)
+		alert("This upload has expired. Please refresh this page and upload your level again.");
 	} else {
-		alert("There was an error submitting your level. This is either because of a bug or because you waited too long to submit after initially uploading your .zip. If you want to try again, refresh this page.");
+		alert("There was an error submitting your level. If you want to try again, refresh this page.");
 	}
 };
 const dropFile = async (e: DragEvent) => {

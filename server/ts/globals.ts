@@ -16,6 +16,7 @@ export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
 
 export let config: {
 	port: number,
+	host: string | null,
 	dataPQ: string,
 	backupRepositoryPath: string,
 	backupRepositoryRemote: string,

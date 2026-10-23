@@ -1,15 +1,21 @@
 <template>
 	<div class="mainButton notSelectable">
-		<img ref="icon" :src="icon" :style="{ 'margin-right': noMargin? '' : '10px' }" class="basicIcon">
+		<img ref="iconElement" :src="icon" :style="{ 'margin-right': noMargin? '' : '10px' }" class="basicIcon">
 		<span><slot></slot></span>
 	</div>
 </template>
 
 <script lang="ts" setup>
+import { useTemplateRef } from 'vue';
+
 defineProps<{
 	icon?: string,
 	noMargin?: boolean
 }>();
+
+const iconElement = useTemplateRef<HTMLImageElement>('iconElement');
+
+defineExpose({ iconElement });
 </script>
 
 <style scoped>

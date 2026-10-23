@@ -2,7 +2,7 @@
 	<div class="wrapper" :style="{ 'box-shadow': showShadow? '' : 'none' }">
 		<header>
 			<img src="/assets/img/favicon.png" class="homeIcon" title="Home" @click="$router.push('/')">
-			<div v-for="target of targets" :key="target.path" class="targetContainer" :title="target.label" :class="{ selected: currentPath === target.path }" @click="navigate(target.path)">
+			<div v-for="target of targets" :key="target.path" class="targetContainer" :title="target.label" :class="{ selected: route.path === target.path }" @click="navigate(target.path)">
 				<a :href="target.path" @click.prevent=""><img :src="target.icon" class="basicIcon"></a>
 				<div class="underline"></div>
 			</div>
@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ProfileIcon from './ProfileIcon.vue';
 
@@ -38,10 +38,6 @@ const targets = [{
 }];
 const showShadow = ref(true);
 let interval: ReturnType<typeof setInterval> = null;
-
-const currentPath = computed(() => {
-	return route.path;
-});
 
 const navigate = (path: string) => {
 	// Go to a relative path or an absolute one, depending on the URL

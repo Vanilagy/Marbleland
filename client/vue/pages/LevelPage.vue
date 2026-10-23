@@ -4,7 +4,7 @@
 		<meta name="description" :content="levelInfo.desc">
 		<meta name="og:title" :content="title">
 		<meta name="og:description" :content="levelInfo.desc">
-		<meta name="og:image" :content="origin + `/api/level/${levelInfo.id}/image?version=${levelInfo.currentVersion ?? 1}`">
+		<meta name="og:image" :content="ORIGIN + `/api/level/${levelInfo.id}/image?version=${levelInfo.currentVersion ?? 1}`">
 		<meta name="twitter:card" content="summary_large_image">
 		<link rel="preload" href="/assets/svg/favorite_black_24dp.svg" as="image">
 	</Head>
@@ -88,7 +88,7 @@
 					<p class="missionInfoProblems">{{ missionInfoCodeProblems }}</p>
 
 					<h3>Remarks</h3>
-					<textarea class="basicTextarea" v-model.trim="editedRemarks" :maxlength="$store.state.levelRemarksMaxLength"></textarea>
+					<textarea class="basicTextarea" v-model.trim="editedRemarks" :maxlength="LEVEL_REMARKS_MAX_LENGTH"></textarea>
 
 					<div class="editingButtons">
 						<button-with-icon icon="/assets/svg/check_black_24dp.svg" @click="submitChanges" :class="{ disabled: missionInfoCodeProblems }">Save changes</button-with-icon>
@@ -104,7 +104,7 @@
 		</template>
 		<h3 style="margin-bottom: 10px;">Comments ({{ levelInfo.comments.length }})</h3>
 		<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended">
-			<textarea class="basicTextarea commentBox" placeholder="Write a public comment" v-model.trim="commentInput" maxlength="2000" :class="{ disabled: sendingComment }"></textarea>
+			<textarea class="basicTextarea commentBox" placeholder="Write a public comment" v-model.trim="commentInput" :maxlength="COMMENT_MAX_LENGTH" :class="{ disabled: sendingComment }"></textarea>
 			<button-with-icon icon="/assets/svg/comment_black_24dp.svg" class="commentButton" :class="{ disabled: !canComment || sendingComment }" @click="comment">Comment</button-with-icon>
 		</template>
 		<div>
@@ -169,7 +169,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, onServerPrefetch, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onServerPrefetch, onUnmounted, ref, useTemplateRef, watch, type WatchHandle } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { CommentInfo, ExtendedLevelInfo, LevelContentInfo, ReducedLeaderboardDefinition, LeaderboardScore, Modification, PackInfo, ProfileInfo } from '../../../shared/types';
 import DownloadButton from '../components/DownloadButton.vue';
@@ -185,12 +185,11 @@ import Loader from '../components/Loader.vue';
 import LevelLeaderboards from '../components/LevelLeaderboards.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
-import { emitter } from '../../ts/emitter';
 import { useStore } from '../../ts/store';
 import { Head } from '@unhead/vue/components';
 import { db } from '../../../server/ts/globals';
 import { MissionDoc, Mission } from '../../../server/ts/mission';
-import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS } from '../../../shared/constants';
+import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS, COMMENT_MAX_LENGTH, LEVEL_REMARKS_MAX_LENGTH } from '../../../shared/constants';
 import type { CodeJar } from "codejar";
 import { guessGameType, guessModification } from "../../../shared/classification";
 import Modal from '../components/Modal.vue';
@@ -232,6 +231,7 @@ const currentLBs = ref<ReducedLeaderboardDefinition>(null);
 const currentLeaderboardScores = ref<LeaderboardScore[]>([]);
 let lbUpdateToken = 0;
 const lbStatusMessage = ref('');
+let stopWatchingPackLevels: WatchHandle = null;
 
 onMounted(async () => {
 	if (store.state.levelPreload) {
@@ -262,7 +262,10 @@ onMounted(async () => {
 
 	// Incase the level search doesn't include this level yet, make it refresh
 	Search.checkForRefresh(levelInfo.value.id);
-	emitter.on('packUpdate', updatePacks);
+
+	// Any pack changing might change which packs this level appears in. Created only now that the level is loaded, so it's
+	// not bound to the component and has to be stopped manually.
+	stopWatchingPackLevels = watch(() => store.state.packLevelIds, updatePacks, { deep: true });
 
 	setMissionInfoCode();
 	editedRemarks.value = levelInfo.value.remarks;
@@ -306,7 +309,7 @@ onServerPrefetch(async () => {
 	store.state.levelPreload = levelInfo.value;
 });
 onUnmounted(() => {
-	emitter.off('packUpdate', updatePacks);
+	stopWatchingPackLevels?.(); // Never started if the level doesn't exist
 });
 
 const imageSource = computed(() => {
@@ -382,7 +385,6 @@ const linkifiedChangelog = computed(() => {
 const title = computed(() => {
 	return levelInfo.value.name + (levelInfo.value.artist? ' by ' + levelInfo.value.artist : '');
 });
-const origin = ORIGIN;
 const isLoggedIn = computed(() => {
 	return !!store.state.loggedInAccount
 });
@@ -500,8 +502,8 @@ const deleteLevel = async () => {
 			pack.levelIds = pack.levelIds.filter(x => x !== levelInfo.value.id);
 		}
 
-		Search.checkForRefresh(-1); // Same hack as the one we use in Pack.vue
-		emitter.emit('packView', -1); // Reload all packs
+		Search.checkForRefresh(-1); // Hack: Pretend that we're checking for a level with an ID that for sure won't exist, forcing the level search to re-fetch
+		store.state.packListVersion++; // Reload all packs
 
 		store.state.nextInfoBannerMessage = `Level "${levelInfo.value.name}" has been deleted successfully.`;
 		router.push({ name: 'Profile', params: { id: store.state.loggedInAccount.id } });
@@ -524,6 +526,14 @@ const comment = async () => {
 			'Content-Type': 'application/json'
 		}
 	});
+
+	if (!response.ok) {
+		// The comment input stays filled, so nothing typed is lost
+		alert(response.status === 429 ? "You're commenting too quickly. Please try again later." : "Your comment couldn't be posted.");
+		sendingComment.value = false;
+		return;
+	}
+
 	let json = await response.json() as CommentInfo[];
 
 	// Reload all of the comments

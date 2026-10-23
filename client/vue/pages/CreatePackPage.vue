@@ -6,8 +6,8 @@
 	<template v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended && $store.state.loggedInAccount.levelCount > 0">
 		<h1>Create new level pack</h1>
 		<div :class="{ disabled: creating }">
-			<input type="text" placeholder="Name" :maxlength="$store.state.packNameMaxLength" v-model.trim="name" class="basicTextInput">
-			<textarea class="description basicTextarea" placeholder="Description" :maxlength="$store.state.packDescriptionMaxLength" v-model.trim="description"></textarea>
+			<input type="text" placeholder="Name" :maxlength="PACK_NAME_MAX_LENGTH" v-model.trim="name" class="basicTextInput">
+			<textarea class="description basicTextarea" placeholder="Description" :maxlength="PACK_DESCRIPTION_MAX_LENGTH" v-model.trim="description"></textarea>
 			<p class="note"><b>Note:</b> You can add levels to this pack once you've created it.</p>
 			<button-with-icon icon="/assets/svg/create_new_folder_black_24dp.svg" class="createButton" @click="create" :class="{ disabled: !canCreate }">Create</button-with-icon>
 		</div>
@@ -23,6 +23,7 @@ import { useRouter } from 'vue-router';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import { Head } from '@unhead/vue/components';
 import { useStore } from '../../ts/store';
+import { PACK_DESCRIPTION_MAX_LENGTH, PACK_NAME_MAX_LENGTH } from '../../../shared/constants';
 
 const store = useStore();
 const router = useRouter();

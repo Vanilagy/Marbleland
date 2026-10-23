@@ -4,7 +4,7 @@
 		<meta name="description" :content="packInfo.description">
 		<meta name="og:title" :content="title">
 		<meta name="og:description" :content="packInfo.description">
-		<meta name="og:image" :content="origin + `/api/pack/${packInfo.id}/image`">
+		<meta name="og:image" :content="ORIGIN + `/api/pack/${packInfo.id}/image`">
 		<meta name="twitter:card" content="summary_large_image">
 	</Head>
 	<loader v-if="!packInfo && !notFound"></loader>
@@ -14,11 +14,11 @@
 		<div style="display: flex; flex-wrap: wrap;">
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 700px;">
 				<h1 v-if="!editing">{{ packInfo.name }}</h1>
-				<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="$store.state.packNameMaxLength">
+				<input v-else class="basicTextInput nameInput" placeholder="Name" v-model.trim="packInfo.name" :maxlength="PACK_NAME_MAX_LENGTH">
 				<profile-banner :profileInfo="packInfo.createdBy" :secondaryText="createdText" class="profileBanner"></profile-banner>
 				<h3>Description</h3>
 				<p v-if="!editing" class="regularParagraph description" v-html="description"></p>
-				<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description" :maxlength="$store.state.packDescriptionMaxLength"></textarea>
+				<textarea v-else class="basicTextarea descriptionInput" placeholder="Description" v-model.trim="packInfo.description" :maxlength="PACK_DESCRIPTION_MAX_LENGTH"></textarea>
 				<button-with-icon v-if="editing" icon="/assets/svg/check_black_24dp.svg" class="saveChangesButton" :class="{ disabled: !canSubmitChanges }" @click="submitChanges">Save changes</button-with-icon>
 			</div>
 			<div class="topRight">
@@ -40,7 +40,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onServerPrefetch, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onServerPrefetch, onUnmounted, ref, watch, type WatchHandle } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ExtendedPackInfo, LevelInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
@@ -52,10 +52,9 @@ import InfoBanner from '../components/InfoBanner.vue';
 import Loader from '../components/Loader.vue';
 import LoveButton from '../components/LoveButton.vue';
 import { LevelPanelActions } from '../components/LevelPanel.vue';
-import { emitter } from '../../ts/emitter';
 import { useStore } from '../../ts/store';
 import { Head } from '@unhead/vue/components';
-import { ORIGIN } from '../../../shared/constants';
+import { ORIGIN, PACK_DESCRIPTION_MAX_LENGTH, PACK_NAME_MAX_LENGTH } from '../../../shared/constants';
 import { db } from '../../../server/ts/globals';
 import { getExtendedPackInfo, PackDoc } from '../../../server/ts/pack';
 
@@ -68,6 +67,7 @@ const editing = ref(false);
 const deleting = ref(false);
 const notFound = ref(false);
 let hasDownloaded = false;
+let stopWatchingPackLevels: WatchHandle = null;
 
 onMounted(async () => {
 	if (store.state.packPreload) {
@@ -86,8 +86,13 @@ onMounted(async () => {
 		packInfo.value = json;
 	}
 
-	emitter.emit('packView', packInfo.value.id); // Trigger a possible update in pack search
-	emitter.on('packUpdate', onPackUpdate);
+	store.state.viewedPackId = packInfo.value.id; // Trigger a possible update in pack search
+
+	// Created only now that the pack is loaded, so it's not bound to the component and has to be stopped manually
+	stopWatchingPackLevels = watch(() => store.state.packLevelIds[packInfo.value.id], levelIds => {
+		// Refresh the level list
+		packInfo.value.levels = packInfo.value.levels.filter(x => levelIds.includes(x.id));
+	});
 });
 onServerPrefetch(async () => {
 	let doc = await db.packs.findOneAsync({ _id: Number(route.params.id) }) as PackDoc;
@@ -100,7 +105,7 @@ onServerPrefetch(async () => {
 	store.state.packPreload = packInfo.value;
 });
 onUnmounted(() => {
-	emitter.off('packUpdate', onPackUpdate);
+	stopWatchingPackLevels?.(); // Never started if the pack doesn't exist
 });
 
 const createdText = computed(() => {
@@ -132,10 +137,7 @@ const levelPanelActions = computed((): LevelPanelActions => {
 
 			hasDownloaded = false;
 
-			emitter.emit('packUpdate', {
-				id: packInfo.value.id,
-				levelIds: packInfo.value.levels.map(x => x.id)
-			});
+			store.state.packLevelIds[packInfo.value.id] = packInfo.value.levels.map(x => x.id);
 		},
 		async swapLeft(info: LevelInfo) {
 			swapLevels(info.id, -1);
@@ -154,19 +156,10 @@ const description = computed(() => {
 const title = computed(() => {
 	return `[Pack] ${packInfo.value.name} by ${packInfo.value.createdBy.username}`;
 });
-const origin = ORIGIN;
 const isLoggedIn = computed(() => {
 	return !!store.state.loggedInAccount
 });
 
-const onPackUpdate = (updateInfo: { id: number, levelIds?: number[] }) => {
-	if (packInfo.value.id !== updateInfo.id) return;
-
-	if (updateInfo.levelIds) {
-		// Refresh the level list
-		packInfo.value.levels = packInfo.value.levels.filter(x => updateInfo.levelIds.includes(x.id));
-	}
-};
 const submitChanges = async () => {
 	editing.value = false;
 	// Edit the local pack values
@@ -187,7 +180,7 @@ const submitChanges = async () => {
 
 	hasDownloaded = false;
 
-	emitter.emit('packView', -1); // Hack: Pretend that we're viewing a pack with an ID that for sure won't exist, forcing the pack list to re-fetch
+	store.state.packListVersion++; // The pack list shows the old name
 };
 const deletePack = async () => {
 	if (!confirm(`Are you sure you want to delete your pack "${packInfo.value.name}"?`)) return;
@@ -202,7 +195,7 @@ const deletePack = async () => {
 	if (response.ok) {
 		// Edit local pack values
 		store.state.ownPacks = store.state.ownPacks.filter(x => x.id !== packInfo.value.id);
-		emitter.emit('packView', -1); // Same hack as above
+		store.state.packListVersion++; // The pack list still contains the deleted pack
 		store.state.nextInfoBannerMessage = `Pack "${packInfo.value.name}" has been deleted successfully.`;
 		router.push({ name: 'Profile', params: { id: store.state.loggedInAccount.id } });
 	} else {
@@ -234,10 +227,7 @@ const swapLevels = async (levelId: number, direction: -1 | 1) => {
 
 	hasDownloaded = false;
 
-	emitter.emit('packUpdate', {
-		id: packInfo.value.id,
-		levelIds: packInfo.value.levels.map(x => x.id)
-	});
+	store.state.packLevelIds[packInfo.value.id] = packInfo.value.levels.map(x => x.id);
 };
 const incrementDownloads = () => {
 	if (hasDownloaded) return;

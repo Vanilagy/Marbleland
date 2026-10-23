@@ -1,5 +1,6 @@
 {
 	"port": 8080,
+	"host": null,
 	"dataPQ": "data/data_pq",
 	"backupRepositoryPath": null,
 	"backupRepositoryRemote": null,

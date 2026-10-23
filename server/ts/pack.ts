@@ -5,7 +5,7 @@ import { db, keyValue } from "./globals";
 import { Mission, MissionDoc } from "./mission";
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
-import { Util } from "./util";
+import { Util, MAX_IMAGE_PIXELS } from "./util";
 import { SERVER_DIR } from "./paths";
 
 /** Representation of a pack in the database. */
@@ -138,7 +138,7 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 				}
 	
 				// Cut out the center part of the thumbnail in a slim strip
-				buffer = await sharp(rawBuffer).resize({width: width, height: height, fit: 'cover'}).extract({
+				buffer = await sharp(rawBuffer, { limitInputPixels: MAX_IMAGE_PIXELS }).resize({width: width, height: height, fit: 'cover'}).extract({
 					left: Math.floor((width - sliceWidth) / 2),
 					top: 0,
 					width: Math.ceil(sliceWidth),

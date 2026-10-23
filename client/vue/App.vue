@@ -5,9 +5,9 @@
 		<meta name="og:title" content="Marbleland">
 		<meta name="og:site_name" content="Marbleland">
 		<meta name="og:type" content="website">
-		<meta name="og:url" :content="origin + $route.path">
+		<meta name="og:url" :content="ORIGIN + $route.path">
 		<meta name="og:description" content="Marbleland is the custom level sharing platform for Marble Blast on which you can find, download, upload and share levels and level packs.">
-		<meta name="og:image" :content="origin + '/assets/img/favicon.png'">
+		<meta name="og:image" :content="ORIGIN + '/assets/img/favicon.png'">
 	</Head>
 	<navigation-bar></navigation-bar>
 	<div id="center">
@@ -26,7 +26,6 @@ import NavigationBar from './components/NavigationBar.vue';
 import { Head } from '@unhead/vue/components';
 import { ORIGIN } from '../../shared/constants';
 
-const origin = ORIGIN;
 const isBrowser = typeof window !== 'undefined';
 </script>
 

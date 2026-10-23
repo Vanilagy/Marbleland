@@ -6,17 +6,24 @@ import jszip from 'jszip';
 import multer from 'multer';
 import { z } from 'zod';
 import { LevelInfo, PackInfo } from "../../../shared/types";
-import { authorize, isSuspended } from "../account";
+import { authorize, isSuspended, AccountDoc } from "../account";
 import { CommentDoc, getCommentInfosForLevel } from "../comment";
 import { config, db, keyValue, mbcryptRsaKey} from "../globals";
 import { MissionDoc, Mission } from "../mission";
-import { MissionUpload, ongoingUploads } from "../mission_upload";
+import { MissionUpload, ongoingUploads, registerPendingUpload } from "../mission_upload";
 import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
 import { app } from "../server";
-import { compressAndSendImage, executeWithIpTimeout, ipTimeouts } from "./api";
+import { compressAndSendImage, executeWithIpTimeout, ipTimeouts, parseBinaryBody, requireAccount, validate } from "./api";
 import { Util } from '../util';
 import { MissionZipStream } from '../zip';
 import { MBPakFile } from '../mbcrypt/mbcrypt';
+import { rateLimitRequest, HOUR, MINUTE } from '../rate_limiter';
+import { COMMENT_MAX_LENGTH, LEVEL_REMARKS_MAX_LENGTH, PACK_DESCRIPTION_MAX_LENGTH, PACK_NAME_MAX_LENGTH } from '../../../shared/constants';
+
+const MAX_UPLOAD_SIZE = 100 * 1024**2;
+
+// In bytes, how much file data each multipart request has sent so far
+const multipartUploadSizes = new WeakMap<express.Request, number>();
 
 const lbEndpointScoreSchema = z.object({
     username: z.string(),
@@ -27,6 +34,29 @@ const lbEndpointScoreSchema = z.object({
 
 const lbEndpointResponseSchema = z.object({
     scores: z.array(lbEndpointScoreSchema)
+});
+
+const editLevelSchema = z.object({
+	missionInfo: z.record(z.string(), z.string()).nullable(),
+	remarks: z.string().max(LEVEL_REMARKS_MAX_LENGTH).nullable()
+});
+const commentSchema = z.object({
+	content: z.string().trim().min(1).max(COMMENT_MAX_LENGTH)
+});
+const curateVoteSchema = z.object({
+	vote: z.boolean().nullable()
+});
+const zipIdsSchema = z.object({
+	ids: z.string()
+});
+const submitUploadSchema = z.object({
+	uploadId: z.string(),
+	remarks: z.array(z.string().max(LEVEL_REMARKS_MAX_LENGTH)),
+	addToPacks: z.array(z.number().int()),
+	newPack: z.object({
+		name: z.string().trim().min(1).max(PACK_NAME_MAX_LENGTH),
+		description: z.string().trim().min(1).max(PACK_DESCRIPTION_MAX_LENGTH)
+	}).nullable()
 });
 
 /** Verifies that the accessed level actually exists. */
@@ -77,7 +107,10 @@ export const initLevelApi = () => {
 
 	// Get a .zip of multiple levels
 	app.post('/api/level/zip', async (req, res) => {
-		let levelIdsRaw = (req.body.ids as string).split(',').map(x => Number(x));
+		let q = validate(zipIdsSchema, req.body, res);
+		if (!q) return;
+
+		let levelIdsRaw = q.ids.split(',').map(x => Number(x));
 		let levelIds = new Set(levelIdsRaw); // Remove duplicates
 		
 		// Fastest if we just get all missions at once because NeDB is kinda dumb
@@ -268,7 +301,7 @@ export const initLevelApi = () => {
 		res.send(packInfos);
 	});
 
-	const processMissionArchive = async (req: express.Request, updateId?: number) => {
+	const processMissionArchive = async (req: express.Request, ownerId: number, updateId?: number) => {
 		/** A list of problems with the upload, will be populated later. */
 		let problems: string[] = [];
 		/** A list of warnings regarding the upload. Warnings won't prevent submission. */
@@ -276,11 +309,23 @@ export const initLevelApi = () => {
 		let zip: jszip;
 
 		if (req.headers['content-type']?.startsWith('multipart/form-data')) {
+			// The storage engine stopped keeping data past the limit, so the files are incomplete if it was exceeded
+			let files = (req.files as Express.Multer.File[]) ?? [];
+			if ((multipartUploadSizes.get(req) ?? 0) > MAX_UPLOAD_SIZE) {
+				problems.push("The uploaded files are too large (max 100 MB in total).");
+				return { upload: null, problems, warnings };
+			}
+
 			zip = new jszip();
-			for (let file of req.files as Express.Multer.File[]) {
+			for (let file of files) {
 				zip.file(file.originalname, file.buffer);
 			}
 		} else {
+			if (!Buffer.isBuffer(req.body)) {
+				problems.push("The upload has to be sent as binary data.");
+				return { upload: null, problems, warnings };
+			}
+
 			try {
 				zip = await jszip.loadAsync(req.body);
 			} catch (e) {
@@ -290,7 +335,7 @@ export const initLevelApi = () => {
 
 		if (!zip) return { upload: null, problems, warnings };
 
-		const upload = new MissionUpload(zip, updateId);
+		const upload = new MissionUpload(zip, ownerId, updateId);
 		try {
 			await upload.process();
 			problems.push(...upload.problems);
@@ -303,48 +348,58 @@ export const initLevelApi = () => {
 		return { upload, problems, warnings };
 	};
 
-	const authorizeUploader = async (req: express.Request, res: express.Response, existingLevelId?: number) => {
-        let { doc } = await authorize(req);
-        if (!doc) {
-            res.status(401).send("401\nInvalid token.");
-            return null;
-        }
-        if (isSuspended(doc)) {
-            res.status(403).send("403\nAccount is suspended.");
-            return null;
-        }
+	// Like multer's memory storage, except that it stops keeping data once the request's files exceed MAX_UPLOAD_SIZE in total.
+	// The rest is read and discarded, so memory stays bounded and the handler can still report the problem as usual.
+	const boundedMemoryStorage: multer.StorageEngine = {
+		_handleFile(req, file, callback) {
+			let chunks: Buffer[] = [];
+			file.stream.on('data', (chunk: Buffer) => {
+				let totalSize = (multipartUploadSizes.get(req) ?? 0) + chunk.length;
+				multipartUploadSizes.set(req, totalSize);
+				if (totalSize <= MAX_UPLOAD_SIZE) chunks.push(chunk);
+			});
+			file.stream.on('error', callback);
+			file.stream.on('end', () => {
+				let buffer = Buffer.concat(chunks);
+				callback(null, {
+					buffer,
+					size: buffer.length
+				});
+			});
+		},
+		_removeFile(req, file, callback) {
+			delete file.buffer;
+			callback(null);
+		}
+	};
 
-        // If updating, verify ownership
-        if (existingLevelId !== undefined) {
-            let missionDoc = await db.missions.findOneAsync({ _id: existingLevelId }) as MissionDoc;
-            if (!missionDoc) {
-                res.status(404).send("404\nLevel not found.");
-                return null;
-            }
-            if (missionDoc.addedBy !== doc._id && !doc.moderator) {
-                res.status(403).send("403\nUnauthorized to update this level.");
-                return null;
-            }
-        }
+	const upload = multer({
+		storage: boundedMemoryStorage,
+		limits: {
+			files: 10000,
+			fields: 10
+		}
+	});
 
-        return doc;
-    };
-
-	const upload = multer();
+	// Runs before the body is parsed, so that uploads over the limit don't get read in first
+	const limitUploads: express.RequestHandler = (req, res, next) => {
+		let doc = res.locals.accountDoc as AccountDoc;
+		if (!rateLimitRequest(res, `level-upload:account:${doc._id}`, 30, HOUR)) return;
+		next();
+	};
 
 	// Upload a level archive. This doesn't yet submit it, but causes the processing/verification step.
-	app.post('/api/level/upload', upload.any(), async (req, res) => {
-        const doc = await authorizeUploader(req, res);
-        if (!doc) return;
+	app.post('/api/level/upload', requireAccount, limitUploads, parseBinaryBody, upload.any(), async (req, res) => {
+        const doc = res.locals.accountDoc as AccountDoc;
 
-        const { upload, problems } = await processMissionArchive(req);
+        const { upload, problems } = await processMissionArchive(req, doc._id);
 
         if (problems.length > 0) {
             return res.status(400).send({ status: 'error', problems });
         }
 
-        ongoingUploads.set(upload.id, upload);
-        
+        registerPendingUpload(upload);
+
         // Fetch user's packs
         let packDocs = await db.packs.findAsync({ createdBy: doc._id }) as PackDoc[];
         packDocs.sort((a, b) => b.createdAt - a.createdAt);
@@ -359,6 +414,37 @@ export const initLevelApi = () => {
         });
     });
 
+	/** Looks up a pending upload of the requesting account. Responds with 404 and returns null if there's none. */
+	const getOwnUpload = (uploadId: string, res: express.Response, doc: AccountDoc) => {
+		// Pending uploads disappear when they expire or get pushed out by newer ones, which is the only way a regular user ends
+		// up here, so the client treats a 404 as "expired". Someone else's upload counts as nonexistent.
+		let upload = ongoingUploads.get(uploadId);
+		if (!upload || upload.ownerId !== doc._id) {
+			res.status(404).send("404\nInvalid or expired upload ID.");
+			return null;
+		}
+
+		return upload;
+	};
+
+	/** Makes sure all packs exist and the account may add levels to them. Responds and returns false otherwise. */
+	const checkPackPermissions = async (packIds: number[], res: express.Response, doc: AccountDoc) => {
+		for (let packId of packIds) {
+			let packDoc = await db.packs.findOneAsync({ _id: packId }) as PackDoc;
+			if (!packDoc) {
+				res.status(400).send("400\nOne of the packs doesn't exist.");
+				return false;
+			}
+
+			if (packDoc.createdBy !== doc._id && !doc.moderator) {
+				res.status(403).send("403\nNo permission to add levels to one of the packs.");
+				return false;
+			}
+		}
+
+		return true;
+	};
+
 	// Submit a previously uploaded mission
 	app.post('/api/level/submit', async (req, res) => {
 		let { doc } = await authorize(req);
@@ -372,20 +458,22 @@ export const initLevelApi = () => {
 			return;
 		}
 
-		let upload = ongoingUploads.get(req.body.uploadId);
-		if (!upload) {
-			res.status(400).end();
+		let q = validate(submitUploadSchema, req.body, res);
+		if (!q) return;
+
+		let upload = getOwnUpload(q.uploadId, res, doc);
+		if (!upload) return;
+
+		// An upload made to update a level was checked as such, so it can only be submitted as that level's update
+		if (upload.updateId !== undefined) {
+			res.status(400).send("400\nThis upload was made to update a level.");
 			return;
 		}
 
-		if (!Array.isArray(req.body.remarks) && !(req.body.remarks as string[]).every(x => typeof x === 'string')) {
-			res.status(400).end();
-			return;
-		}
+		let packsAllowed = await checkPackPermissions(q.addToPacks, res, doc);
+		if (!packsAllowed) return;
 
-		// Since the upload ID is random, we assume here that whoever holds the upload ID is also authorized to submit it.
-
-		let { docs, newPackId } = await upload.submit(doc, req.body);
+		let { docs, newPackId } = await upload.submit(doc, q);
 
 		res.send({
 			levelIds: docs.map(x => x._id),
@@ -394,20 +482,26 @@ export const initLevelApi = () => {
 	});
 
 	// Upload the level for updating purposes
-	app.post('/api/level/:levelId/upload', upload.any(), async (req, res) => {
+	app.post('/api/level/:levelId/upload', requireAccount, limitUploads, parseBinaryBody, upload.any(), async (req, res) => {
+        const doc = res.locals.accountDoc as AccountDoc;
+
         const levelId = await verifyLevelId(req, res);
         if (levelId === null) return;
 
-        const doc = await authorizeUploader(req, res, levelId);
-        if (!doc) return;
+        // Verify ownership of the level being updated
+        let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
+        if (missionDoc.addedBy !== doc._id && !doc.moderator) {
+            res.status(403).send("403\nUnauthorized to update this level.");
+            return;
+        }
 
-        const { upload, problems, warnings } = await processMissionArchive(req, levelId);
+        const { upload, problems, warnings } = await processMissionArchive(req, doc._id, levelId);
 
         if (problems.length > 0) {
             return res.status(400).send({ status: 'error', problems });
         }
 
-        ongoingUploads.set(upload.id, upload);
+        registerPendingUpload(upload);
         res.send({
             status: 'success',
             uploadId: upload.id,
@@ -418,25 +512,50 @@ export const initLevelApi = () => {
 
 	// Submit a previously uploaded update
 	app.post('/api/level/:levelId/submit', async (req, res) => {
+		let { doc } = await authorize(req);
+		if (!doc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(doc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
 		const levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		const doc = await authorizeUploader(req, res, levelId);
-		if (!doc) return;
+		// Verify ownership of the level being updated
+		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
+		if (missionDoc.addedBy !== doc._id && !doc.moderator) {
+			res.status(403).send("403\nUnauthorized to update this level.");
+			return;
+		}
 
-		const upload = ongoingUploads.get(req.body.uploadId);
-		if (!upload) return res.status(400).send("Invalid or expired upload ID.");
+		let q = validate(submitUploadSchema, req.body, res);
+		if (!q) return;
+
+		const upload = getOwnUpload(q.uploadId, res, doc);
+		if (!upload) return;
+
+		// Uploads are checked against the level they're meant to update (for example, it's exempt from duplicate detection), so
+		// they can't be submitted for any other level
+		if (upload.updateId !== levelId) {
+			res.status(400).send("400\nThis upload wasn't made to update this level.");
+			return;
+		}
 
 		// A changelog describing the new version is mandatory
-		if (!Array.isArray(req.body.remarks) || typeof req.body.remarks[0] !== 'string' || !req.body.remarks[0].trim()) {
+		if (!q.remarks[0]?.trim()) {
 			res.status(400).send("400\nA changelog describing the changes in the new version is required.");
 			return;
 		}
 
-		const { docs } = await upload.submit(doc, {
-			...req.body,
-			existingLevelId: levelId
-		});
+		let packsAllowed = await checkPackPermissions(q.addToPacks, res, doc);
+		if (!packsAllowed) return;
+
+		const { docs } = await upload.submit(doc, q, levelId);
 
 		// Clear IP timeouts so the download count can increase again for the new version
 		for (let [key] of ipTimeouts) {
@@ -454,11 +573,13 @@ export const initLevelApi = () => {
 			return;
 		}
 
-		let upload = ongoingUploads.get(req.query.uploadId as string);
-		if (!upload) {
+		if (typeof req.query.uploadId !== 'string') {
 			res.status(400).end();
 			return;
 		}
+
+		let upload = getOwnUpload(req.query.uploadId, res, doc);
+		if (!upload) return;
 
 		let missionId = Number(req.query.missionId);
 		let group = upload.groups[missionId];
@@ -489,21 +610,8 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let json = req.body as {
-			missionInfo: Record<string, string>,
-			remarks: string
-		};
-
-		// Check if the types are correct
-
-		if (json.remarks !== null && typeof json.remarks !== 'string') {
-			res.status(400).end();
-			return;
-		}
-		if (json.missionInfo !== null && Object.values(json.missionInfo).some(x => typeof x !== 'string')) {
-			res.status(400).end();
-			return;
-		}
+		let json = validate(editLevelSchema, req.body, res);
+		if (!json) return;
 
 		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 
@@ -525,7 +633,7 @@ export const initLevelApi = () => {
 			missionDoc = mission.createDoc();
 		}
 
-		missionDoc.remarks = req.body.remarks;
+		missionDoc.remarks = json.remarks;
 		missionDoc.editedAt = Date.now();
 		await db.missions.updateAsync({ _id: levelId }, missionDoc);
 
@@ -583,11 +691,10 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		// Make sure the type is correct
-		if (typeof req.body.content !== 'string' || !req.body.content.trim()) {
-			res.status(400).end();
-			return;
-		}
+		let q = validate(commentSchema, req.body, res);
+		if (!q) return;
+
+		if (!rateLimitRequest(res, `comment:account:${doc._id}`, 30, 10 * MINUTE)) return;
 
 		let id = keyValue.get('commentId');
 		keyValue.set('commentId', id + 1);
@@ -598,7 +705,7 @@ export const initLevelApi = () => {
 			forType: 'level',
 			author: doc._id,
 			time: Date.now(),
-			content: req.body.content
+			content: q.content
 		};
 		await db.comments.insertAsync(comment);
 
@@ -710,6 +817,9 @@ export const initLevelApi = () => {
         let levelId = await verifyLevelId(req, res);
         if (levelId === null) return;
 
+		let q = validate(curateVoteSchema, req.body, res);
+		if (!q) return;
+
         let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 
 		if(doc._id == missionDoc.addedBy) {
@@ -718,7 +828,7 @@ export const initLevelApi = () => {
 		}
 
 		let mission = Mission.fromDoc(missionDoc);
-		mission.setVote(doc._id, req.body.vote);
+		mission.setVote(doc._id, q.vote);
         await db.missions.updateAsync({ _id: levelId }, mission.createDoc());
 
         res.send({ success: true });

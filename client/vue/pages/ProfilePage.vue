@@ -4,7 +4,7 @@
 		<meta name="description" :content="profileInfo.bio">
 		<meta name="og:title" :content="profileInfo.username">
 		<meta name="og:description" :content="profileInfo.bio">
-		<meta name="og:image" :content="origin + `/api/account/${profileInfo.id}/avatar`">
+		<meta name="og:image" :content="ORIGIN + `/api/account/${profileInfo.id}/avatar`">
 	</Head>
 	<loader v-if="!profileInfo && !notFound"></loader>
 	<p class="notFound" v-if="notFound">This user does not exist. :(</p>
@@ -35,7 +35,7 @@
 			</div>
 		</template>
 		<template v-else>
-			<textarea class="bioTextarea basicTextarea" placeholder="Tell us a little bit about yourself" maxlength="1000" v-model.trim="profileInfo.bio"></textarea>
+			<textarea class="bioTextarea basicTextarea" placeholder="Tell us a little bit about yourself" :maxlength="BIO_MAX_LENGTH" v-model.trim="profileInfo.bio"></textarea>
 			<button-with-icon icon="/assets/svg/check_black_24dp.svg" class="saveBio" @click="saveBio">Save bio</button-with-icon>
 		</template>
 		<p class="stats">
@@ -78,7 +78,7 @@
 			<p><strong>This action cannot be undone.</strong> The content will be permanently lost.</p>
 
 			<p>Suspension reason (will be displayed publicly):</p>
-			<textarea class="basicTextarea suspensionReasonTextarea" v-model="suspensionReason" placeholder="Concisely describe why this account has been suspended..." maxlength="500" rows="3"></textarea>
+			<textarea class="basicTextarea suspensionReasonTextarea" v-model="suspensionReason" placeholder="Concisely describe why this account has been suspended..." :maxlength="SUSPENSION_REASON_MAX_LENGTH" rows="3"></textarea>
 
 			<div class="suspendModalCheckboxContainer">
 				<input type="checkbox" id="suspendAcknowledgement" class="basicCheckbox" v-model="acknowledgedSuspensionConsequences">
@@ -150,7 +150,7 @@ import { useStore } from '../../ts/store';
 import { Head } from '@unhead/vue/components';
 import { db } from '../../../server/ts/globals';
 import { AccountDoc, getExtendedProfileInfo } from '../../../server/ts/account';
-import { ORIGIN } from '../../../shared/constants';
+import { ORIGIN, BIO_MAX_LENGTH, SUSPENSION_REASON_MAX_LENGTH } from '../../../shared/constants';
 
 const store = useStore();
 const route = useRoute();
@@ -213,7 +213,6 @@ const hasOwnershipPermissions = computed(() => {
 const bio = computed(() => {
 	return Util.linkify(profileInfo.value.bio) || "This user hasn't set a bio.";
 });
-const origin = ORIGIN;
 const levelDownloads = computed(() => {
 	return profileInfo.value.uploadedLevels.reduce((a, b) => a + b.downloads, 0);
 });

@@ -2,14 +2,15 @@ import { Mission, MissionDoc } from "./mission";
 import { config, db, initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import { initApi } from "./api/api";
-import { AccountDoc, isEmailVerificationEnabled, suspendAccount } from "./account";
+import { AccountDoc, isEmailVerificationEnabled, migrateTokensToHashes, suspendAccount } from "./account";
 import * as fs from 'node:fs';
 import * as path from 'path';
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 import { LevelInfo, Modification } from "../../shared/types";
 import { MisParser, MissionElementSimGroup, MissionElementType } from "./io/mis_parser";
-import { initializeImageMagick } from "@imagemagick/magick-wasm";
+import { initializeImageMagick, ResourceLimits } from "@imagemagick/magick-wasm";
+import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from "./util";
 import { initBackup } from "./backup";
 import { reimportMissions, scanForMissions } from "./import";
 import { SERVER_DIR } from "./paths";
@@ -38,6 +39,7 @@ const init = async () => {
 	fs.mkdirSync(path.join(SERVER_DIR, 'storage/avatars'), { recursive: true });
 	fs.mkdirSync(path.join(SERVER_DIR, 'storage/pack_thumbnails'), { recursive: true });
 	await initGlobals();
+	await migrateTokensToHashes();
 
 	// Log out unverified users if email verification is enabled. This forces them to log in again and verify their email
 	if (isEmailVerificationEnabled()) {
@@ -60,7 +62,11 @@ const init = async () => {
 	const wasmLocation = createRequire(import.meta.url).resolve('@imagemagick/magick-wasm/magick.wasm');
 	const wasmBytes = fs.readFileSync(wasmLocation);
 	await initializeImageMagick(wasmBytes);
-	
+
+	ResourceLimits.width = BigInt(MAX_IMAGE_DIMENSION);
+	ResourceLimits.height = BigInt(MAX_IMAGE_DIMENSION);
+	ResourceLimits.area = BigInt(MAX_IMAGE_PIXELS);
+
 	let { positionals: args, values: flags } = parseArgs({
 		allowPositionals: true,
 		options: {
@@ -151,7 +157,7 @@ const init = async () => {
 	} else {
 		// Usual path, boot up the API and HTTP server.
 		initApi();
-		startHTTPServer(config.port);
+		startHTTPServer(config.port, config.host);
 		if (config.backupRepositoryPath) initBackup();
 	}
 };

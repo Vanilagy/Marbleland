@@ -1,14 +1,27 @@
 import * as fs from 'node:fs';
+import { z } from 'zod';
 import { PackInfo } from "../../../shared/types";
 import { authorize, isSuspended } from "../account";
 import { db } from "../globals";
 import { MissionDoc, Mission } from "../mission";
 import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPackThumbnailPath, createPack } from "../pack";
 import { app } from "../server";
-import { compressAndSendImage, executeWithIpTimeout, ipTimeouts } from "./api";
+import { compressAndSendImage, executeWithIpTimeout, ipTimeouts, validate } from "./api";
 import { Util } from "../util";
 import { MissionZipStream } from "../zip";
 import { incrementLevelDownloads } from './api_level';
+import { rateLimitRequest, HOUR } from '../rate_limiter';
+import { PACK_DESCRIPTION_MAX_LENGTH, PACK_NAME_MAX_LENGTH } from '../../../shared/constants';
+
+const createPackSchema = z.object({
+	name: z.string().trim().min(1).max(PACK_NAME_MAX_LENGTH),
+	description: z.string().trim().min(1).max(PACK_DESCRIPTION_MAX_LENGTH)
+});
+const editPackSchema = z.object({
+	name: z.string().trim().min(1).max(PACK_NAME_MAX_LENGTH),
+	description: z.string().trim().min(1).max(PACK_DESCRIPTION_MAX_LENGTH)
+});
+const setLevelsSchema = z.array(z.number().int());
 
 export const initPackApi = () => {
 	// Get a list of all packs
@@ -36,6 +49,11 @@ export const initPackApi = () => {
 			return;
 		}
 		
+		let q = validate(createPackSchema, req.body, res);
+		if (!q) return;
+
+		if (!rateLimitRequest(res, `pack-create:account:${doc._id}`, 20, HOUR)) return;
+
 		// Check if the user has at least one created level
 		let createdLevelCount = await db.missions.countAsync({ addedBy: doc._id });
 		if (createdLevelCount === 0) {
@@ -43,7 +61,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		let packDoc = await createPack(doc, req.body.name, req.body.description);
+		let packDoc = await createPack(doc, q.name, q.description);
 
 		res.send({ packId: packDoc._id });
 	});
@@ -130,19 +148,16 @@ export const initPackApi = () => {
 			return;
 		}
 
-		// Ensure the type of the body
-		if ((req.body as unknown[]).some(x => typeof x !== 'number')) {
-			res.status(400).end();
-			return;
-		}
+		let levels = validate(setLevelsSchema, req.body, res);
+		if (!levels) return;
 
 		// No double entries
-		if (new Set(req.body).size !== req.body.length) {
+		if (new Set(levels).size !== levels.length) {
 			res.status(400).end();
 			return;
 		}
 
-		packDoc.levels = req.body;
+		packDoc.levels = levels;
 		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 
 		res.end();
@@ -192,13 +207,11 @@ export const initPackApi = () => {
 			return;
 		}
 
-		if (typeof req.body.name !== 'string' || typeof req.body.description !== 'string') {
-			res.status(401).end();
-			return;
-		}
+		let q = validate(editPackSchema, req.body, res);
+		if (!q) return;
 
-		packDoc.name = req.body.name;
-		packDoc.description = req.body.description;
+		packDoc.name = q.name;
+		packDoc.description = q.description;
 		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 
 		res.end();

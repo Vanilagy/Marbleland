@@ -54,12 +54,15 @@ export class Util {
 	/** Turns raw text into HTML with all URLs wrapped into anchor tags. */
 	static linkify(raw: string) {
 		if (!raw) return raw;
-		if (typeof document === "undefined") return raw; // SSR stuff
 
-		// Since we wanna output HTML, we first need to properly escape all HTML characters included in the raw text to prevent XSS, like so:
-		let elem = document.createElement('div');
-		elem.textContent = raw;
-		let html = elem.innerHTML;
+		// Since we wanna output HTML, we first need to escape all HTML-significant characters included in the raw text to prevent
+		// XSS. Quotes matter too, since URLs end up inside an attribute.
+		let html = raw
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
 
 		// Then we can wrap anchor tags around all URLs:
 		html = html.replace(this.urlRegEx, `<a href="$&" target="_blank">$&</a>`);

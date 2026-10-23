@@ -128,11 +128,16 @@ export const createNewStore = () => {
 			avatarVersion: 0,
 			/** Used to trigger banner messages. */
 			nextInfoBannerMessage: null as string,
-			levelRemarksMaxLength: 10000,
-			packNameMaxLength: 64,
-			packDescriptionMaxLength: 1000,
 			/** Which of the home page's level lists to show. Kept in a cookie so the server can render the right one. */
 			homeViewPref: 'relevant',
+
+			// Changes made on this client that other components react to:
+			/** The latest level IDs of every pack whose levels were changed, keyed by pack ID. Always assigned a fresh array. */
+			packLevelIds: {} as Record<number, number[]>,
+			/** Bumped whenever the pack list might be out of date and needs to be fetched again. */
+			packListVersion: 0,
+			/** The pack last opened. The pack list fetches again if it doesn't know this pack yet. */
+			viewedPackId: null as number,
 
 			// SSR stuff:
 			homePreload: null as HomeInfo,
