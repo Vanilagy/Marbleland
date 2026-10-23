@@ -1,4 +1,4 @@
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as path from 'path';
 import { MisFile, MisParser, MissionElementSimGroup, MissionElementType } from './io/mis_parser';
 import { Util } from './util';
@@ -25,11 +25,11 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 
     /** Recursively scans a directory. */
     const scan = async (relativePath: string) => {
-        let entries = await fs.readdir(path.join(baseDirectory, relativePath));
+        let entries = await fs.promises.readdir(path.join(baseDirectory, relativePath));
 
         for (let entry of entries) {
             let joined = path.join(baseDirectory, relativePath, entry);
-            let stat = await fs.stat(joined);
+            let stat = await fs.promises.stat(joined);
             let fromStart = path.posix.join(relativePath, entry);
 	
             if (stat.isDirectory()) {
@@ -39,7 +39,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                     if (allowedRelativePaths && !allowedRelativePaths.has(fromStart)) continue;
 
                     // Check if the same file already exists in default PQ, and if so, skip it
-                    let existsInPq = await fs.pathExists(path.join(Config.dataPath, relativePath, entry));
+                    let existsInPq = fs.existsSync(path.join(Config.dataPath, relativePath, entry));
                     let isProbablyCustom = relativePath.includes('custom');
                     if (existsInPq && !isProbablyCustom) {
                         skipped++;
@@ -71,7 +71,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                     let duplicateDoc: MissionDoc;
                     if (replaceDuplicates) {
                         // Search for a duplicate level that was already added previously
-                        let duplicatesArr = await db.missions.find({ $or: [
+                        let duplicatesArr = await db.missions.findAsync({ $or: [
                             {
                                 // Primitive heuristic, but should work to identify candidates
                                 'info.name': mission.info.name,
@@ -90,7 +90,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                         for (let duplicate of duplicatesArr) {
                             if (duplicate.misHash !== mission.misHash) {
                                 // We found a possible duplicate candidate.
-                                let mis1 = new MisParser((await fs.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString()).parse();
+                                let mis1 = new MisParser((await fs.promises.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString()).parse();
                                 let mis2 = mission.mis;
 
                                 // Compare the contents. If they don't match, it's (probably) not a duplicate.
@@ -124,7 +124,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                         keyValue.set('levelId', incrementedId - 1);
                     }
 
-                    await db.missions.update({ _id: doc._id }, doc, { upsert: true });
+                    await db.missions.updateAsync({ _id: doc._id }, doc, { upsert: true });
 	
                     console.log("Level imported successfully with id " + doc._id);
                     success++;
@@ -185,7 +185,7 @@ export const compareMissions = (mis1: MisFile, mis2: MisFile) => {
 };
 
 export const reimportMissions = async (levelIds: number[], allowCreation: boolean) => {
-    let missions = await db.missions.find({}) as MissionDoc[];
+    let missions = await db.missions.findAsync({}) as MissionDoc[];
     if (levelIds.length > 0) missions = missions.filter(x => levelIds.includes(x._id));
     let baseDirectories = new Set(missions.map(x => x.baseDirectory));
 

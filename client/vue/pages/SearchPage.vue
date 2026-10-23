@@ -15,7 +15,7 @@ import PanelList from '../components/PanelList.vue';
 import DownloadButton from '../components/DownloadButton.vue';
 import { LevelInfo } from '../../../shared/types';
 import { Search } from '../../ts/search';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 
 export default defineComponent({
 	name: 'search',

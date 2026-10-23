@@ -95,7 +95,7 @@ import { defineComponent } from 'vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 import PanelList from '../components/PanelList.vue';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 import { LevelInfo, PackInfo } from '../../../shared/types';
 
 export default defineComponent({

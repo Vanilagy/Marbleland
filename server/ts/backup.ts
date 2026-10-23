@@ -1,9 +1,10 @@
 import { db, config } from "./globals";
-import fs from 'fs-extra';
+import fs from 'node:fs';
 import path from 'path';
 import childProcess from 'child_process';
 import { MissionDoc } from "./mission";
 import { PackDoc } from "./pack";
+import { SERVER_DIR } from "./paths";
 
 export const initBackup = () => {
 	setInterval(doBackup, config.backupPeriod * 1000);
@@ -16,7 +17,7 @@ const doBackup = async () => {
 
 	try {
 		// Create a new, empty repository if necessary
-		if (!(await fs.pathExists(path.join(config.backupRepositoryPath, '.git')))) {
+		if (!fs.existsSync(path.join(config.backupRepositoryPath, '.git'))) {
 			await execShellCommand('git init', config.backupRepositoryPath);
 		}
 
@@ -28,17 +29,20 @@ const doBackup = async () => {
 
 			console.log("Copying using rsync...");
 
-			await execShellCommand(`rsync -avu --delete "${path.join(__dirname, 'storage/levels')}/" "${path.join(config.backupRepositoryPath, 'levels')}"`, config.backupRepositoryPath);
+			await execShellCommand(`rsync -avu --delete "${path.join(SERVER_DIR, 'storage/levels')}/" "${path.join(config.backupRepositoryPath, 'levels')}"`, config.backupRepositoryPath);
 		} catch (e) {
 			console.log("Copying manually...");
 			// Delete the old level backup
-			await fs.remove(path.join(config.backupRepositoryPath, 'levels'));
+			await fs.promises.rm(path.join(config.backupRepositoryPath, 'levels'), {
+				recursive: true,
+				force: true
+			});
 			// Copy over all the levels
-			await fs.copy(path.join(__dirname, 'storage/levels'), path.join(config.backupRepositoryPath, 'levels'));
+			await fs.promises.cp(path.join(SERVER_DIR, 'storage/levels'), path.join(config.backupRepositoryPath, 'levels'), { recursive: true });
 		}
 
 		// Prepare all the mission docs
-		let missionDocs = await db.missions.find({}) as (MissionDoc & { lovedCount: number })[];
+		let missionDocs = await db.missions.findAsync({}) as (MissionDoc & { lovedCount: number })[];
 		missionDocs.forEach(x => {
 			x.baseDirectory = x.baseDirectory.slice(x.baseDirectory.indexOf('levels'));
 			x.lovedCount = (x.lovedBy ?? []).length;
@@ -56,16 +60,16 @@ const doBackup = async () => {
 				delete y.preferPrevThumbnail;
 			});
 		});
-		await fs.writeFile(path.join(config.backupRepositoryPath, 'missions.json'), JSON.stringify(missionDocs, null, 4));
+		await fs.promises.writeFile(path.join(config.backupRepositoryPath, 'missions.json'), JSON.stringify(missionDocs, null, 4));
 
 		// Prepare all the pack docs
-		let packDocs = await db.packs.find({}) as (PackDoc & { lovedCount: number })[];
+		let packDocs = await db.packs.findAsync({}) as (PackDoc & { lovedCount: number })[];
 		packDocs.forEach(x => {
 			x.lovedCount = (x.lovedBy ?? []).length;
 
 			delete x.lovedBy;
 		});
-		await fs.writeFile(path.join(config.backupRepositoryPath, 'packs.json'), JSON.stringify(packDocs, null, 4));
+		await fs.promises.writeFile(path.join(config.backupRepositoryPath, 'packs.json'), JSON.stringify(packDocs, null, 4));
 		
 		console.info("Write done.");
 
@@ -83,7 +87,7 @@ const doBackup = async () => {
 			for (let line of lines) {
 				try {
 					let filePath = line.slice(3);
-					let stats = await fs.stat(path.join(config.backupRepositoryPath, filePath));
+					let stats = await fs.promises.stat(path.join(config.backupRepositoryPath, filePath));
 
 					// GitHub rejects files over 100 MB, so don't even try
 					if (stats.size > 100 * 1024**2) {

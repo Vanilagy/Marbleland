@@ -1,4 +1,4 @@
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import { PackInfo } from "../../../shared/types";
 import { authorize, isSuspended } from "../account";
 import { db } from "../globals";
@@ -13,7 +13,7 @@ import { incrementLevelDownloads } from './api_level';
 export const initPackApi = () => {
 	// Get a list of all packs
 	app.get('/api/pack/list', async (req, res) => {
-		let packDocs = await db.packs.find({}) as PackDoc[];
+		let packDocs = await db.packs.findAsync({}) as PackDoc[];
 		let packInfos: PackInfo[] = [];
 
 		for (let doc of packDocs) {
@@ -37,7 +37,7 @@ export const initPackApi = () => {
 		}
 		
 		// Check if the user has at least one created level
-		let createdLevelCount = await db.missions.count({ addedBy: doc._id });
+		let createdLevelCount = await db.missions.countAsync({ addedBy: doc._id });
 		if (createdLevelCount === 0) {
 			res.status(403).send("403\nYou need to create at least one level before you can create a pack.");
 			return;
@@ -50,7 +50,7 @@ export const initPackApi = () => {
 
 	// Get extended pack info for a given pack
 	app.get('/api/pack/:packId/info', async (req, res) => {
-		let doc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let doc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!doc) {
 			res.status(404).send("404\nNo pack exists with this ID.");
 			return;
@@ -64,7 +64,7 @@ export const initPackApi = () => {
 
 	// Get the archive for a pack which contains all levels of the pack
 	app.get('/api/pack/:packId/zip', async (req, res) => {
-		let doc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let doc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!doc) {
 			res.status(404).send("No pack exists with this ID.");
 			return;
@@ -78,7 +78,7 @@ export const initPackApi = () => {
 
 		// Iterate over all levels in this pack and add their contents to the zip one-by-one
 		for (let levelId of doc.levels) {
-			let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+			let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 			if (!missionDoc) continue;
 
 			let mission = Mission.fromDoc(missionDoc);
@@ -98,7 +98,7 @@ export const initPackApi = () => {
 		// Increment the download count for the entire pack, with possible IP timeout
 		await executeWithIpTimeout(req, 'pack' + doc._id, async () => {
 			doc.downloads = (doc.downloads ?? 0) + 1;
-			await db.packs.update({ _id: doc._id }, doc);
+			await db.packs.updateAsync({ _id: doc._id }, doc);
 		});
 
 		let fileName = Util.removeSpecialChars(doc.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
@@ -118,7 +118,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let packDoc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
 			return;
@@ -143,7 +143,7 @@ export const initPackApi = () => {
 		}
 
 		packDoc.levels = req.body;
-		await db.packs.update({ _id: packDoc._id }, packDoc);
+		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 
 		res.end();
 
@@ -154,14 +154,14 @@ export const initPackApi = () => {
 
 	// Get the image thumbnail for a pack
 	app.get('/api/pack/:packId/image', async (req, res) => {
-		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let packDoc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
 			return;
 		}
 
 		let imagePath = getPackThumbnailPath(packDoc);
-		let exists = await fs.pathExists(imagePath);
+		let exists = fs.existsSync(imagePath);
 		if (!exists) await createPackThumbnail(packDoc); // If the thumbnail doesn't exist yet, it may not have been generated yet or is currently being regenerated. Therefore, generate it here.
 
 		res.set('Cache-Control', 'no-cache, no-store'); // Could change any time
@@ -181,7 +181,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let packDoc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
 			return;
@@ -199,7 +199,7 @@ export const initPackApi = () => {
 
 		packDoc.name = req.body.name;
 		packDoc.description = req.body.description;
-		await db.packs.update({ _id: packDoc._id }, packDoc);
+		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 
 		res.end();
 
@@ -219,7 +219,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let packDoc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
 			return;
@@ -248,7 +248,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let packDoc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
 			return;
@@ -258,7 +258,7 @@ export const initPackApi = () => {
 		if (!lovedBy.includes(doc._id)) lovedBy.push(doc._id);
 
 		packDoc.lovedBy = lovedBy;
-		await db.packs.update({ _id: packDoc._id }, packDoc);
+		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 
 		res.end();
 	});
@@ -276,7 +276,7 @@ export const initPackApi = () => {
 			return;
 		}
 
-		let packDoc = await db.packs.findOne({ _id: Number(req.params.packId) }) as PackDoc;
+		let packDoc = await db.packs.findOneAsync({ _id: Number(req.params.packId) }) as PackDoc;
 		if (!packDoc) {
 			res.status(400).end();
 			return;
@@ -286,7 +286,7 @@ export const initPackApi = () => {
 		if (lovedBy.includes(doc._id)) lovedBy.splice(lovedBy.indexOf(doc._id), 1);
 
 		packDoc.lovedBy = lovedBy;
-		await db.packs.update({ _id: packDoc._id }, packDoc);
+		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 
 		res.end();
 	});
@@ -301,13 +301,13 @@ const clearIpTimeouts = (packId: number) => {
 
 /** Deletes a single pack and handles all cleanup (removing thumbnail, etc.) */
 export const deleteSinglePack = async (packId: number) => {
-	let packDoc = await db.packs.findOne({ _id: packId }) as PackDoc;
+	let packDoc = await db.packs.findOneAsync({ _id: packId }) as PackDoc;
 	if (!packDoc) return;
 
-	await db.packs.remove({ _id: packId }, {});
+	await db.packs.removeAsync({ _id: packId }, {});
 
 	// Delete pack thumbnail
 	try {
-		await fs.unlink(getPackThumbnailPath(packDoc));
+		await fs.promises.unlink(getPackThumbnailPath(packDoc));
 	} catch {}
 };

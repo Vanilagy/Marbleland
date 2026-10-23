@@ -1,5 +1,5 @@
 import { ImageMagick, MagickFormat } from '@imagemagick/magick-wasm';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as path from 'path';
 import { DirectoryStructure } from './globals';
 import { DataDefinitionBase } from '../../shared/types';
@@ -104,7 +104,7 @@ export class Util {
 	static readdirCached(directoryPath: string) {
 		if (this.readdirCache.has(directoryPath)) return this.readdirCache.get(directoryPath);
 		let promise = new Promise<{ files: string[], directoryPath: string }>(async resolve => {
-			let exists = await fs.pathExists(directoryPath);
+			let exists = fs.existsSync(directoryPath);
 			if (!exists) {
 				let parts = directoryPath.split(path.sep).map(x => x.toLowerCase());
 				if (!parts[0]) {
@@ -125,20 +125,20 @@ export class Util {
 					}
 
 					currPath = path.join(currPath, part);
-					let exists = await fs.pathExists(currPath);
+					let exists = fs.existsSync(currPath);
 					if (!exists) {
 						currFiles = [];
 						break;
 					}
 
-					currFiles = await fs.readdir(currPath);
+					currFiles = await fs.promises.readdir(currPath);
 				}
 
 				resolve({ files: currFiles ?? [], directoryPath: currPath });
 				return;
 			}
 			
-			let files = await fs.readdir(directoryPath);
+			let files = await fs.promises.readdir(directoryPath);
 			resolve({ files, directoryPath });
 		});
 		this.readdirCache.set(directoryPath, promise);
@@ -332,7 +332,7 @@ export class KeyValueStore<T> {
 		this.path = path;
 		this.data = {};
 
-		let exists = fs.pathExistsSync(path);
+		let exists = fs.existsSync(path);
 		if (exists) {
 			this.data = JSON.parse(fs.readFileSync(path).toString());
 		} else {
@@ -359,7 +359,7 @@ export class KeyValueStore<T> {
 		if (!this.saving) {
 			this.saving = true;
 			this.needsSave = false;
-			await fs.writeFile(this.path, JSON.stringify(this.data));
+			await fs.promises.writeFile(this.path, JSON.stringify(this.data));
 			this.saving = false;
 
 			if (this.needsSave) this.save(); // Save again if writes happened during the saving process

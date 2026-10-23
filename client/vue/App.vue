@@ -24,7 +24,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import NavigationBar from './components/NavigationBar.vue';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 import { ORIGIN } from '../../shared/constants';
 
 export default defineComponent({
@@ -218,7 +218,6 @@ a:visited {
 
 .basicCheckbox:checked::after {
 	content: "";
-	/* webpackIgnore: true */
 	background-image: url("/assets/svg/check_black_24dp.svg");
 	background-size: 24px 24px;
 	width: 24px;

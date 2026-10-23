@@ -52,7 +52,7 @@ import Loader from '../components/Loader.vue';
 import LoveButton from '../components/LoveButton.vue';
 import { LevelPanelActions } from '../components/LevelPanel.vue';
 import { emitter } from '../../ts/emitter';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 import { ORIGIN } from '../../../shared/constants';
 import { db } from '../../../server/ts/globals';
 import { getExtendedPackInfo, PackDoc } from '../../../server/ts/pack';
@@ -88,7 +88,7 @@ export default defineComponent({
 		emitter.on('packUpdate', this.onPackUpdate);
 	},
 	async serverPrefetch() {
-		let doc = await db.packs.findOne({ _id: Number(this.$route.params.id) }) as PackDoc;
+		let doc = await db.packs.findOneAsync({ _id: Number(this.$route.params.id) }) as PackDoc;
 		if (!doc) {
 			this.notFound = true;
 			return;

@@ -1,9 +1,9 @@
-<img src="client/assets/img/favicon.png" width=100>
+<img src="client/public/assets/img/favicon.png" width=100>
 
 # Marbleland
 The custom level sharing platform for Marble Blast, allowing you to browse, download and upload custom levels and level packs.<br>https://marbleland.vaniverse.io/
 
-<img src="client/assets/img/homepage.jpg" width=640>
+<img src="client/public/assets/img/homepage.jpg" width=640>
 
 [View version history](version_history.md)
 
@@ -25,13 +25,13 @@ Check out the docs [here](docs/api.md).
 Marbleland's frontend was built using Vue.js and its backend using Node. When custom levels are imported/uploaded, an asset dependency tree is constructed by scanning the .mis file for the required files, and then scanning those files for their dependencies. This way, all assets needed to correctly run the custom level can be identified and included in the .zip. Marbleland currently identifies the mission file and thumbnails, interiors, interior textures, sky materials, TSStatic shapes, custom datablock shapes, shape materials, music and sounds as level dependencies. .mis and .dts file parsing is done using the parsers used in the [webport](https://github.com/Vanilagy/MarbleBlast), and .dif parsing uses RandomityGuy's [hxDif](https://github.com/RandomityGuy/hxDIF) library. Additionally, the custom code used in the .mis file is detected through his [hxTorquescript](https://github.com/RandomityGuy/hxTorqueScript) library.
 
 ## Building and developing
-This project requires Node.js v14.0.0 and above to run. After cloning, simply run `npm install` in the cloned directory to install all required dependencies. Then run `npm run watch` to create the necessary JavaScript bundles and to watch for future file changes. Run `npm run build` to create minified bundles.
+This project requires Node.js v24 and above to run. After cloning, simply run `npm install` in the cloned directory to install all required dependencies. Then run `npm run dev` to start the development server, which renders pages server-side just like in production, hot-reloads client changes and restarts itself when server code changes. Run `npm run build` to typecheck the project and create the production bundles, and `npm run check` to only typecheck.
 
 Marbleland requires a PQ data directory for default asset lookup. This directory isn't included in the repo, so you'll have to download it. You can get it [here](https://drive.google.com/file/d/14IocHL5g7t0Bf1Iyu1ExKvyKvReLlE7E/view?usp=sharing) or by cloning [PlatinumQuest](https://github.com/PlatinumTeam/PlatinumQuest). Once downloaded, you'll need to tell Marbleland where it is by setting `dataPQ` in `server/data/config.json` to the correct path.
 
-Running `npm start` starts the HTTP server on the port defined in `server/data/config.json` (8080 by default).
+After building, running `npm start` starts the HTTP server on the port defined in `server/data/config.json` (8080 by default).
 
-Marbleland offers a few CLI commands:
+Marbleland offers a few CLI commands, which run against the production bundle (which you must build beforehand):
 
 - `npm run add-directory -- <directory-path> [--id-map <id-map-path>] [--replace-duplicates]`<br>
 Imports a directory of custom levels into the database. Will import all .mis files in `<directory-path>`.<br><br>

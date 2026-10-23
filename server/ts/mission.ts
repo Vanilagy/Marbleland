@@ -1,8 +1,8 @@
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElement, MissionElementBase, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './io/mis_parser';
-import hxDif from '../lib/hxDif';
+import * as hxDif from '../lib/hxDif';
 import { Util } from './util';
 import { DtsParser } from './io/dts_parser';
 import { Config } from './config';
@@ -616,11 +616,11 @@ export class Mission {
 
 	async createExtendedLevelInfo(requesterId?: number): Promise<ExtendedLevelInfo> {
 		let levelInfo = this.createLevelInfo();
-		let accountDoc = await db.accounts.findOne({ _id: this.addedBy }) as AccountDoc;
-		let requesterDoc = await db.accounts.findOne({ _id: requesterId }) as AccountDoc;
+		let accountDoc = await db.accounts.findOneAsync({ _id: this.addedBy }) as AccountDoc;
+		let requesterDoc = await db.accounts.findOneAsync({ _id: requesterId }) as AccountDoc;
 
 		// Find all packs containing this mission
-		let packDocs = await db.packs.find({ levels: this.id }) as PackDoc[];
+		let packDocs = await db.packs.findAsync({ levels: this.id }) as PackDoc[];
 		let packInfos: PackInfo[] = [];
 		for (let packDoc of packDocs) {
 			packInfos.push(await getPackInfo(packDoc));
@@ -641,7 +641,7 @@ export class Mission {
 		let curatorVoteDetails: CuratorVoteInfo[] = [];
 		if (requesterDoc?.curator && this.curatorVotes) {
 			const curatorIds = Object.keys(this.curatorVotes).map(Number);
-			const accounts = await db.accounts.find({ _id: { $in: curatorIds } }) as AccountDoc[];
+			const accounts = await db.accounts.findAsync({ _id: { $in: curatorIds } }) as AccountDoc[];
 			
 			// Resolve accounts to ProfileInfo objects
 			curatorVoteDetails = await Promise.all(accounts.map(async acc => ({
@@ -781,7 +781,7 @@ export class Mission {
 
 		// Update the database
 		let doc = this.createDoc();
-		await db.missions.update({ _id: doc._id }, doc);
+		await db.missions.updateAsync({ _id: doc._id }, doc);
 
 		return true;
 	}
@@ -898,13 +898,13 @@ export class Mission {
 
 	/** Remove all mission curator votes from this account */
 	static async removeVotes(accountId: number) {
-        let missions = await db.missions.find({ [`curatorVotes.${accountId}`]: { $exists: true } }) as MissionDoc[];
+        let missions = await db.missions.findAsync({ [`curatorVotes.${accountId}`]: { $exists: true } }) as MissionDoc[];
 
         // Process updates
 		let updates = missions.map(async (doc) => {
 			let mission = Mission.fromDoc(doc);
 			mission.setVote(accountId, null);
-			return db.missions.update({ _id: mission.id }, mission.createDoc());
+			return db.missions.updateAsync({ _id: mission.id }, mission.createDoc());
 		});
 		await Promise.all(updates);
     }

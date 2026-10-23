@@ -32,7 +32,7 @@
 					<span v-if="viewedContent.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
 				<div v-if="isCurator" class="curationPanel">
-					<h3 @click="$refs.curatorDetailsModal.show();" class="curatorScore">Curator score</h3>
+					<h3 @click="($refs.curatorDetailsModal as any).show();" class="curatorScore">Curator score</h3>
 
 					<div class="voteContainer">
 						<button-with-icon icon="/assets/svg/expand_more_black_24dp.svg" noMargin class="voteBtn up" :class="{ active: levelInfo.yourVote === true, disabled: isOwnLevel }" @click="submitVote(true)" title="This level demonstrates creative effort."></button-with-icon>
@@ -52,7 +52,7 @@
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="showDeleteConfirmation" class="basicIcon">
 					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="updateLevel" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing || !isLatestVersion }" @click="editing = true" class="basicIcon">
-					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" :class="{ disabled: !isLatestVersion }" @click="$refs.packAdder.show()" class="basicIcon">
+					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" :class="{ disabled: !isLatestVersion }" @click="($refs.packAdder as any).show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
 				<template v-if="!editing">
@@ -162,7 +162,7 @@
 			</div>
 			<hr />
 			<div style="display: flex; justify-content: flex-end;">
-				<ButtonWithIcon @click="$refs.curatorDetailsModal.hide()">Close</ButtonWithIcon>
+				<ButtonWithIcon @click="($refs.curatorDetailsModal as any).hide()">Close</ButtonWithIcon>
 			</div>
 		</Modal>
 	</template>
@@ -186,11 +186,11 @@ import LevelLeaderboards from '../components/LevelLeaderboards.vue';
 import { Util } from '../../ts/util';
 import { Search } from '../../ts/search';
 import { emitter } from '../../ts/emitter';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 import { db } from '../../../server/ts/globals';
 import { MissionDoc, Mission } from '../../../server/ts/mission';
 import { ORIGIN, MUTABLE_MISSION_INFO_FIELDS } from '../../../shared/constants';
-import { CodeJar } from "codejar";
+import type { CodeJar } from "codejar";
 import { guessGameType, guessModification } from "../../../shared/classification";
 import Modal from '../components/Modal.vue';
 
@@ -277,6 +277,9 @@ export default defineComponent({
 		this.setMissionInfoCode();
 		this.editedRemarks = this.levelInfo.remarks;
 
+		// CodeJar touches the DOM on import, so it can only be loaded here on the client
+		const { CodeJar } = await import('codejar');
+
 		// Do nextTick because the ref will only be there once the DOM populates
 		this.$nextTick(() => {
 			if (!(this.$refs as any).editor) return;
@@ -301,7 +304,7 @@ export default defineComponent({
 		this.editor?.destroy();
 	},
 	async serverPrefetch() {
-		let doc = await db.missions.findOne({ _id: Number(this.$route.params.id) }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: Number(this.$route.params.id) }) as MissionDoc;
 		if (!doc) {
 			this.notFound = true;
 			return;

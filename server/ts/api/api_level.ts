@@ -1,8 +1,7 @@
-import * as express from 'express';
+import express from 'express';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import * as crypto from 'crypto';
-import fetch from 'node-fetch';
 import jszip from 'jszip';
 import multer from 'multer';
 import { z } from 'zod';
@@ -38,7 +37,7 @@ const verifyLevelId = async (req: express.Request, res: express.Response) => {
 		return null;
 	}
 
-	let doc = await db.missions.findOne({ _id: levelId });
+	let doc = await db.missions.findOneAsync({ _id: levelId });
 	if (!doc) {
 		res.status(404).send("404\nA level with this ID does not exist.");
 		return null;
@@ -65,7 +64,7 @@ const verifyVersionNumber = (req: express.Request, res: express.Response, doc: M
 export const initLevelApi = () => {
 	// Get a list of all levels
 	app.get('/api/level/list', async (req, res) => {
-		let docs = await db.missions.find({}) as MissionDoc[];
+		let docs = await db.missions.findAsync({}) as MissionDoc[];
 		let response: LevelInfo[] = [];
 
 		for (let doc of docs) {
@@ -82,7 +81,7 @@ export const initLevelApi = () => {
 		let levelIds = new Set(levelIdsRaw); // Remove duplicates
 		
 		// Fastest if we just get all missions at once because NeDB is kinda dumb
-		let missionDocs = await db.missions.find({}) as MissionDoc[];
+		let missionDocs = await db.missions.findAsync({}) as MissionDoc[];
 		missionDocs = missionDocs.filter(x => levelIds.has(x._id));
 		let missions = missionDocs.map(x => Mission.fromDoc(x));
 
@@ -107,7 +106,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let version = verifyVersionNumber(req, res, doc);
 		if (version === null) return;
 		let mission = Mission.fromVersion(doc, version);
@@ -128,7 +127,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let version = verifyVersionNumber(req, res, doc);
 		if (version === null) return;
 		let mission = Mission.fromVersion(doc, version);
@@ -162,7 +161,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let version = verifyVersionNumber(req, res, doc);
 		if (version === null) return;
 		let mission = Mission.fromVersion(doc, version);
@@ -182,7 +181,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let version = verifyVersionNumber(req, res, doc);
 		if (version === null) return;
 		let mission = Mission.fromVersion(doc, version);
@@ -202,7 +201,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let version = verifyVersionNumber(req, res, doc);
 		if (version === null) return;
 		let mission = Mission.fromVersion(doc, version);
@@ -220,7 +219,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let version = verifyVersionNumber(req, res, doc);
 		if (version === null) return;
 		let mission = Mission.fromVersion(doc, version);
@@ -233,7 +232,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return; 
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
 
 		let { doc: accountDoc } = await authorize(req);
@@ -246,7 +245,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let version = verifyVersionNumber(req, res, doc);
 		if (version === null) return;
 		let mission = Mission.fromVersion(doc, version);
@@ -259,8 +258,8 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
-		let packDocs = await db.packs.find({ levels: doc._id }) as PackDoc[];
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
+		let packDocs = await db.packs.findAsync({ levels: doc._id }) as PackDoc[];
 		let packInfos: PackInfo[] = [];
 		for (let packDoc of packDocs) {
 			packInfos.push(await getPackInfo(packDoc));
@@ -317,7 +316,7 @@ export const initLevelApi = () => {
 
         // If updating, verify ownership
         if (existingLevelId !== undefined) {
-            let missionDoc = await db.missions.findOne({ _id: existingLevelId }) as MissionDoc;
+            let missionDoc = await db.missions.findOneAsync({ _id: existingLevelId }) as MissionDoc;
             if (!missionDoc) {
                 res.status(404).send("404\nLevel not found.");
                 return null;
@@ -347,7 +346,7 @@ export const initLevelApi = () => {
         ongoingUploads.set(upload.id, upload);
         
         // Fetch user's packs
-        let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+        let packDocs = await db.packs.findAsync({ createdBy: doc._id }) as PackDoc[];
         packDocs.sort((a, b) => b.createdAt - a.createdAt);
         let packs = await Promise.all(packDocs.map(p => getPackInfo(p)));
 
@@ -506,7 +505,7 @@ export const initLevelApi = () => {
 			return;
 		}
 
-		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 
 		// Make sure the person editing has permission to do so
 		if (missionDoc.addedBy !== accountDoc._id && !accountDoc.moderator) {
@@ -528,7 +527,7 @@ export const initLevelApi = () => {
 
 		missionDoc.remarks = req.body.remarks;
 		missionDoc.editedAt = Date.now();
-		await db.missions.update({ _id: levelId }, missionDoc);
+		await db.missions.updateAsync({ _id: levelId }, missionDoc);
 
 		// Clear IP timeouts because of the edit
 		for (let [key] of ipTimeouts) {
@@ -555,7 +554,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 
 		// Make sure the person deleting has permission to do so
 		if (missionDoc.addedBy !== doc._id && !doc.moderator) {
@@ -601,7 +600,7 @@ export const initLevelApi = () => {
 			time: Date.now(),
 			content: req.body.content
 		};
-		await db.comments.insert(comment);
+		await db.comments.insertAsync(comment);
 
 		// Respond with a list of all comments for that level
 		res.send(await getCommentInfosForLevel(levelId));
@@ -623,13 +622,13 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let lovedBy = missionDoc.lovedBy ?? [];
 
 		if (!lovedBy.includes(doc._id)) lovedBy.push(doc._id);
 
 		missionDoc.lovedBy = lovedBy;
-		await db.missions.update({ _id: levelId }, missionDoc);
+		await db.missions.updateAsync({ _id: levelId }, missionDoc);
 
 		res.end();
 	});
@@ -650,13 +649,13 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let lovedBy = missionDoc.lovedBy ?? [];
 
 		if (lovedBy.includes(doc._id)) lovedBy.splice(lovedBy.indexOf(doc._id), 1);
 
 		missionDoc.lovedBy = lovedBy;
-		await db.missions.update({ _id: levelId }, missionDoc);
+		await db.missions.updateAsync({ _id: levelId }, missionDoc);
 
 		res.end();
 	});
@@ -666,7 +665,7 @@ export const initLevelApi = () => {
 		let levelId = await verifyLevelId(req, res);
 		if (levelId === null) return;
 
-		let doc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
 
 		let leaderboardId = req.params.leaderboardId;
@@ -711,7 +710,7 @@ export const initLevelApi = () => {
         let levelId = await verifyLevelId(req, res);
         if (levelId === null) return;
 
-        let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+        let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 
 		if(doc._id == missionDoc.addedBy) {
 			res.status(403).send("403\nCan't vote on your own level.");
@@ -720,7 +719,7 @@ export const initLevelApi = () => {
 
 		let mission = Mission.fromDoc(missionDoc);
 		mission.setVote(doc._id, req.body.vote);
-        await db.missions.update({ _id: levelId }, mission.createDoc());
+        await db.missions.updateAsync({ _id: levelId }, mission.createDoc());
 
         res.send({ success: true });
     });
@@ -730,27 +729,27 @@ export const incrementLevelDownloads = (doc: MissionDoc, req: express.Request) =
 	// Increment download count but prevent spamming
 	return executeWithIpTimeout(req, 'level' + doc._id, async () => {
 		doc.downloads = (doc.downloads ?? 0) + 1;
-		await db.missions.update({ _id: doc._id }, doc);
+		await db.missions.updateAsync({ _id: doc._id }, doc);
 	});
 };
 
 /** Deletes a single level and handles all cleanup (removing from packs, deleting comments, etc.) */
 export const deleteSingleLevel = async (levelId: number) => {
-	let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+	let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 	if (!missionDoc) return;
 
-	await db.missions.remove({ _id: levelId }, {});
+	await db.missions.removeAsync({ _id: levelId }, {});
 
 	// Remove the level from all packs that contained it
-	let packDocs = await db.packs.find({ levels: levelId }) as PackDoc[];
+	let packDocs = await db.packs.findAsync({ levels: levelId }) as PackDoc[];
 	for (let packDoc of packDocs) {
 		packDoc.levels = packDoc.levels.filter(x => x !== levelId);
-		await db.packs.update({ _id: packDoc._id }, packDoc);
+		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 		createPackThumbnail(packDoc);
 	}
 
 	// Delete all comments for this level
-	await db.comments.remove({ forType: 'level', for: levelId }, { multi: true });
+	await db.comments.removeAsync({ forType: 'level', for: levelId }, { multi: true });
 
 	// Collect all directories to potentially delete
 	let directoriesToCheck = new Set<string>();
@@ -770,12 +769,15 @@ export const deleteSingleLevel = async (levelId: number) => {
 	// Check each directory before deleting
 	for (let dir of directoriesToCheck) {
 		// Check if any OTHER mission still uses this directory
-		let stillUsed = await db.missions.findOne({
+		let stillUsed = await db.missions.findOneAsync({
 			$or: [ { baseDirectory: dir }, { "previousVersions.baseDirectory": dir } ]
 		});
 
 		if (!stillUsed) {
-			await fs.remove(dir);
+			await fs.rm(dir, {
+				recursive: true,
+				force: true
+			});
 		}
 	}
 };

@@ -17,7 +17,7 @@ export const initCommentApi = () => {
 			return;
 		}
 
-		let commentDoc = await db.comments.findOne({ _id: Number(req.params.commentId) }) as CommentDoc;
+		let commentDoc = await db.comments.findOneAsync({ _id: Number(req.params.commentId) }) as CommentDoc;
 		if (!commentDoc) {
 			res.status(400).end();
 			return;
@@ -29,7 +29,7 @@ export const initCommentApi = () => {
 			return;
 		}
 
-		await db.comments.remove({ _id: commentDoc._id }, {});
+		await db.comments.removeAsync({ _id: commentDoc._id }, {});
 
 		// Send back a list of all comments for this level.
 		// NOTE! Adjust this for when there's gonna be comment for more than just levels.

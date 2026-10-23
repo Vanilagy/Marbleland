@@ -1,10 +1,10 @@
-import * as jszip from 'jszip';
+import jszip from 'jszip';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import * as crypto from 'crypto';
 import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementType } from './io/mis_parser';
 import { Config } from './config';
-import hxDif from '../lib/hxDif';
+import * as hxDif from '../lib/hxDif';
 import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission, MissionDoc, extractMissionContent } from './mission';
 import { Util } from './util';
 import { DtsFile, DtsParser } from './io/dts_parser';
@@ -13,6 +13,7 @@ import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
 import { MissionHasher } from './hasher';
 import { MagickFormat } from '@imagemagick/magick-wasm';
+import { SERVER_DIR } from './paths';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -148,7 +149,7 @@ export class MissionUpload {
 
 		// Check if this .mis file is already present in the database (as any version of any mission) and if so, abort. The mission currently being updated is exempt, since re-uploading one of its own versions is allowed for updates.
 		let misHash = crypto.createHash('sha256').update(text).digest('base64');
-		let existing = await db.missions.findOne({
+		let existing = await db.missions.findOneAsync({
 			_id: { $ne: this.updateId },
 			$or: [{ misHash: misHash }, { 'previousVersions.misHash': misHash }]
 		});
@@ -159,7 +160,7 @@ export class MissionUpload {
 
 		// Hash the AST for more rigorous duplicate detection
 		let astHash = await MissionHasher.hashMission(null, text);
-		let existingAst = await db.missions.findOne({
+		let existingAst = await db.missions.findOneAsync({
 			_id: { $ne: this.updateId },
 			$or: [{ astHash: astHash }, { 'previousVersions.astHash': astHash }]
 		});
@@ -534,15 +535,15 @@ export class MissionUpload {
 
 		const writeGroupToDisk = async (group: MissionGroup, levelId: number, version?: number) => {
 			let folderName = levelId.toString() + (version !== undefined ? `-v${version}` : "");
-			const directoryPath = path.join(__dirname, 'storage', 'levels', folderName);
+			const directoryPath = path.join(SERVER_DIR, 'storage', 'levels', folderName);
 
-			await fs.ensureDir(directoryPath);
+			await fs.mkdir(directoryPath, { recursive: true });
 
 			// Write all normalized files to the target directory
 			for (let [relativePath, file] of group.normalizedDirectory) {
 				const buffer = await file.async('nodebuffer');
 				const fullPath = path.join(directoryPath, relativePath);
-				await fs.ensureFile(fullPath);
+				await fs.mkdir(path.dirname(fullPath), { recursive: true });
 				await fs.writeFile(fullPath, buffer);
 			}
 
@@ -559,7 +560,7 @@ export class MissionUpload {
 
 		// Get all the pack docs ready
 		for (let packId of new Set(requestBody.addToPacks)) {
-			let doc = await db.packs.findOne({ _id: packId }) as PackDoc;
+			let doc = await db.packs.findOneAsync({ _id: packId }) as PackDoc;
 			if (!doc) {
 				throw new Error("Pack doesn't exist.");
 			}
@@ -579,7 +580,7 @@ export class MissionUpload {
 
 		if (requestBody.existingLevelId !== undefined) {
 			// --- UPDATE PATH ---
-			let missionDoc = await db.missions.findOne({ _id: requestBody.existingLevelId }) as MissionDoc;
+			let missionDoc = await db.missions.findOneAsync({ _id: requestBody.existingLevelId }) as MissionDoc;
 			if (!missionDoc) throw new Error("Level not found.");
 
 			// Snapshot the current version's content and record the new version's metadata
@@ -599,11 +600,11 @@ export class MissionUpload {
 			// Overwrite all content-derived fields on the existing doc while leaving its identity (statistics, social data) untouched
 			Object.assign(missionDoc, extractMissionContent(mission.createDoc()));
 
-			await db.missions.update({ _id: missionDoc._id }, missionDoc);
+			await db.missions.updateAsync({ _id: missionDoc._id }, missionDoc);
 			finalDocs = [missionDoc];
 
 			// The new version can come with a new thumbnail, so the thumbnails of all packs already containing this level are now (maybe) stale
-			let containingPackDocs = await db.packs.find({ levels: missionDoc._id }) as PackDoc[];
+			let containingPackDocs = await db.packs.findAsync({ levels: missionDoc._id }) as PackDoc[];
 			stalePackDocs = containingPackDocs.filter(x => !addToPackDocs.some(y => y._id === x._id));
 		} else {
 			// --- UPLOAD PATH ---
@@ -617,7 +618,7 @@ export class MissionUpload {
 				doc.addedBy = submitter._id;
 				doc.remarks = requestBody.remarks[i] ?? '';
 
-				await db.missions.insert(doc);
+				await db.missions.insertAsync(doc);
 				finalDocs.push(doc);
 			}
 		}
@@ -630,7 +631,7 @@ export class MissionUpload {
 			packDoc.levels.push(...finalDocs.map(x => x._id));
 			promises.push(createPackThumbnail(packDoc));
 
-			await db.packs.update({ _id: packDoc._id }, packDoc, { upsert: true });
+			await db.packs.updateAsync({ _id: packDoc._id }, packDoc, { upsert: true });
 		}
 
 		await Promise.allSettled(promises); // Wait for all the thumbnails to finish

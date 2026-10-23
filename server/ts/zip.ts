@@ -1,7 +1,7 @@
 import { structureMBGSet, structurePQSet } from "./globals";
 import { Mission } from "./mission";
 import jszip from 'jszip';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import { Readable } from 'stream';
 import express from 'express';
 

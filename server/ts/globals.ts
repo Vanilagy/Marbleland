@@ -1,9 +1,15 @@
 import { KeyValueStore, Util } from "./util";
 import * as path from 'path';
-import * as fs from 'fs-extra';
-import Datastore from 'nedb-promises';
+import * as fs from 'node:fs';
+import * as crypto from 'node:crypto';
+import Datastore from '@seald-io/nedb';
 import { Config } from "./config";
 import { GameDefinition, LeaderboardDefinition } from "../../shared/types";
+import { SERVER_DIR } from './paths';
+import type { MissionDoc } from './mission';
+import type { AccountDoc, PendingRegistrationDoc } from './account';
+import type { PackDoc } from './pack';
+import type { CommentDoc } from './comment';
 
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
 export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
@@ -24,11 +30,11 @@ export let config: {
 };
 export let keyValue: KeyValueStore<{ levelId: number, accountId: number, packId: number, commentId: number }>;
 export let db: {
-	missions: Datastore,
-	accounts: Datastore,
-	packs: Datastore,
-	comments: Datastore,
-	pendingRegistrations: Datastore
+	missions: Datastore<MissionDoc>,
+	accounts: Datastore<AccountDoc>,
+	packs: Datastore<PackDoc>,
+	comments: Datastore<CommentDoc>,
+	pendingRegistrations: Datastore<PendingRegistrationDoc>
 } = {} as any;
 export let structureMBG: DirectoryStructure;
 export let structurePQ: DirectoryStructure;
@@ -37,17 +43,17 @@ export let structurePQSet: Set<string>;
 export let datablocksMBG: string[];
 export let datablocksMBW: string[];
 
-export let mbcryptRsaKey: string;
+export let mbcryptRsaKey: crypto.KeyObject;
 export let mbcryptAesKey: Buffer;
 
 export const initGlobals = async () => {
-	let configExists = fs.existsSync(path.join(__dirname, 'data/config.json'));
-	if (!configExists) fs.copyFileSync(path.join(__dirname, 'data/default_config.json'), path.join(__dirname, 'data/config.json'));
+	let configExists = fs.existsSync(path.join(SERVER_DIR, 'data/config.json'));
+	if (!configExists) fs.copyFileSync(path.join(SERVER_DIR, 'data/default_config.json'), path.join(SERVER_DIR, 'data/config.json'));
 
-	config = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/config.json')).toString());
+	config = JSON.parse(fs.readFileSync(path.join(SERVER_DIR, 'data/config.json')).toString());
 
 	// Copy over all new properties in default config that haven't been added to config
-	let defaultConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/default_config.json')).toString());
+	let defaultConfig = JSON.parse(fs.readFileSync(path.join(SERVER_DIR, 'data/default_config.json')).toString());
 	let changed = false;
 	for (let key in defaultConfig) {
 		if (config[key as keyof typeof config] === undefined) {
@@ -55,37 +61,52 @@ export const initGlobals = async () => {
 			changed = true;
 		}
 	}
-	if (changed) fs.writeFileSync(path.join(__dirname, 'data/config.json'), JSON.stringify(config, null, 4));
+	if (changed) fs.writeFileSync(path.join(SERVER_DIR, 'data/config.json'), JSON.stringify(config, null, 4));
 
 	Config.init();
 
-	if (fs.existsSync(path.join(__dirname, 'data/key.txt'))) {
-		let key = parseKeyfile(path.join(__dirname, 'data/key.txt'));
+	if (fs.existsSync(path.join(SERVER_DIR, 'data/key.txt'))) {
+		let key = parseKeyfile(path.join(SERVER_DIR, 'data/key.txt'));
 		mbcryptRsaKey = key.rsakey;
 		mbcryptAesKey = key.aeskey;
 	}
 	
-	keyValue = new KeyValueStore(path.join(__dirname, 'storage/keyvalue.json'), { levelId: 1, accountId: 1, packId: 1, commentId: 1 });
+	keyValue = new KeyValueStore(path.join(SERVER_DIR, 'storage/keyvalue.json'), { levelId: 1, accountId: 1, packId: 1, commentId: 1 });
 
 	// Sometimes, NeDB kinda discards data for some weird reasons when first writing to a database file, so I'm doing this to (maybe) help prevent that:
-	fs.ensureFileSync(path.join(__dirname, 'storage/missions.db'));
-	fs.ensureFileSync(path.join(__dirname, 'storage/accounts.db'));
-	fs.ensureFileSync(path.join(__dirname, 'storage/packs.db'));
-	fs.ensureFileSync(path.join(__dirname, 'storage/comments.db'));
-	fs.ensureFileSync(path.join(__dirname, 'storage/pending_registrations.db'));
+	fs.appendFileSync(path.join(SERVER_DIR, 'storage/missions.db'), '');
+	fs.appendFileSync(path.join(SERVER_DIR, 'storage/accounts.db'), '');
+	fs.appendFileSync(path.join(SERVER_DIR, 'storage/packs.db'), '');
+	fs.appendFileSync(path.join(SERVER_DIR, 'storage/comments.db'), '');
+	fs.appendFileSync(path.join(SERVER_DIR, 'storage/pending_registrations.db'), '');
 
-	db.missions = Datastore.create({ filename: path.join(__dirname, 'storage/missions.db'), autoload: true });
-	db.missions.persistence.setAutocompactionInterval(1000 * 60 * 60); // Once an hour
-	db.accounts = Datastore.create({ filename: path.join(__dirname, 'storage/accounts.db'), autoload: true });
-	db.accounts.persistence.setAutocompactionInterval(1000 * 60 * 60);
-	db.packs = Datastore.create({ filename: path.join(__dirname, 'storage/packs.db'), autoload: true });
-	db.packs.persistence.setAutocompactionInterval(1000 * 60 * 60);
-	db.comments = Datastore.create({ filename: path.join(__dirname, 'storage/comments.db'), autoload: true });
-	db.comments.persistence.setAutocompactionInterval(1000 * 60 * 60);
-	db.pendingRegistrations = Datastore.create({ filename: path.join(__dirname, 'storage/pending_registrations.db'), autoload: true });
-	db.pendingRegistrations.persistence.setAutocompactionInterval(1000 * 60 * 60);
+	db.missions = new Datastore({
+		filename: path.join(SERVER_DIR, 'storage/missions.db'),
+		autoload: true
+	});
+	db.missions.setAutocompactionInterval(1000 * 60 * 60); // Once an hour
+	db.accounts = new Datastore({
+		filename: path.join(SERVER_DIR, 'storage/accounts.db'),
+		autoload: true
+	});
+	db.accounts.setAutocompactionInterval(1000 * 60 * 60);
+	db.packs = new Datastore({
+		filename: path.join(SERVER_DIR, 'storage/packs.db'),
+		autoload: true
+	});
+	db.packs.setAutocompactionInterval(1000 * 60 * 60);
+	db.comments = new Datastore({
+		filename: path.join(SERVER_DIR, 'storage/comments.db'),
+		autoload: true
+	});
+	db.comments.setAutocompactionInterval(1000 * 60 * 60);
+	db.pendingRegistrations = new Datastore({
+		filename: path.join(SERVER_DIR, 'storage/pending_registrations.db'),
+		autoload: true
+	});
+	db.pendingRegistrations.setAutocompactionInterval(1000 * 60 * 60);
 
-	let pqStructurePath = path.join(__dirname, 'data/structure_pq.json');
+	let pqStructurePath = path.join(SERVER_DIR, 'data/structure_pq.json');
 	let exists = fs.existsSync(pqStructurePath);
 	if (!exists) {
 		console.log("No PQ data directory structure file found. Generating... (might take a while)");
@@ -96,25 +117,25 @@ export const initGlobals = async () => {
 	}
 
 	// These two are used to quickly check if an asset is included in MBG/PQ or not
-	structureMBG = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(path.join(__dirname, 'data/structure_mbg.json')).toString()));
+	structureMBG = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(path.join(SERVER_DIR, 'data/structure_mbg.json')).toString()));
 	structurePQ = Util.lowerCaseKeysDeep(JSON.parse(fs.readFileSync(pqStructurePath).toString()));
 	structureMBGSet = Util.directoryStructureToSet(structureMBG);
 	structurePQSet = Util.directoryStructureToSet(structurePQ);
 
-	datablocksMBG = fs.readFileSync(path.join(__dirname, 'data/datablocks_mbg.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
-	datablocksMBW = fs.readFileSync(path.join(__dirname, 'data/datablocks_mbw.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
+	datablocksMBG = fs.readFileSync(path.join(SERVER_DIR, 'data/datablocks_mbg.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
+	datablocksMBW = fs.readFileSync(path.join(SERVER_DIR, 'data/datablocks_mbw.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
 };
 
 /** Scans the directory recursively. */
 const scanDirectory = async (directoryPath: string) => {
-	let files = await fs.readdir(directoryPath);
+	let files = await fs.promises.readdir(directoryPath);
 	let temp: DirectoryStructure = {};
 	let promises: Promise<void>[] = [];
 
 	for (let file of files) {
 		promises.push(new Promise(async resolve => {
 			let newPath = path.join(directoryPath, file);
-			let stats = await fs.stat(newPath);
+			let stats = await fs.promises.stat(newPath);
 			if (stats.isDirectory()) temp[file] = await scanDirectory(newPath); // Recurse if necessary
 			else temp[file] = null;
 
@@ -133,8 +154,12 @@ const scanDirectory = async (directoryPath: string) => {
 
 const parseKeyfile = (file: string) => {
     let data = fs.readFileSync(file, "utf-8");
-    let key = data.substring(data.indexOf("-----BEGIN RSA PRIVATE KEY-----") + 32, data.indexOf("-----END RSA PRIVATE KEY-----"));
-    let rsakey = "-----BEGIN RSA PRIVATE KEY-----\r" + key + "-----END RSA PRIVATE KEY-----";
+    let key = data.substring(data.indexOf("-----BEGIN RSA PRIVATE KEY-----") + 31, data.indexOf("-----END RSA PRIVATE KEY-----")).replace(/\s/g, '');
+    let rsakey = crypto.createPrivateKey({
+        key: Buffer.from(key, 'base64'),
+        format: 'der',
+        type: 'pkcs1'
+    });
     let aeskey = Buffer.from(data.substring(data.indexOf("-----BEGIN AES KEY-----") + 25, data.indexOf("-----END AES KEY-----") - 2), "base64");
     return {
         rsakey: rsakey,

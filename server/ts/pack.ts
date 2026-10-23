@@ -1,11 +1,12 @@
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import { ExtendedPackInfo, LevelInfo, PackInfo } from "../../shared/types";
 import { AccountDoc, getProfileInfo } from "./account";
 import { db, keyValue } from "./globals";
 import { Mission, MissionDoc } from "./mission";
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import { Util } from "./util";
+import { SERVER_DIR } from "./paths";
 
 /** Representation of a pack in the database. */
 export interface PackDoc {
@@ -38,13 +39,13 @@ export const createPack = async (accountDoc: AccountDoc, name: string, descripti
 		levels: [],
 		downloads: 0
 	};
-	if (insert) await db.packs.insert(packDoc);
+	if (insert) await db.packs.insertAsync(packDoc);
 
 	return packDoc;
 };
 
 export const getPackInfo = async (doc: PackDoc): Promise<PackInfo> => {
-	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
+	let accountDoc = await db.accounts.findOneAsync({ _id: doc.createdBy }) as AccountDoc;
 
 	return {
 		id: doc._id,
@@ -58,12 +59,12 @@ export const getPackInfo = async (doc: PackDoc): Promise<PackInfo> => {
 };
 
 export const getExtendedPackInfo = async (doc: PackDoc, requesterId?: number): Promise<ExtendedPackInfo> => {
-	let accountDoc = await db.accounts.findOne({ _id: doc.createdBy }) as AccountDoc;
+	let accountDoc = await db.accounts.findOneAsync({ _id: doc.createdBy }) as AccountDoc;
 	let levelInfos: LevelInfo[] = [];
 
 	// Generate the level info for every level in this pack
 	for (let levelId of doc.levels) {
-		let missionDoc = await db.missions.findOne({ _id: levelId }) as MissionDoc;
+		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		if (!missionDoc) continue;
 		let mission = Mission.fromDoc(missionDoc);
 		levelInfos.push(mission.createLevelInfo());
@@ -83,7 +84,7 @@ export const getExtendedPackInfo = async (doc: PackDoc, requesterId?: number): P
 };
 
 export const getPackThumbnailPath = (doc: PackDoc) => {
-	return path.join(__dirname, `storage/pack_thumbnails/${doc._id}.jpg`);
+	return path.join(SERVER_DIR, `storage/pack_thumbnails/${doc._id}.jpg`);
 };
 
 /** Generates a thumbnail image for this pack based on the levels it contains. */
@@ -109,11 +110,11 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 	// We're going for a "slice" design, so the pack thumbnail consists of slices of the level thumbnails. Determine how many slices we need.
 	let shownLevels = doc.levels.slice(0, 20);
 	let sliceWidth = width / shownLevels.length;
-	let promises: Promise<sharp.OverlayOptions>[] = [];
+	let promises: Promise<OverlayOptions>[] = [];
 
 	for (let i = 0; i < shownLevels.length; i++) {
-		promises.push(new Promise<sharp.OverlayOptions>(async resolve => {
-			let missionDoc = await db.missions.findOne({ _id: shownLevels[i] }) as MissionDoc;
+		promises.push(new Promise<OverlayOptions>(async resolve => {
+			let missionDoc = await db.missions.findOneAsync({ _id: shownLevels[i] }) as MissionDoc;
 			let mission = Mission.fromDoc(missionDoc);
 			let buffer: Buffer;
 	
@@ -129,7 +130,7 @@ export const createPackThumbnail = async (doc: PackDoc) => {
 					}
 				}).png().toBuffer();
 			} else {
-				let rawBuffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
+				let rawBuffer: Buffer = await fs.readFile(path.join(mission.baseDirectory, imagePath));
 				
 				// Check if the image has a niche format and needs conversion first
 				if (['.dds', '.bmp'].some(x => imagePath.toLowerCase().endsWith(x))) {

@@ -1,9 +1,8 @@
-import * as fs from "fs-extra";
+import * as fs from "node:fs/promises";
 import * as zlib from "zlib";
 import * as crypto from "crypto";
 import * as util from "util";
 import path from "path";
-import NodeRSA from "node-rsa";
 import { Mission } from "../mission";
 import { mbcryptAesKey, structureMBGSet, structurePQSet } from "../globals";
 import { Util } from "../util";
@@ -100,7 +99,7 @@ export class MBPakFile {
 	}
 
 	/** Writes the MBPakFile to buffer, signing it with rsakey */
-	write(rsakey: string) {
+	write(rsakey: crypto.KeyObject) {
 		let totalSize = 0;
 		for (let i = 0; i < this.entries.length; i++) {
 			let entry = this.entries[i];
@@ -110,14 +109,7 @@ export class MBPakFile {
 
 		let databuffer = Buffer.concat([...this.entries.map(x => x.compressedContents as Buffer)]);
 
-		let rsa = new NodeRSA(rsakey);
-		rsa.setOptions({
-			signingScheme: {
-				scheme: "pkcs1",
-				hash: "sha256",
-			}
-		})
-		let sign = rsa.sign(databuffer, "buffer");
+		let sign = crypto.sign("sha256", databuffer, rsakey); // PKCS#1 v1.5, the default for RSA keys
 		let buf = Buffer.alloc(4, 0, "binary");
 		buf.writeInt32LE(sign.length);
 		buf = Buffer.concat([buf, sign]);

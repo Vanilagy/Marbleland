@@ -146,7 +146,7 @@ import PackPanel from '../components/PackPanel.vue';
 import Loader from '../components/Loader.vue';
 import Modal from '../components/Modal.vue';
 import { Util } from '../../ts/util';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 import { db } from '../../../server/ts/globals';
 import { AccountDoc, getExtendedProfileInfo } from '../../../server/ts/account';
 import { ORIGIN } from '../../../shared/constants';
@@ -182,7 +182,7 @@ export default defineComponent({
 		}
 	},
 	async serverPrefetch() {
-		let doc = await db.accounts.findOne({ _id: Number(this.$route.params.id) }) as AccountDoc;
+		let doc = await db.accounts.findOneAsync({ _id: Number(this.$route.params.id) }) as AccountDoc;
 		if (!doc) {
 			this.notFound = true;
 			return;

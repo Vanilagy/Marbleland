@@ -36,7 +36,7 @@ export default defineComponent({
 				label: 'API'
 			}],
 			showShadow: true,
-			interval: null
+			interval: null as ReturnType<typeof setInterval>
 		};
 	},
 	computed: {

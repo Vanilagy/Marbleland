@@ -3,14 +3,16 @@ import { config, db, initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
 import { initApi } from "./api/api";
 import { AccountDoc, isEmailVerificationEnabled, suspendAccount } from "./account";
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as path from 'path';
-import * as minimist from 'minimist';
+import { parseArgs } from 'node:util';
+import { createRequire } from 'node:module';
 import { LevelInfo, Modification } from "../../shared/types";
 import { MisParser, MissionElementSimGroup, MissionElementType } from "./io/mis_parser";
 import { initializeImageMagick } from "@imagemagick/magick-wasm";
 import { initBackup } from "./backup";
 import { reimportMissions, scanForMissions } from "./import";
+import { SERVER_DIR } from "./paths";
 
 interface CLAEntry {
 	addTime: string,
@@ -33,20 +35,19 @@ interface CLAEntry {
 
 const init = async () => {
 	// Ensure all necessary directories exist
-	fs.ensureDirSync(path.join(__dirname, 'storage'));
-	fs.ensureDirSync(path.join(__dirname, 'storage/avatars'));
-	fs.ensureDirSync(path.join(__dirname, 'storage/pack_thumbnails'));
+	fs.mkdirSync(path.join(SERVER_DIR, 'storage/avatars'), { recursive: true });
+	fs.mkdirSync(path.join(SERVER_DIR, 'storage/pack_thumbnails'), { recursive: true });
 	await initGlobals();
 
 	// Log out unverified users if email verification is enabled. This forces them to log in again and verify their email
 	if (isEmailVerificationEnabled()) {
-		const allUsers = await db.accounts.find({}) as AccountDoc[];
+		const allUsers = await db.accounts.findAsync({}) as AccountDoc[];
 		
 		let loggedOutCount = 0;
 		for (const user of allUsers) {
 			if (!user.emailVerified && user.tokens.length > 0) {
 				// Log 'em out
-				await db.accounts.update({ _id: user._id }, { $set: { tokens: [] } });
+				await db.accounts.updateAsync({ _id: user._id }, { $set: { tokens: [] } });
 				loggedOutCount++;
 			}
 		}
@@ -56,27 +57,34 @@ const init = async () => {
 		}
 	}
 
-	const wasmLocation = path.join(__dirname, '../node_modules/@imagemagick/magick-wasm/dist/magick.wasm');
+	const wasmLocation = createRequire(import.meta.url).resolve('@imagemagick/magick-wasm/magick.wasm');
 	const wasmBytes = fs.readFileSync(wasmLocation);
 	await initializeImageMagick(wasmBytes);
 	
-	let argv = minimist(process.argv.slice(2));
+	let { positionals: args, values: flags } = parseArgs({
+		allowPositionals: true,
+		options: {
+			'id-map': { type: 'string' },
+			'replace-duplicates': { type: 'boolean' },
+			'allow-creation': { type: 'boolean' }
+		}
+	});
 
-	if (argv._[0] === 'add-directory') {
+	if (args[0] === 'add-directory') {
 		// Import a directory of levels to the level database.
-		await scanForMissions(argv._[1], argv["id-map"], !!argv["replace-duplicates"]);
+		await scanForMissions(args[1], flags["id-map"], !!flags["replace-duplicates"]);
 		process.exit();
-	} else if (argv._[0] === 'reimport') {
-		await reimportMissions(argv._.slice(1).map(x => Number(x)), !!argv["allow-creation"]);
+	} else if (args[0] === 'reimport') {
+		await reimportMissions(args.slice(1).map(x => Number(x)), !!flags["allow-creation"]);
 		process.exit();
-	} else if (argv._[0] === 'datablock-filter') {
-		let goldMissions = await db.missions.find({ modification: Modification.Gold }) as MissionDoc[];
-		let acceptedDatablocks = (await fs.readFile(argv._[1])).toString().split('\n').map(x => x.toLowerCase().trim());
+	} else if (args[0] === 'datablock-filter') {
+		let goldMissions = await db.missions.findAsync({ modification: Modification.Gold }) as MissionDoc[];
+		let acceptedDatablocks = (await fs.promises.readFile(args[1])).toString().split('\n').map(x => x.toLowerCase().trim());
 		let acceptedIds = new Set<number>();
 
 		for (let mission of goldMissions) {
 			let misPath = path.join(mission.baseDirectory, mission.relativePath);
-			let misText = (await fs.readFile(misPath)).toString();
+			let misText = (await fs.promises.readFile(misPath)).toString();
 			let misFile = new MisParser(misText).parse();
 			let fine = true;
 
@@ -103,13 +111,13 @@ const init = async () => {
 
 		console.log(`Before CLA add: ${acceptedIds.size}`);
 
-		let claList = JSON.parse((await fs.readFile('cla_list.json')).toString()) as CLAEntry[];
+		let claList = JSON.parse((await fs.promises.readFile('cla_list.json')).toString()) as CLAEntry[];
 		claList = claList.filter(x => x.modification === 'gold' && x.gameType.toLowerCase() === 'single player');
 		for (let entry of claList) acceptedIds.add(entry.id);
 
 		console.log(`After CLA add: ${acceptedIds.size}`);
 
-		let allDocs = await db.missions.find({}) as MissionDoc[];
+		let allDocs = await db.missions.findAsync({}) as MissionDoc[];
 		allDocs = allDocs.filter(x => acceptedIds.has(x._id));
 
 		let result: LevelInfo[] = [];
@@ -120,21 +128,21 @@ const init = async () => {
 			result.push(levelInfo);
 		}
 
-		await fs.writeFile('gold_levels.json', JSON.stringify(result));
+		await fs.promises.writeFile('gold_levels.json', JSON.stringify(result));
 
 		process.exit();
-	} else if (argv._[0] === 'delete-accounts') {
-		const accountIds = argv._.slice(1).map(x => Number(x));
+	} else if (args[0] === 'delete-accounts') {
+		const accountIds = args.slice(1).map(x => Number(x));
 
 		for (const id of accountIds) {
-			const account = await db.accounts.findOne({ _id: id }) as AccountDoc;
+			const account = await db.accounts.findOneAsync({ _id: id }) as AccountDoc;
 			if (!account) {
 				continue;
 			}
 
 			await suspendAccount(account, 'Asshole, probably');
 
-			await db.accounts.remove({ _id: id }, {});
+			await db.accounts.removeAsync({ _id: id }, {});
 
 			console.log(`Deleted account with ID ${id}`);
 		}

@@ -1,4 +1,4 @@
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import { Scanner, Parser, IASTVisitor, expr_AssignExpr, expr_AssignOpExpr, expr_BinaryExpr, expr_BreakStmt, expr_CommaCatExpr, expr_ConditionalExpr, expr_ConstantExpr, expr_ContinueStmt, expr_Expr, expr_FloatBinaryExpr, expr_FloatExpr, expr_FloatUnaryExpr, expr_FuncCallExpr, expr_FunctionDeclStmt, expr_IfStmt, expr_IntBinaryExpr, expr_IntExpr, expr_IntUnaryExpr, expr_LoopStmt, expr_ObjectDeclExpr, expr_ParenthesisExpr, expr_ReturnStmt, expr_SlotAccessExpr, expr_SlotAssignExpr, expr_SlotAssignOpExpr, expr_Stmt, expr_StrCatExpr, expr_StrEqExpr, expr_StringConstExpr, expr_VarExpr } from '../lib/hxTorquescript';
 import { Mission, MissionDoc } from './mission';

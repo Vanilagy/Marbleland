@@ -1,12 +1,13 @@
 import sharp from "sharp";
 import * as bcrypt from 'bcryptjs';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as path from 'path';
 import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, sendPasswordResetEmail, PendingRegistrationDoc, suspendAccount } from "../account";
 import { config, db, keyValue } from "../globals";
 import { app } from "../server";
 import { tryAssociatingOldUserData } from "../recovery";
 import { MissionDoc, Mission } from '../../../server/ts/mission';
+import { SERVER_DIR } from '../paths';
 
 const emailRegEx = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
@@ -35,7 +36,7 @@ export const initAccountApi = () => {
 
 		let existing: AccountDoc;
 
-		existing = await db.accounts.findOne({ email: q.email });
+		existing = await db.accounts.findOneAsync({ email: q.email });
 		if (existing) {
 			res.status(400).send({ status: 'error', reason: "Email already in use." });
 			return;
@@ -58,7 +59,7 @@ export const initAccountApi = () => {
 			}
 		}
 
-		existing = await db.accounts.findOne({ username: q.username });
+		existing = await db.accounts.findOneAsync({ username: q.username });
 		if (existing) {
 			res.status(400).send({ status: 'error', reason: "Username already in use." });
 			return;
@@ -90,7 +91,7 @@ export const initAccountApi = () => {
 					verificationToken: generateVerificationToken()
 				};
 
-				await db.pendingRegistrations.insert(pendingDoc);
+				await db.pendingRegistrations.insertAsync(pendingDoc);
 				await sendVerificationEmail(pendingDoc.email, pendingDoc.username, pendingDoc.verificationToken, 'signUp');
 
 				res.status(200).send({ 
@@ -123,7 +124,7 @@ export const initAccountApi = () => {
 				acknowledgedGuidelines: false
 			};
 
-			await db.accounts.insert(doc);
+			await db.accounts.insertAsync(doc);
 			await tryAssociatingOldUserData(doc.username, doc._id);
 
 			setTokenCookie(res, newToken);
@@ -139,21 +140,21 @@ export const initAccountApi = () => {
 		}
 
 		// First check if this is a pending registration
-		const pendingDoc = await db.pendingRegistrations.findOne({ verificationToken: token }) as PendingRegistrationDoc;
+		const pendingDoc = await db.pendingRegistrations.findOneAsync({ verificationToken: token }) as PendingRegistrationDoc;
 		let accountDoc: AccountDoc;
 		
 		if (pendingDoc) {
 			// Check if username or email is already taken in the accounts table
-			const existingByUsername = await db.accounts.findOne({ username: pendingDoc.username }) as AccountDoc;
+			const existingByUsername = await db.accounts.findOneAsync({ username: pendingDoc.username }) as AccountDoc;
 			if (existingByUsername) {
-				await db.pendingRegistrations.remove({ _id: pendingDoc._id }, {});
+				await db.pendingRegistrations.removeAsync({ _id: pendingDoc._id }, {});
 				res.status(400).send({ status: 'error', reason: 'Username is already taken. Please register again with a different username.' });
 				return;
 			}
 
-			const existingByEmail = await db.accounts.findOne({ email: pendingDoc.email }) as AccountDoc;
+			const existingByEmail = await db.accounts.findOneAsync({ email: pendingDoc.email }) as AccountDoc;
 			if (existingByEmail) {
-				await db.pendingRegistrations.remove({ _id: pendingDoc._id }, {});
+				await db.pendingRegistrations.removeAsync({ _id: pendingDoc._id }, {});
 				res.status(400).send({ status: 'error', reason: 'Email is already taken. Please register again with a different email address.' });
 				return;
 			}
@@ -173,12 +174,12 @@ export const initAccountApi = () => {
 				acknowledgedGuidelines: false,
 				emailVerified: true
 			};
-			await db.accounts.insert(accountDoc);
+			await db.accounts.insertAsync(accountDoc);
 			
-			await db.pendingRegistrations.remove({ _id: pendingDoc._id }, {});
+			await db.pendingRegistrations.removeAsync({ _id: pendingDoc._id }, {});
 		} else {
 			// Check if this is an existing unverified account
-			const existingAccount = await db.accounts.findOne({ verificationToken: token }) as AccountDoc;
+			const existingAccount = await db.accounts.findOneAsync({ verificationToken: token }) as AccountDoc;
 			if (!existingAccount) {
 				res.status(400).send({ status: 'error', reason: 'Invalid verification token' });
 				return;
@@ -192,7 +193,7 @@ export const initAccountApi = () => {
 			// Update account to verified
 			existingAccount.emailVerified = true;
 			existingAccount.verificationToken = undefined;
-			await db.accounts.update({ _id: existingAccount._id }, { $set: { emailVerified: true }, $unset: { verificationToken: 1 } });
+			await db.accounts.updateAsync({ _id: existingAccount._id }, { $set: { emailVerified: true }, $unset: { verificationToken: 1 } });
 			
 			accountDoc = existingAccount;
 		}
@@ -204,7 +205,7 @@ export const initAccountApi = () => {
 			lastUsed: Date.now()
 		});
 
-		await db.accounts.update({ _id: accountDoc._id }, { $set: { tokens: accountDoc.tokens } });
+		await db.accounts.updateAsync({ _id: accountDoc._id }, { $set: { tokens: accountDoc.tokens } });
 		await tryAssociatingOldUserData(accountDoc.username, accountDoc._id);
 
 		setTokenCookie(res, newToken);
@@ -225,7 +226,7 @@ export const initAccountApi = () => {
 
 	// Sign in with an account
 	app.post('/api/account/sign-in', async (req, res) => {
-		let doc = await db.accounts.findOne({ $or: [{ email: req.body.emailOrUsername }, { username: req.body.emailOrUsername }] }) as AccountDoc;
+		let doc = await db.accounts.findOneAsync({ $or: [{ email: req.body.emailOrUsername }, { username: req.body.emailOrUsername }] }) as AccountDoc;
 		if (!doc) {
 			res.status(400).send({
 				status: 'error',
@@ -247,7 +248,7 @@ export const initAccountApi = () => {
 			// User needs to still verify email before logging in
 
 			doc.verificationToken = generateVerificationToken();
-			await db.accounts.update({ _id: doc._id }, { $set: { verificationToken: doc.verificationToken } });
+			await db.accounts.updateAsync({ _id: doc._id }, { $set: { verificationToken: doc.verificationToken } });
 
 			try {
 				await sendVerificationEmail(doc.email, doc.username, doc.verificationToken, 'signIn');
@@ -276,7 +277,7 @@ export const initAccountApi = () => {
 			lastUsed: Date.now()
 		});
 
-		await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
+		await db.accounts.updateAsync({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 
 		setTokenCookie(res, newToken);
 		res.status(200).send({ status: 'success', token: newToken, signInInfo: await getSignInInfo(doc) });
@@ -292,7 +293,7 @@ export const initAccountApi = () => {
 
 		// Remove the token from the list
 		doc.tokens = doc.tokens.filter(x => x.value !== token);
-		await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
+		await db.accounts.updateAsync({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 		
 		res.set('Set-Cookie', `token=; Path=/; Max-Age=1;`); // Clear the cookie
 		res.end();
@@ -300,7 +301,7 @@ export const initAccountApi = () => {
 
 	// Get extended profile info for an account
 	app.get('/api/account/:accountId/info', async (req, res) => {
-		let doc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+		let doc = await db.accounts.findOneAsync({ _id: Number(req.params.accountId) }) as AccountDoc;
 		if (!doc) {
 			res.status(404).send("404\nAn account with this ID does not exist.");
 			return;
@@ -311,21 +312,21 @@ export const initAccountApi = () => {
 
 	// Get the avatar image for an account, with options to resize
 	app.get('/api/account/:accountId/avatar', async (req, res) => {
-		let avatarPath = path.join(__dirname, `storage/avatars/${req.params.accountId}.jpg`);
-		let exists = await fs.pathExists(avatarPath);
+		let avatarPath = path.join(SERVER_DIR, `storage/avatars/${req.params.accountId}.jpg`);
+		let exists = fs.existsSync(avatarPath);
 
 		// Never cache avatars because they could change any time
 		res.set('Cache-Control', 'no-cache, no-store');
 
 		if (!exists) {
 			// Send back a default pic
-			let stream = fs.createReadStream(path.join(__dirname, 'data/assets/avatar_default.png'));
+			let stream = fs.createReadStream(path.join(SERVER_DIR, 'data/assets/avatar_default.png'));
 			res.set('Content-Type', 'image/jpeg');
 			stream.pipe(res);
 			return;
 		}
 
-		let buffer = await fs.readFile(avatarPath);
+		let buffer = await fs.promises.readFile(avatarPath);
 
 		// Since avatars are always square, we only need a single size param
 		if (req.query.size) {
@@ -358,7 +359,7 @@ export const initAccountApi = () => {
 			return;
 		}
 
-		let accountDoc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+		let accountDoc = await db.accounts.findOneAsync({ _id: Number(req.params.accountId) }) as AccountDoc;
 		if (!accountDoc) {
 			res.end(400);
 			return;
@@ -372,7 +373,7 @@ export const initAccountApi = () => {
 
 		// Norm the avatar into a square format
 		let normed = await sharp(req.body).resize({ width: 1024, height: 1024, fit: 'cover', withoutEnlargement: true }).jpeg({ quality: 100 }).toBuffer();
-		await fs.writeFile(path.join(__dirname, `storage/avatars/${accountDoc._id}.jpg`), normed);
+		await fs.promises.writeFile(path.join(SERVER_DIR, `storage/avatars/${accountDoc._id}.jpg`), normed);
 
 		res.end();
 	});
@@ -390,7 +391,7 @@ export const initAccountApi = () => {
 			return;
 		}
 
-		let accountDoc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+		let accountDoc = await db.accounts.findOneAsync({ _id: Number(req.params.accountId) }) as AccountDoc;
 		if (!accountDoc) {
 			res.end(400);
 			return;
@@ -403,7 +404,7 @@ export const initAccountApi = () => {
 		}
 
 		accountDoc.bio = req.body.toString();
-		await db.accounts.update({ _id: accountDoc._id }, accountDoc);
+		await db.accounts.updateAsync({ _id: accountDoc._id }, accountDoc);
 
 		res.end();
 	});
@@ -436,7 +437,7 @@ export const initAccountApi = () => {
 		// Update the password hash
 		let hash = await bcrypt.hash(req.body.newPassword, 8);
 		doc.passwordHash = hash;
-		await db.accounts.update({ _id: doc._id }, doc);
+		await db.accounts.updateAsync({ _id: doc._id }, doc);
 
 		res.end();
 	});
@@ -455,7 +456,7 @@ export const initAccountApi = () => {
 		}
 
 		doc.acknowledgedGuidelines = true;
-		await db.accounts.update({ _id: doc._id }, doc);
+		await db.accounts.updateAsync({ _id: doc._id }, doc);
 
 		res.end();
 	});
@@ -474,7 +475,7 @@ export const initAccountApi = () => {
 			return;
 		}
 
-		let targetAccountDoc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+		let targetAccountDoc = await db.accounts.findOneAsync({ _id: Number(req.params.accountId) }) as AccountDoc;
 		if (!targetAccountDoc) {
 			res.status(404).send("404\nAccount not found.");
 			return;
@@ -523,7 +524,7 @@ export const initAccountApi = () => {
 			return;
 		}
 
-		let targetAccountDoc = await db.accounts.findOne({ _id: Number(req.params.accountId) }) as AccountDoc;
+		let targetAccountDoc = await db.accounts.findOneAsync({ _id: Number(req.params.accountId) }) as AccountDoc;
 		if (!targetAccountDoc) {
 			res.status(404).send("404\nAccount not found.");
 			return;
@@ -538,7 +539,7 @@ export const initAccountApi = () => {
 		// Unsuspend the account
 		targetAccountDoc.suspended = false;
 		targetAccountDoc.suspensionReason = undefined;
-		await db.accounts.update({ _id: targetAccountDoc._id }, targetAccountDoc);
+		await db.accounts.updateAsync({ _id: targetAccountDoc._id }, targetAccountDoc);
 
 		res.send({ success: true });
 	});
@@ -562,7 +563,7 @@ export const initAccountApi = () => {
 			return;
 		}
 		
-		const doc = await db.accounts.findOne({ email: email }) as AccountDoc;
+		const doc = await db.accounts.findOneAsync({ email: email }) as AccountDoc;
 		if (!doc) {
 			// Don't reveal if email exists or not for security
 			res.status(200).send({ status: 'success', message: 'If an account with this email exists, a password reset link has been sent.' });
@@ -578,7 +579,7 @@ export const initAccountApi = () => {
 			
 			doc.passwordResetToken = resetToken;
 			doc.passwordResetExpires = expires;
-			await db.accounts.update({ _id: doc._id }, doc);
+			await db.accounts.updateAsync({ _id: doc._id }, doc);
 			
 			res.status(200).send({ 
 				status: 'success', 
@@ -607,7 +608,7 @@ export const initAccountApi = () => {
 			return;
 		}
 		
-		const doc = await db.accounts.findOne({ passwordResetToken: token }) as AccountDoc;
+		const doc = await db.accounts.findOneAsync({ passwordResetToken: token }) as AccountDoc;
 		if (!doc) {
 			res.status(400).send({ status: 'error', reason: 'Invalid or expired reset token' });
 			return;
@@ -634,7 +635,7 @@ export const initAccountApi = () => {
 		doc.passwordHash = hash;
 		delete doc.passwordResetToken;
 		delete doc.passwordResetExpires;
-		await db.accounts.update({ _id: doc._id }, doc);
+		await db.accounts.updateAsync({ _id: doc._id }, doc);
 		
 		setTokenCookie(res, newToken);
 		res.status(200).send({ 
@@ -664,7 +665,7 @@ export const initAccountApi = () => {
             return;
         }
 
-        let targetAccount = await db.accounts.findOne({ _id: targetId }) as AccountDoc;
+        let targetAccount = await db.accounts.findOneAsync({ _id: targetId }) as AccountDoc;
         if (!targetAccount) {
             res.status(404).send("404\nAccount not found.");
             return;
@@ -674,7 +675,7 @@ export const initAccountApi = () => {
         let isCurator = !!req.body.isCurator;
         
         targetAccount.curator = isCurator;
-        await db.accounts.update({ _id: targetAccount._id }, targetAccount);
+        await db.accounts.updateAsync({ _id: targetAccount._id }, targetAccount);
 
 		// Remove curator votes from this account if it's a revoke
 		if (!isCurator) Mission.removeVotes(targetAccount._id);

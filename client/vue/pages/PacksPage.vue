@@ -17,7 +17,7 @@ import PanelList from '../components/PanelList.vue';
 import { PackInfo } from '../../../shared/types';
 import { Util } from '../../ts/util';
 import { emitter } from '../../ts/emitter';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 
 interface PackInfoWrapper {
 	info: PackInfo,

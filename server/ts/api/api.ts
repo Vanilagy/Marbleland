@@ -1,7 +1,7 @@
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import { app } from "../server";
-import * as express from 'express';
-import * as sharp from 'sharp';
+import express from 'express';
+import sharp from 'sharp';
 import { initLevelApi } from './api_level';
 import { initCommentApi } from './api_comment';
 import { initAccountApi } from './api_account';

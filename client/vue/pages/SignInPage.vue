@@ -9,7 +9,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import SignInOrUpComponent from '../components/SignInOrUpComponent.vue';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 
 export default defineComponent({
 	components: {

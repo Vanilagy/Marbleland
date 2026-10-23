@@ -15,7 +15,7 @@ export interface CommentDoc {
 
 /** Generates the comment info for a given comment. */
 export const getCommentInfo = async (doc: CommentDoc): Promise<CommentInfo> => {
-	let authorDoc = await db.accounts.findOne({ _id: doc.author }) as AccountDoc;
+	let authorDoc = await db.accounts.findOneAsync({ _id: doc.author }) as AccountDoc;
 
 	return {
 		id: doc._id,
@@ -27,7 +27,7 @@ export const getCommentInfo = async (doc: CommentDoc): Promise<CommentInfo> => {
 
 /** Generates the comment infos for all comments in a given level. */
 export const getCommentInfosForLevel = async (levelId: number) => {
-	let commentDocs = await db.comments.find({ forType: 'level', for: levelId }) as CommentDoc[];
+	let commentDocs = await db.comments.findAsync({ forType: 'level', for: levelId }) as CommentDoc[];
 	commentDocs.sort((a, b) => b.time - a.time);
 	let commentInfos: CommentInfo[] = [];
 	for (let commentDoc of commentDocs) {

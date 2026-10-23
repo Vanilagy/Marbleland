@@ -11,5 +11,4 @@ client/css/style.css
 client/js/bundle.js
 client/js/client_bundle.js
 dist
-package-lock.json
 /scripts

@@ -44,7 +44,7 @@ import { HomeInfo, LevelInfo } from '../../../shared/types';
 import DropdownComponent from '../components/DropdownComponent.vue';
 import HomeAction from '../components/HomeAction.vue';
 import PanelList from '../components/PanelList.vue';
-import { Head } from '@vueuse/head';
+import { Head } from '@unhead/vue/components';
 import { getHomeInfo } from '../../../server/ts/api/api_home';
 
 export default defineComponent({

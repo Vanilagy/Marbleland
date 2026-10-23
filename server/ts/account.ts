@@ -1,9 +1,10 @@
 import * as crypto from 'crypto';
 import { db, config } from './globals';
-import * as express from 'express';
-import * as fs from 'fs-extra';
+import express from 'express';
+import * as fs from 'node:fs';
 import * as path from 'path';
 import { ExtendedProfileInfo, LevelInfo, PackInfo, ProfileInfo, SignInInfo } from '../../shared/types';
+import { SERVER_DIR } from './paths';
 import { Mission, MissionDoc } from './mission';
 import { getPackInfo, PackDoc } from './pack';
 import { ORIGIN } from '../../shared/constants';
@@ -61,7 +62,7 @@ export const TOKEN_TTL = 1000 * 60 * 60 * 24 * 30; // Tokens expire after 30 day
 setInterval(async () => {
 	// Once a day, clean up the expired tokens
 	let now = Date.now();
-	let accounts = await db.accounts.find({}) as AccountDoc[];
+	let accounts = await db.accounts.findAsync({}) as AccountDoc[];
 	for (let account of accounts) {
 		let changed = false;
 
@@ -73,7 +74,7 @@ setInterval(async () => {
 			}
 		}
 
-		if (changed) db.accounts.update({ _id: account._id }, { $set: { tokens: account.tokens } });
+		if (changed) db.accounts.updateAsync({ _id: account._id }, { $set: { tokens: account.tokens } });
 	}
 }, 1000 * 60 * 60 * 24);
 
@@ -98,12 +99,12 @@ export const setTokenCookie = (res: express.Response, token: string) => {
 /** Finds the account belonging to a token specified in the Authorization header. If an account is found, also updates the `lastUsed` field. */
 export const authorize = async (req: express.Request) => {
 	let tokenString = getTokenFromAuthHeader(req);
-	let doc = await db.accounts.findOne({ 'tokens.value': tokenString }) as AccountDoc;
+	let doc = await db.accounts.findOneAsync({ 'tokens.value': tokenString }) as AccountDoc;
 	if (!doc) {
 		// Check the cookie
 		tokenString = getTokenFromCookie(req);
 		if (tokenString) {
-			doc = await db.accounts.findOne({ 'tokens.value': tokenString }) as AccountDoc;
+			doc = await db.accounts.findOneAsync({ 'tokens.value': tokenString }) as AccountDoc;
 		}
 	}
 
@@ -114,7 +115,7 @@ export const authorize = async (req: express.Request) => {
 	if (now - token.lastUsed >= TOKEN_TTL) return { doc: null, token: null };
 
 	token.lastUsed = Date.now();
-	await db.accounts.update({ _id: doc._id }, { $set: { tokens: doc.tokens} });
+	await db.accounts.updateAsync({ _id: doc._id }, { $set: { tokens: doc.tokens} });
 
 	return { doc, token: tokenString };
 };
@@ -136,22 +137,22 @@ export const suspendAccount = async (doc: AccountDoc, suspensionReason: string) 
 	// Suspend the account
 	doc.suspended = true;
 	doc.suspensionReason = suspensionReason;
-	await db.accounts.update({ _id: doc._id }, doc);
+	await db.accounts.updateAsync({ _id: doc._id }, doc);
 
 	// Delete all levels by the user
-	let missionDocs = await db.missions.find({ addedBy: doc._id }) as MissionDoc[];
+	let missionDocs = await db.missions.findAsync({ addedBy: doc._id }) as MissionDoc[];
 	for (let missionDoc of missionDocs) {
 		await deleteSingleLevel(missionDoc._id);
 	}
 
 	// Delete all packs by the user
-	let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+	let packDocs = await db.packs.findAsync({ createdBy: doc._id }) as PackDoc[];
 	for (let packDoc of packDocs) {
 		await deleteSinglePack(packDoc._id);
 	}
 
 	// Delete all comments by the user
-	await db.comments.remove({ author: doc._id }, { multi: true });
+	await db.comments.removeAsync({ author: doc._id }, { multi: true });
 
 	// Remove all curator votes by the user
 	if (doc.curator) await Mission.removeVotes(doc._id);
@@ -159,8 +160,8 @@ export const suspendAccount = async (doc: AccountDoc, suspensionReason: string) 
 
 /** Generates the profile info for a given account. */
 export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
-	let hasAvatar = await fs.pathExists(path.join(__dirname, `storage/avatars/${doc._id}.jpg`));
-	let levelCount = await db.missions.count({ addedBy: doc._id });
+	let hasAvatar = fs.existsSync(path.join(SERVER_DIR, `storage/avatars/${doc._id}.jpg`));
+	let levelCount = await db.missions.countAsync({ addedBy: doc._id });
 
 	return {
 		id: doc._id,
@@ -179,7 +180,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 	let profileInfo = await getProfileInfo(doc);
 
 	// Add all of their levels
-	let missionDocs = await db.missions.find({ addedBy: doc._id }) as MissionDoc[];
+	let missionDocs = await db.missions.findAsync({ addedBy: doc._id }) as MissionDoc[];
 	missionDocs.sort((a, b) => b.addedAt - a.addedAt); // Show newest ones first
 	let uploadedLevels: LevelInfo[] = [];
 
@@ -189,7 +190,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 	}
 
 	// Add all of their favorites
-	let favoriteMissionDocs = await db.missions.find({ lovedBy: doc._id }) as MissionDoc[];
+	let favoriteMissionDocs = await db.missions.findAsync({ lovedBy: doc._id }) as MissionDoc[];
 	favoriteMissionDocs.sort((a, b) => b.addedAt - a.addedAt); // Show newest ones first
 	let favoriteLevels: LevelInfo[] = [];
 
@@ -199,7 +200,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 	}
 
 	// Add all of their packs
-	let packDocs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+	let packDocs = await db.packs.findAsync({ createdBy: doc._id }) as PackDoc[];
 	packDocs.sort((a, b) => b.createdAt - a.createdAt); // Show newest ones first
 	let createdPacks: PackInfo[] = [];
 
@@ -209,7 +210,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 
 	let curatorVotesCast: number = undefined;
 	if (doc.curator) {
-		let votedMissions = await db.missions.find({ [`curatorVotes.${doc._id}`]: { $exists: true } });
+		let votedMissions = await db.missions.findAsync({ [`curatorVotes.${doc._id}`]: { $exists: true } });
 		curatorVotesCast = votedMissions.length;
 	}
 
@@ -225,12 +226,12 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 /** Generates the sign-in info for a given account. */
 export const getSignInInfo = async (doc: AccountDoc): Promise<SignInInfo> => {
 	let profileInfo = await getProfileInfo(doc);
-	let packs = await db.packs.find({ createdBy: doc._id }) as PackDoc[];
+	let packs = await db.packs.findAsync({ createdBy: doc._id }) as PackDoc[];
 
 	let curatorVotes: Record<number, boolean> = undefined;
 	if (doc.curator) {
 		curatorVotes = {};
-		let votedMissions = await db.missions.find({ [`curatorVotes.${doc._id}`]: { $exists: true } }) as MissionDoc[];
+		let votedMissions = await db.missions.findAsync({ [`curatorVotes.${doc._id}`]: { $exists: true } }) as MissionDoc[];
 		for (let mission of votedMissions) curatorVotes[mission._id] = mission.curatorVotes[doc._id];
 	}
 

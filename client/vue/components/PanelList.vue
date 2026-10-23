@@ -7,10 +7,10 @@
 			<template v-if="entries.length > 0">
 				<p class="entryCount" v-if="showTotal">Total: {{ entries.length }}</p>
 				<template v-if="mode === 'level'">
-					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info" :actions="passedLevelPanelActions" class="entryPanel"></level-panel>
+					<level-panel v-for="info of shownEntries" :key="info.id" :levelInfo="info as LevelInfo" :actions="passedLevelPanelActions" class="entryPanel"></level-panel>
 				</template>
 				<template v-else>
-					<pack-panel v-for="info of shownEntries" :key="info.id" :packInfo="info" class="entryPanel" :selectedPacks="selectedPacks"></pack-panel>
+					<pack-panel v-for="info of shownEntries" :key="info.id" :packInfo="info as PackInfo" class="entryPanel" :selectedPacks="selectedPacks"></pack-panel>
 				</template>
 			</template>
 			<p v-else class="noEntriesNotice">{{ noEntriesNotice }}</p>
