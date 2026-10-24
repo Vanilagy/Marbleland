@@ -182,6 +182,16 @@ export class KeyFrame {
 	static read(reader: io_BytesReader): KeyFrame;
 }
 
+export class TSSortedMeshCluster {
+	constructor();
+	startPrimitive: number;
+	endPrimitive: number;
+	normal: math_Point3F;
+	k: number;
+	frontCluster: number;
+	backCluster: number;
+}
+
 export class Mesh {
 	constructor();
 	meshType: number;
@@ -191,8 +201,6 @@ export class Mesh {
 	bounds: math_Box3F;
 	center: math_Point3F;
 	radius: number;
-	numVerts: number;
-	numTVerts: number;
 	vertices: math_Point3F[];
 	uv: math_Point2F[];
 	normals: math_Point3F[];
@@ -208,10 +216,18 @@ export class Mesh {
 	boneIndices: number[];
 	weights: number[];
 	nodeIndices: number[];
+	clusters: TSSortedMeshCluster[];
+	startCluster: number[];
+	firstVerts: number[];
+	numVerts: number[];
+	firstTVerts: number[];
+	alwaysWriteDepth: boolean;
 	readStandard(reader: DtsAlloc, version: number): void;
 	readSkinned(reader: DtsAlloc, version: number): void;
+	readSorted(reader: DtsAlloc, version: number): void;
 	writeStandard(alloc: DtsWriteAlloc, version: number): void;
 	writeSkinned(alloc: DtsWriteAlloc, version: number): void;
+	writeSorted(alloc: DtsWriteAlloc, version: number): void;
 	write(alloc: DtsWriteAlloc, version: number): void;
 	static read(shape: DtsFile, reader: DtsAlloc, version: number): Mesh;
 }
