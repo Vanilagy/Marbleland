@@ -327,7 +327,8 @@ export class Mission {
 			} else if (element._type === MissionElementType.PathedInterior) {
 				await this.addInteriorDependencies(element.interiorresource);
 			} else if (element._type === MissionElementType.Sky) {
-				await this.addSkyDependencies(element.materiallist);
+				// The material list may come from a variable we couldn't resolve (because some levels are fucky)
+				if (element.materiallist) await this.addSkyDependencies(element.materiallist);
 			} else if (element._type === MissionElementType.TSStatic) {
 				await this.addShapeDependencies(element.shapename);
 			} else if (element._type === MissionElementType.ScriptObject && element._name === 'MissionInfo') {
@@ -817,9 +818,10 @@ export class Mission {
 				if (!declaration) continue;
 
 				// An existing property changed, replace the declaration.
+				// A replacer function, so that $ patterns in the value don't get expanded
 				text = text.slice(0, declaration.index) + text.slice(declaration.index).replace(
 					propertyDeclarationRegex,
-					`${key} = "${newMissionInfo[key]}";`
+					() => `${key} = "${Util.escape(newMissionInfo[key])}";`
 				);
 			} else if (key in newMissionInfo) {
 				let lastDeclaration = getLastDeclaration();
@@ -827,7 +829,7 @@ export class Mission {
 
 				// A new property was added, add a declaration.
 				text = text.slice(0, lastDeclaration.index + lastDeclaration[0].length) +
-					`\n\t${key} = "${newMissionInfo[key]}";` +
+					`\n\t${key} = "${Util.escape(newMissionInfo[key])}";` +
 					text.slice(lastDeclaration.index + lastDeclaration[0].length);
 			} else {
 				let declaration = getDeclarationOfKey(key);

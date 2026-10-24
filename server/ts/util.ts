@@ -91,6 +91,19 @@ export class Util {
 		return str.replace(/\\([^\\])/g, (_, char: string) => specialCases[char] ?? char);
 	}
 
+	/** Escapes a string so it can be put inside a TorqueScript string literal. */
+	static escape(str: string) {
+		let specialCases: Record<string, string> = {
+			'\\': '\\',
+			'"': '"',
+			'\t': 't',
+			'\n': 'n',
+			'\r': 'r'
+		};
+
+		return str.replace(/[\\"\t\n\r]/g, char => '\\' + specialCases[char]);
+	}
+
 	static readdirCache = new Map<string, Promise<{ files: string[], directoryPath: string }>>();
 	/** Get a list of all entries in a directory. Uses a cache to avoid doing it twice. */
 	static readdirCached(directoryPath: string) {
