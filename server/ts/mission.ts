@@ -1,9 +1,8 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { MisFile, MisParser, MissionElement, MissionElementBase, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './io/mis_parser';
-import * as hxDif from '../lib/hxDif';
-import * as hxDts from '../lib/hxDts';
+import { MisFile, MisParser, MissionElement, MissionElementBase, MissionElementScriptObject, MissionElementSimGroup, MissionElementSky, MissionElementTSStatic, MissionElementType } from './mis_parser';
+import { workers } from './worker_pool';
 import { Util } from './util';
 import { Config } from './config';
 import { config, datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
@@ -13,8 +12,6 @@ import { getPackInfo, PackDoc } from './pack'
 import { getCommentInfosForLevel } from './comment';
 import { MUTABLE_MISSION_INFO_FIELDS } from '../../shared/constants';
 import { guessGameType, guessModification } from '../../shared/classification';
-import { MissionVerifier } from './verifier';
-import { MissionHasher } from './hasher';
 
 export const IGNORE_MATERIALS = ['NULL', 'ORIGIN', 'TRIGGER', 'FORCEFIELD'];
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.dds'];
@@ -218,22 +215,22 @@ export class Mission {
 		await this.storeFileSizes();
 		this.scanSimGroupForMetadata(this.mis.root);
 		this.classify();
-		this.hasCustomCode = !(await MissionVerifier.verifyNoCustomCode(this));
 		this.datablockCompatibility = this.determineDatablockCompatibility();
 	}
 
 	async parseMission() {
 		let missionText = (await fs.readFile(path.join(this.baseDirectory, this.relativePath))).toString();
-		let misFile = new MisParser(missionText).parse();
-		this.mis = misFile;
+		let processed = await workers.processMis(missionText);
+		this.mis = processed.misFile;
 
 		// Hash the mission text for easy duplicate detection later on
 		let misHash = crypto.createHash('sha256').update(missionText).digest('base64');
 		this.misHash = misHash;
 
 		// Hash the AST for more rigorous duplicate detection
-		let astHash = await MissionHasher.hashMission(null, missionText);
-		this.astHash = astHash;
+		this.astHash = processed.hash;
+
+		this.hasCustomCode = processed.containsCustomCode;
 	}
 
 	/** Finds all the dependencies of this mission. */
@@ -291,7 +288,6 @@ export class Mission {
 				this.info = Util.jsonClone(this.info);
 
 				// Remove non-standard fields
-				delete this.info._id;
 				delete this.info._type;
 				delete this.info._name;
 			}
@@ -404,17 +400,15 @@ export class Mission {
 
 		// Read in the .dif
 		let arrayBuffer = (await fs.readFile(fullPath)).buffer;
-		let dif = hxDif.Dif.LoadFromArrayBuffer(arrayBuffer);
+		let dif = await workers.processDif(arrayBuffer);
 
 		// Add all its materials as dependencies
-		for (let interior of dif.interiors.concat(dif.subObjects)) {
-			let materialPaths = await this.getMaterialPaths(interior.materialList, interiorDirectory);
-			for (let path of materialPaths) this.dependencies.add(path);
-		}
+		let materialPaths = await this.getMaterialPaths(dif.materials, interiorDirectory);
+		for (let path of materialPaths) this.dependencies.add(path);
 	}
 
 	/** Returns a list of relative file paths to the textures reference in a .dif MaterialList. */
-	async getMaterialPaths(materialList: hxDif.Dif["interiors"][number]["materialList"], interiorDirectory: string) {
+	async getMaterialPaths(materialList: string[], interiorDirectory: string) {
 		let paths: string[] = [];
 
 		for (let material of materialList) {
@@ -474,11 +468,10 @@ export class Mission {
 
 		// Read in the .dts
 		let buffer = (await fs.readFile(fullPath)).buffer;
-		let dtsFile = new hxDts.DtsFile();
-		dtsFile.read(buffer);
+		let dtsFile = await workers.processDts(buffer);
 
 		// Add all used materials as dependencies
-		for (let matName of dtsFile.matNames) {
+		for (let matName of dtsFile.materialNames) {
 			let relativePath = await this.findFile(matName, dtsDirectory, false, IMAGE_EXTENSIONS.concat(['.ifl']));
 			if (relativePath) {
 				// We found an .ifl material, so add all of its materials.
@@ -762,8 +755,9 @@ export class Mission {
 		missionText = missionText.slice(0, missionInfoStartMatch.index) + newMissionInfoDeclaration + missionText.slice(endIndex);
 
 		// Check if we can still parse the mission. If we can't, assume the text transformation was invalid.
+		let astHash: string;
 		try {
-			new MisParser(missionText).parse();
+			astHash = (await workers.processMis(missionText)).hash;
 		} catch (e) {
 			return false;
 		}
@@ -773,7 +767,6 @@ export class Mission {
 		this.misHash = misHash;
 
 		// Update the AST hash
-		let astHash = await MissionHasher.hashMission(this, missionText);
 		this.astHash = astHash;
 
 		// Write the new .mis to disk

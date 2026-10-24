@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'path';
-import { MisFile, MisParser, MissionElementSimGroup, MissionElementType } from './io/mis_parser';
+import { MisFile, MissionElementSimGroup, MissionElementType } from './mis_parser';
+import { workers } from './worker_pool';
 import { Util } from './util';
 import { Config } from './config';
 import { db, keyValue } from './globals';
@@ -90,7 +91,8 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                         for (let duplicate of duplicatesArr) {
                             if (duplicate.misHash !== mission.misHash) {
                                 // We found a possible duplicate candidate.
-                                let mis1 = new MisParser((await fs.promises.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString()).parse();
+                                let duplicateText = (await fs.promises.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString();
+                                let mis1 = (await workers.processMis(duplicateText)).misFile;
                                 let mis2 = mission.mis;
 
                                 // Compare the contents. If they don't match, it's (probably) not a duplicate.

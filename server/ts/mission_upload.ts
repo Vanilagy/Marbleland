@@ -2,16 +2,14 @@ import jszip from 'jszip';
 import * as path from 'path';
 import * as fs from 'node:fs/promises';
 import * as crypto from 'crypto';
-import { MisFile, MisParser, MissionElementScriptObject, MissionElementSimGroup, MissionElementType } from './io/mis_parser';
+import { MisFile, MissionElementScriptObject, MissionElementSimGroup, MissionElementType } from './mis_parser';
 import { Config } from './config';
-import * as hxDif from '../lib/hxDif';
-import * as hxDts from '../lib/hxDts';
+import { workers } from './worker_pool';
 import { IGNORE_MATERIALS, IMAGE_EXTENSIONS, Mission, MissionDoc, extractMissionContent } from './mission';
 import { Util } from './util';
 import { db, keyValue } from './globals';
 import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
-import { MissionHasher } from './hasher';
 import { MagickFormat } from '@imagemagick/magick-wasm';
 import { SERVER_DIR } from './paths';
 
@@ -25,12 +23,14 @@ const MAX_DECOMPRESSED_ARCHIVE_SIZE = 256 * 1024 ** 2;
 // Pending uploads are held in memory, so each account only gets to keep its most recent few
 const MAX_PENDING_UPLOADS_PER_ACCOUNT = 2;
 
-setInterval(async () => {
-	// Once a day, clean up the expired uploads
-	for (let [key, upload] of ongoingUploads) {
-		if (upload.hasExpired()) ongoingUploads.delete(key);
-	}
-}, 1000 * 60 * 60 * 24);
+export const startExpiredUploadCleanup = () => {
+	setInterval(async () => {
+		// Once a day, clean up the expired uploads
+		for (let [key, upload] of ongoingUploads) {
+			if (upload.hasExpired()) ongoingUploads.delete(key);
+		}
+	}, 1000 * 60 * 60 * 24);
+};
 
 /** Adds an upload to the pending ones, dropping the owner's oldest pending uploads beyond the per-account cap. */
 export const registerPendingUpload = (upload: MissionUpload) => {
@@ -219,8 +219,17 @@ export class MissionUpload {
 			return false;
 		}
 
+		let astHash: string;
+		try {
+			let processed = await workers.processMis(text);
+			misFile = processed.misFile;
+			astHash = processed.hash;
+		} catch (e) {
+			this.problems.add(`Could not parse ${group.misFilePath}.`);
+			return false;
+		}
+
 		// Hash the AST for more rigorous duplicate detection
-		let astHash = await MissionHasher.hashMission(null, text);
 		let existingAst = await db.missions.findOneAsync({
 			_id: { $ne: this.updateId },
 			$or: [{ astHash: astHash }, { 'previousVersions.astHash': astHash }]
@@ -232,14 +241,6 @@ export class MissionUpload {
 
 		if (!text.includes('//--- OBJECT WRITE BEGIN ---') || !text.includes('//--- OBJECT WRITE END ---')) {
 			this.problems.add(`${group.misFilePath} does not contain both "//--- OBJECT WRITE BEGIN ---" and "//--- OBJECT WRITE END ---", which are necessary for the level to behave correctly in the editor. Please add them around the outer MissionGroup element.`);
-			return false;
-		}
-
-		try {
-			let parser = new MisParser(text);
-			misFile = parser.parse();
-		} catch (e) {
-			this.problems.add(`Could not parse ${group.misFilePath}.`);
 			return false;
 		}
 
@@ -445,10 +446,10 @@ export class MissionUpload {
 
 			// Read in the .dif
 			let arrayBuffer = await found.async('arraybuffer');
-			let dif: hxDif.Dif;
+			let dif: Awaited<ReturnType<typeof workers.processDif>>;
 
 			try {
-				dif = hxDif.Dif.LoadFromArrayBuffer(arrayBuffer);
+				dif = await workers.processDif(arrayBuffer);
 			} catch (e) {
 				this.problems.add(`Interior file ${dependency} failed to parse and is likely invalid.`);
 				continue;
@@ -459,17 +460,12 @@ export class MissionUpload {
 				// We don't need abort here as it's still a valid interior file internally
 			}
 
-			// Go over all materials and add them as dependencies
-			for (let interior of dif.interiors.concat(dif.subObjects)) {
-				let usedMaterials = new Set(interior.surfaces.map(x => x.textureIndex));
+			// Go over all used materials and add them as dependencies
+			for (let material of dif.usedMaterials) {
+				if (IGNORE_MATERIALS.includes(material)) continue;
 
-				for (let [i, material] of interior.materialList.entries()) {
-					if (IGNORE_MATERIALS.includes(material)) continue;
-					if (!usedMaterials.has(i)) continue; // If the material isn't used in any surface, we don't care if it's there or not
-
-					let materialFileName = Util.getFileName(material);
-					await this.registerDependency(group, path.posix.join(relativeDirectory, materialFileName), 'extension-agnostic', dependency, IMAGE_EXTENSIONS);
-				}
+				let materialFileName = Util.getFileName(material);
+				await this.registerDependency(group, path.posix.join(relativeDirectory, materialFileName), 'extension-agnostic', dependency, IMAGE_EXTENSIONS);
 			}
 		}
 	}
@@ -508,11 +504,10 @@ export class MissionUpload {
 
 			// Read in the .dts
 			let buffer = await found.async('arraybuffer');
-			let dtsFile: hxDts.DtsFile;
+			let dtsFile: Awaited<ReturnType<typeof workers.processDts>>;
 
 			try {
-				dtsFile = new hxDts.DtsFile();
-				dtsFile.read(buffer);
+				dtsFile = await workers.processDts(buffer);
 			} catch (e) {
 				this.problems.add(`Shape file ${dependency} failed to parse and is likely invalid.`);
 				continue;
@@ -524,7 +519,7 @@ export class MissionUpload {
 			}
 
 			// Go over all materials and register them as dependencies
-			for (let matName of dtsFile.matNames) {
+			for (let matName of dtsFile.materialNames) {
 				let result2 = await this.registerDependency(group, path.posix.join(relativeDirectory, matName), 'extension-agnostic', dependency, IMAGE_EXTENSIONS.concat(['.ifl']));
 				if (!result2) continue;
 

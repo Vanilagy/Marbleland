@@ -1,14 +1,18 @@
 import { Mission, MissionDoc } from "./mission";
 import { config, db, initGlobals } from "./globals";
 import { startHTTPServer } from "./server";
-import { initApi } from "./api/api";
-import { AccountDoc, isEmailVerificationEnabled, migrateTokensToHashes, suspendAccount } from "./account";
+import { initApi, startIpTimeoutCleanup } from "./api/api";
+import { AccountDoc, isEmailVerificationEnabled, migrateTokensToHashes, startExpiredTokenCleanup, suspendAccount } from "./account";
+import { startExpiredUploadCleanup } from "./mission_upload";
+import { startRateLimitWindowCleanup } from "./rate_limiter";
 import * as fs from 'node:fs';
 import * as path from 'path';
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 import { LevelInfo, Modification } from "../../shared/types";
-import { MisParser, MissionElementSimGroup, MissionElementType } from "./io/mis_parser";
+import { MissionElementSimGroup, MissionElementType } from "./mis_parser";
+import { workers, startWorkerPool } from "./worker_pool";
+import { runWorker } from "./worker";
 import { initializeImageMagick, ResourceLimits } from "@imagemagick/magick-wasm";
 import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from "./util";
 import { initBackup } from "./backup";
@@ -35,6 +39,23 @@ interface CLAEntry {
 }
 
 const init = async () => {
+	let { positionals: args, values: flags } = parseArgs({
+		allowPositionals: true,
+		options: {
+			'id-map': { type: 'string' },
+			'replace-duplicates': { type: 'boolean' },
+			'allow-creation': { type: 'boolean' }
+		}
+	});
+
+	if (args[0] === 'worker') {
+		// Easy
+		runWorker();
+		return;
+	}
+
+	startWorkerPool();
+
 	// Ensure all necessary directories exist
 	fs.mkdirSync(path.join(SERVER_DIR, 'storage/avatars'), { recursive: true });
 	fs.mkdirSync(path.join(SERVER_DIR, 'storage/pack_thumbnails'), { recursive: true });
@@ -67,15 +88,6 @@ const init = async () => {
 	ResourceLimits.height = BigInt(MAX_IMAGE_DIMENSION);
 	ResourceLimits.area = BigInt(MAX_IMAGE_PIXELS);
 
-	let { positionals: args, values: flags } = parseArgs({
-		allowPositionals: true,
-		options: {
-			'id-map': { type: 'string' },
-			'replace-duplicates': { type: 'boolean' },
-			'allow-creation': { type: 'boolean' }
-		}
-	});
-
 	if (args[0] === 'add-directory') {
 		// Import a directory of levels to the level database.
 		await scanForMissions(args[1], flags["id-map"], !!flags["replace-duplicates"]);
@@ -91,7 +103,7 @@ const init = async () => {
 		for (let mission of goldMissions) {
 			let misPath = path.join(mission.baseDirectory, mission.relativePath);
 			let misText = (await fs.promises.readFile(misPath)).toString();
-			let misFile = new MisParser(misText).parse();
+			let misFile = (await workers.processMis(misText)).misFile;
 			let fine = true;
 
 			const traverse = (simGroup: MissionElementSimGroup) => {
@@ -156,6 +168,10 @@ const init = async () => {
 		process.exit();
 	} else {
 		// Usual path, boot up the API and HTTP server.
+		startExpiredTokenCleanup();
+		startExpiredUploadCleanup();
+		startRateLimitWindowCleanup();
+		startIpTimeoutCleanup();
 		initApi();
 		startHTTPServer(config.port, config.host);
 		if (config.backupRepositoryPath) initBackup();

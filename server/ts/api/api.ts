@@ -121,12 +121,14 @@ const IP_TIMEOUT = 24*60*60*1000;
 export const ipTimeouts = new Map<string, number>();
 
 // Every hour, forget the timeouts that have run out
-setInterval(() => {
-	let now = Date.now();
-	for (let [key, lastExecution] of ipTimeouts) {
-		if (now - lastExecution >= IP_TIMEOUT) ipTimeouts.delete(key);
-	}
-}, 60*60*1000);
+export const startIpTimeoutCleanup = () => {
+	setInterval(() => {
+		let now = Date.now();
+		for (let [key, lastExecution] of ipTimeouts) {
+			if (now - lastExecution >= IP_TIMEOUT) ipTimeouts.delete(key);
+		}
+	}, 60*60*1000);
+};
 
 /* Executes a callback only if the requester's IP hasn't done an action with the same ID in the last 24 hours. Prevents spamming of stuff. */
 export const executeWithIpTimeout = async (req: express.Request, id: string, callback: () => Promise<void>) => {

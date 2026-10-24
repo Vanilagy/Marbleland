@@ -79,8 +79,6 @@ export class Util {
 
 	/** Unescapes escaped (\) characters. */
 	static unescape(str: string) {
-		let regex = /\\([^\\])/g;
-		let match: RegExpExecArray = null;
 		let specialCases: Record<string, string> = {
 			't': '\t',
 			'v': '\v',
@@ -90,17 +88,7 @@ export class Util {
 			'r': '\r'
 		};
 
-		while ((match = regex.exec(str)) !== null) {
-			let replaceWith: string;
-
-			if (specialCases[match[1]]) replaceWith = specialCases[match[1]];
-			else replaceWith = match[1];
-
-			str = str.slice(0, match.index) + replaceWith + str.slice(match.index + match[0].length);
-			regex.lastIndex--;
-		}
-
-		return str;
+		return str.replace(/\\([^\\])/g, (_, char: string) => specialCases[char] ?? char);
 	}
 
 	static readdirCache = new Map<string, Promise<{ files: string[], directoryPath: string }>>();

@@ -81,24 +81,26 @@ export const isEmailVerificationEnabled = () => {
 
 export const TOKEN_TTL = 1000 * 60 * 60 * 24 * 30; // Tokens expire after 30 days of no use
 
-setInterval(async () => {
-	// Once a day, clean up the expired tokens
-	let now = Date.now();
-	let accounts = await db.accounts.findAsync({}) as AccountDoc[];
-	for (let account of accounts) {
-		let changed = false;
+export const startExpiredTokenCleanup = () => {
+	setInterval(async () => {
+		// Once a day, clean up the expired tokens
+		let now = Date.now();
+		let accounts = await db.accounts.findAsync({}) as AccountDoc[];
+		for (let account of accounts) {
+			let changed = false;
 
-		for (let i = 0; i < account.tokens.length; i++) {
-			let token = account.tokens[i];
-			if (now - token.lastUsed >= TOKEN_TTL) {
-				account.tokens.splice(i--, 1);
-				changed = true;
+			for (let i = 0; i < account.tokens.length; i++) {
+				let token = account.tokens[i];
+				if (now - token.lastUsed >= TOKEN_TTL) {
+					account.tokens.splice(i--, 1);
+					changed = true;
+				}
 			}
-		}
 
-		if (changed) db.accounts.updateAsync({ _id: account._id }, { $set: { tokens: account.tokens } });
-	}
-}, 1000 * 60 * 60 * 24);
+			if (changed) db.accounts.updateAsync({ _id: account._id }, { $set: { tokens: account.tokens } });
+		}
+	}, 1000 * 60 * 60 * 24);
+};
 
 const getTokenFromAuthHeader = (req: express.Request) => {
 	let header = req.headers.authorization as string;

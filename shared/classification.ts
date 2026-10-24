@@ -1,4 +1,4 @@
-import { MissionElementScriptObject } from "../server/ts/io/mis_parser";
+import { MissionElementScriptObject } from "../server/ts/mis_parser";
 import { GameType, Modification } from "./types";
 
 // Classification logic is shared because it's also needed client-side during level editing, for example

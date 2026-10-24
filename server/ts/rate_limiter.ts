@@ -6,12 +6,14 @@ export const HOUR = MINUTE * 60;
 const windows = new Map<string, { timestamps: number[], interval: number }>();
 
 // Make sure the map doesn't grow forever
-setInterval(() => {
-	let now = Date.now();
-	for (let [key, window] of windows) {
-		if (window.timestamps.every(x => now - x >= window.interval)) windows.delete(key);
-	}
-}, 10 * MINUTE);
+export const startRateLimitWindowCleanup = () => {
+	setInterval(() => {
+		let now = Date.now();
+		for (let [key, window] of windows) {
+			if (window.timestamps.every(x => now - x >= window.interval)) windows.delete(key);
+		}
+	}, 10 * MINUTE);
+};
 
 /** Allows an action identified by `key` at most `count` times per `interval` milliseconds. Returns false and responds with
  * 429 Too Many Requests if the limit has been reached. */
