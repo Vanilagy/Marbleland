@@ -71,39 +71,52 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
 
                     let duplicateDoc: MissionDoc;
                     if (replaceDuplicates) {
-                        // Search for a duplicate level that was already added previously
-                        let duplicatesArr = await db.missions.findAsync({ $or: [
-                            {
-                                // Primitive heuristic, but should work to identify candidates
-                                'info.name': mission.info.name,
-                                'info.desc': mission.info.desc,
-                                'info.artist': mission.info.artist,
-                                'info.starthelptext': mission.info.starthelptext
-                            },
-                            {
-                                misHash: mission.misHash
-                            },
-                            {
-                                astHash: mission.astHash
+                        // The same file in the same place is the same level, however much its content changed.
+                        // If there are several, the oldest one is the original.
+                        let sameLocationDocs = await db.missions.findAsync({
+                            baseDirectory: mission.baseDirectory,
+                            relativePath: mission.relativePath
+                        }) as MissionDoc[];
+                        duplicateDoc = sameLocationDocs.sort((a, b) => a._id - b._id)[0];
+
+                        if (!duplicateDoc) {
+                            // Search for a duplicate level that was already added previously
+                            let duplicatesArr = await db.missions.findAsync({ $or: [
+                                {
+                                    // Primitive heuristic, but should work to identify candidates. nedb never matches
+                                    // undefined, so absent fields need to be matched explicitly.
+                                    'info.name': mission.info.name ?? { $exists: false },
+                                    'info.desc': mission.info.desc ?? { $exists: false },
+                                    'info.artist': mission.info.artist ?? { $exists: false },
+                                    'info.starthelptext': mission.info.starthelptext ?? { $exists: false }
+                                },
+                                {
+                                    misHash: mission.misHash
+                                },
+                                {
+                                    astHash: mission.astHash
+                                }
+                            ] }) as MissionDoc[];
+
+                            for (let duplicate of duplicatesArr) {
+                                if (duplicate.misHash !== mission.misHash) {
+                                    // We found a possible duplicate candidate.
+                                    let duplicateText = (await fs.promises.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString();
+                                    let mis1 = (await workers.processMis(duplicateText)).misFile;
+                                    let mis2 = mission.mis;
+
+                                    // Compare the contents. If they don't match, it's (probably) not a duplicate.
+                                    if (!compareMissions(mis1, mis2)) continue;
+                                }
+
+                                duplicateDoc = duplicate;
+                                break;
                             }
-                        ] }) as MissionDoc[];
+                        }
 
-                        for (let duplicate of duplicatesArr) {
-                            if (duplicate.misHash !== mission.misHash) {
-                                // We found a possible duplicate candidate.
-                                let duplicateText = (await fs.promises.readFile(path.join(duplicate.baseDirectory, duplicate.relativePath))).toString();
-                                let mis1 = (await workers.processMis(duplicateText)).misFile;
-                                let mis2 = mission.mis;
-
-                                // Compare the contents. If they don't match, it's (probably) not a duplicate.
-                                if (!compareMissions(mis1, mis2)) continue;
-                            }
-
-                            console.log(`Duplicate found for ${path.join(relativePath, entry)} in ${path.join(duplicate.baseDirectory, duplicate.relativePath)}. Replacing the old entry.`);
-                            duplicateDoc = duplicate;
+                        if (duplicateDoc) {
+                            console.log(`Duplicate found for ${path.join(relativePath, entry)} in ${path.join(duplicateDoc.baseDirectory, duplicateDoc.relativePath)}. Replacing the old entry.`);
                             duplicates++;
-
-                            break;
                         }
                     }
 					
