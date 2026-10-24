@@ -273,6 +273,7 @@ export class MisParser {
 	statements: hxTS.expr_Stmt[];
 	objectWriteBeginLine: number | null;
 	objectWriteEndLine: number | null;
+	variables: Map<string, string | number | boolean | null>;
 
 	constructor(text: string) {
 		this.text = text;
@@ -282,6 +283,14 @@ export class MisParser {
 		// The markers are comment tokens, so lookalikes inside string literals don't count
 		this.objectWriteBeginLine = this.tokens.find(x => x.lexeme.startsWith('//--- OBJECT WRITE BEGIN ---'))?.line ?? null;
 		this.objectWriteEndLine = this.tokens.findLast(x => x.lexeme.startsWith('//--- OBJECT WRITE END ---'))?.line ?? null;
+
+		this.variables = new Map([['$usermods', '']]); // $usermods points to nothing
+		for (let statement of this.statements) {
+			if (!(statement instanceof hxTS.expr_AssignExpr)) continue;
+
+			let key = statement.varExpr.print(0, false).toLowerCase();
+			if (!this.variables.has(key)) this.variables.set(key, this.flattenValue(statement.expr));
+		}
 	}
 
 	parse(): MisFile {
@@ -482,8 +491,7 @@ export class MisParser {
 		if (expr instanceof hxTS.expr_FloatExpr) return expr.value;
 		if (expr instanceof hxTS.expr_ParenthesisExpr) return this.flattenValue(expr.expr);
 
-		// $usermods is the only global we know the value of; it points to nothing
-		if (expr instanceof hxTS.expr_VarExpr) return expr.name.lexeme.toLowerCase() === 'usermods' ? '' : null;
+		if (expr instanceof hxTS.expr_VarExpr) return this.variables.get(expr.print(0, false).toLowerCase()) ?? null;
 
 		if (expr instanceof hxTS.expr_StrCatExpr) {
 			const left = this.flattenValue(expr.left);
