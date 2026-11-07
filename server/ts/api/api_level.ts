@@ -52,6 +52,8 @@ const zipIdsSchema = z.object({
 const submitUploadSchema = z.object({
 	uploadId: z.string(),
 	remarks: z.array(z.string().max(LEVEL_REMARKS_MAX_LENGTH)),
+	/** Only honored when submitting new levels. */
+	beta: z.boolean().optional(),
 	addToPacks: z.array(z.number().int()),
 	newPack: z.object({
 		name: z.string().trim().min(1).max(PACK_NAME_MAX_LENGTH),
@@ -94,7 +96,9 @@ const verifyVersionNumber = (req: express.Request, res: express.Response, doc: M
 export const initLevelApi = () => {
 	// Get a list of all levels
 	app.get('/api/level/list', async (req, res) => {
-		let docs = await db.missions.findAsync({}) as MissionDoc[];
+		// Beta levels are unlisted: the list contains either only released levels, or only beta levels
+		let wantsBeta = req.query.beta === 'true';
+		let docs = await db.missions.findAsync(wantsBeta ? { beta: true } : { beta: { $ne: true } }) as MissionDoc[];
 		let response: LevelInfo[] = [];
 
 		for (let doc of docs) {
@@ -474,6 +478,12 @@ export const initLevelApi = () => {
 			return;
 		}
 
+		// Packs are public, so beta levels can't be put into them
+		if (q.beta && (q.addToPacks.length > 0 || q.newPack)) {
+			res.status(400).send("400\nBeta levels can't be added to packs.");
+			return;
+		}
+
 		let packsAllowed = await checkPackPermissions(q.addToPacks, res, doc);
 		if (!packsAllowed) return;
 
@@ -556,6 +566,12 @@ export const initLevelApi = () => {
 			return;
 		}
 
+		// Packs are public, so beta levels can't be put into them
+		if (missionDoc.beta && (q.addToPacks.length > 0 || q.newPack)) {
+			res.status(400).send("400\nBeta levels can't be added to packs.");
+			return;
+		}
+
 		let packsAllowed = await checkPackPermissions(q.addToPacks, res, doc);
 		if (!packsAllowed) return;
 
@@ -596,6 +612,39 @@ export const initLevelApi = () => {
 
 		res.removeHeader('Cache-Control');
 		await compressAndSendImage(group.thumbnailFile.name, req, res, { width: 640, height: 480 }, buffer);
+	});
+
+	// Release a beta level, making it a regular listed level. This can't be undone.
+	app.post('/api/level/:levelId/release', async (req, res) => {
+		let { doc: accountDoc } = await authorize(req);
+		if (!accountDoc) {
+			res.status(401).send("401\nInvalid token.");
+			return;
+		}
+
+		if (isSuspended(accountDoc)) {
+			res.status(403).send("403\nAccount is suspended.");
+			return;
+		}
+
+		let levelId = await verifyLevelId(req, res);
+		if (levelId === null) return;
+
+		let missionDoc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
+		if (missionDoc.addedBy !== accountDoc._id && !accountDoc.moderator) {
+			res.status(403).send("403\nUnauthorized to release this level.");
+			return;
+		}
+
+		if (!missionDoc.beta) {
+			res.status(400).send("400\nThis level isn't in beta.");
+			return;
+		}
+
+		// The level only becomes visible now, so it counts as added now
+		await db.missions.updateAsync({ _id: levelId }, { $set: { beta: false, addedAt: Date.now() } });
+
+		res.send({ success: true });
 	});
 
 	// Edit a previously submitted level (mission info and remarks)
@@ -779,6 +828,11 @@ export const initLevelApi = () => {
 		let doc = await db.missions.findOneAsync({ _id: levelId }) as MissionDoc;
 		let mission = Mission.fromDoc(doc);
 
+		if (mission.beta) {
+			res.status(403).send("403\nBeta levels have no leaderboards.");
+			return;
+		}
+
 		let leaderboardId = req.params.leaderboardId;
 		let lbQueryInfo = config.leaderboardSources.filter(x => x.datablockCompatibilities.includes(mission.datablockCompatibility) && ((mission.hasCustomCode && x.customCodeAllowed) || !mission.hasCustomCode));
 		let query = lbQueryInfo.find(x => x.id === leaderboardId);
@@ -828,6 +882,11 @@ export const initLevelApi = () => {
 
 		if (doc._id == missionDoc.addedBy) {
 			res.status(403).send("403\nCan't vote on your own level.");
+			return;
+		}
+
+		if (missionDoc.beta) {
+			res.status(403).send("403\nCan't vote on a beta level.");
 			return;
 		}
 

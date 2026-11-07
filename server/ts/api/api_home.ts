@@ -15,7 +15,7 @@ export const initHomeApi = () => {
 /** Collects the level lists shown on the home page. Also used to server-side render it. */
 export const getHomeInfo = async (): Promise<HomeInfo> => {
 	// Get all missions and sort by newest
-	let allDocs = await db.missions.findAsync({}) as MissionDoc[];
+	let allDocs = await db.missions.findAsync({ beta: { $ne: true } }) as MissionDoc[];
 	allDocs.sort((a, b) => b.addedAt - a.addedAt);
 
 	// Filter and slice curated levels

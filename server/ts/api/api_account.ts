@@ -3,7 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import * as fs from 'node:fs';
 import * as path from 'path';
 import { z } from 'zod';
-import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, setTokenCookie, clearTokenCookie, hashToken, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, sendPasswordResetEmail, sendAccountExistsEmail, PendingRegistrationDoc, suspendAccount } from "../account";
+import { AccountDoc, generateNewAccessToken, getSignInInfo, authorize, getExtendedProfileInfo, getBetaLevelInfos, setTokenCookie, clearTokenCookie, hashToken, isSuspended, generateVerificationToken, isEmailVerificationEnabled, sendVerificationEmail, sendPasswordResetEmail, sendAccountExistsEmail, PendingRegistrationDoc, suspendAccount } from "../account";
 import { config, db, keyValue } from "../globals";
 import { app } from "../server";
 import { tryAssociatingOldUserData } from "../recovery";
@@ -384,6 +384,18 @@ export const initAccountApi = () => {
 		}
 
 		res.send(await getExtendedProfileInfo(doc));
+	});
+
+	// Get the beta levels of an account. Beta levels are unlisted, so only the owner and moderators can see them.
+	app.get('/api/account/:accountId/beta-levels', async (req, res) => {
+		let { doc } = await authorize(req);
+		let accountId = Number(req.params.accountId);
+		if (!doc || (doc._id !== accountId && !doc.moderator)) {
+			res.status(403).send("403\nForbidden.");
+			return;
+		}
+
+		res.send(await getBetaLevelInfos(accountId));
 	});
 
 	// Get the avatar image for an account, with options to resize

@@ -6,6 +6,7 @@
 		<meta name="og:description" :content="levelInfo.desc">
 		<meta name="og:image" :content="ORIGIN + `/api/level/${levelInfo.id}/image?version=${levelInfo.currentVersion ?? 1}`">
 		<meta name="twitter:card" content="summary_large_image">
+		<meta v-if="levelInfo.beta" name="robots" content="noindex">
 		<link rel="preload" href="/assets/svg/favorite_black_24dp.svg" as="image">
 	</Head>
 	<loader v-if="!levelInfo && !notFound"></loader>
@@ -31,7 +32,7 @@
 					<span v-if="levelInfo.missesDependencies" style="color: #ff5c7b;"><br>Misses dependencies</span>
 					<span v-if="viewedContent.hasCustomCode" style="color: orange"><br>Has custom code</span>
 				</p>
-				<div v-if="isCurator" class="curationPanel">
+				<div v-if="isCurator && !levelInfo.beta" class="curationPanel">
 					<h3 @click="curatorDetailsModal.show();" class="curatorScore">Curator score</h3>
 
 					<div class="voteContainer">
@@ -49,10 +50,11 @@
 			<div style="flex: 1 1 0px; min-width: 300px; max-width: 660px; margin-bottom: 10px;">
 				<div class="actions">
 					<img v-if="levelInfo.leaderboardInfo.length > 0" :src="showLBs ? '/assets/svg/info_24dp_FILL0_wght400_GRAD0_opsz24 (1).svg' : '/assets/svg/bar_chart_24dp.svg'" :title="showLBs ? 'Show level info' : 'Show leaderboards'" @click="toggleLBs" class="basicIcon">
+					<img src="/assets/svg/check_black_24dp.svg" title="Release level" v-if="levelInfo.beta && hasOwnershipPermissions" @click="releaseLevel" class="basicIcon">
 					<img src="/assets/svg/delete_black_24dp.svg" title="Delete level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="showDeleteConfirmation" class="basicIcon">
 					<img src="/assets/svg/file_upload_black_24dp.svg" title="Update level" v-if="hasOwnershipPermissions" :class="{ disabled: !isLatestVersion }" @click="updateLevel" class="basicIcon">
 					<img src="/assets/svg/edit_black_24dp.svg" title="Edit level" v-if="hasOwnershipPermissions" :class="{ disabled: editing || !isLatestVersion }" @click="editing = true" class="basicIcon">
-					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended" :class="{ disabled: !isLatestVersion }" @click="packAdder.show()" class="basicIcon">
+					<img src="/assets/svg/create_new_folder_black_24dp.svg" title="Add to pack" v-if="$store.state.loggedInAccount && !$store.state.loggedInAccount.isSuspended && !levelInfo.beta":class="{ disabled: !isLatestVersion }" @click="packAdder.show()" class="basicIcon">
 					<pack-adder :levelId="levelInfo.id" class="packAdder" ref="packAdder"></pack-adder>
 				</div>
 				<template v-if="!editing">
@@ -60,7 +62,7 @@
 						<span class="versionChevron" :class="{ inactive: viewedVersion === 1 }" title="View previous version" @click="cycleVersion(-1)">‹</span>
 						<span>v{{ viewedVersion }}</span>
 						<span class="versionChevron" :class="{ inactive: isLatestVersion }" title="View next version" @click="cycleVersion(1)">›</span>
-					</span></h1>
+					</span><span v-if="levelInfo.beta" class="versionBadge betaBadge notSelectable" title="This level is in beta: it's unlisted, has no leaderboards or curator votes, and can't be added to packs. Anyone with the link can still view, download and comment on it.">Beta</span></h1>
 					<h2 v-if="viewedContent.artist">by {{ viewedContent.artist }}</h2>
 					<template v-if="!showLBs">
 						<h3 v-if="viewedContent.desc">Description</h3>
@@ -475,6 +477,21 @@ const showDeleteConfirmation = () => {
 const closeDeleteConfirmationModal = () => {
 	deleteConfirmationModal.value.hide();
 };
+const releaseLevel = async () => {
+	if (!confirm("Release this level? It will become publicly listed, with leaderboards and curator votes enabled. This can't be undone.")) return;
+
+	let response = await fetch(`/api/level/${levelInfo.value.id}/release`, {
+		method: 'POST'
+	});
+
+	if (response.ok) {
+		levelInfo.value.beta = false;
+		levelInfo.value.addedAt = Date.now();
+		Search.checkForRefresh(-1); // Force the level search to re-fetch, since the level is now listed
+	} else {
+		alert("Something went wrong while releasing the level.");
+	}
+};
 const updateLevel = async () => {
 	router.push({ name: 'Upload', query: { 'update-id': levelInfo.value.id } });
 };
@@ -837,6 +854,7 @@ h3 {
 	margin-bottom: 20px;
 }
 
+
 .notFound {
 	text-align: center;
 	margin-top: 50px;
@@ -1063,6 +1081,15 @@ h3 {
 	margin-left: 12px;
 	vertical-align: top;
 	margin-top: 9px;
+}
+
+.betaBadge {
+	box-sizing: border-box;
+	height: 24px;
+	padding: 4px 12px;
+	margin-left: 8px;
+	background: #9521f3;
+	cursor: help;
 }
 
 .versionBadge.outdated {
