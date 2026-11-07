@@ -57,6 +57,8 @@ export interface MissionDoc extends MissionContentDoc {
 	lovedBy: number[],
 	curatorVotes: Record<number, boolean>,
 	editedAt: number,
+	/** Whether this level is in beta: unlisted, with leaderboards and curator votes disabled. Can only be set at upload and cleared once. */
+	beta?: boolean,
 	/** The content of every superseded version of this mission, ordered from oldest to newest. previousVersions[n] contains the content of version n+1 of the mission (versions are 1-indexed, so a mission's current version number is previousVersions.length + 1). The current version's content lives directly on the doc. */
 	previousVersions?: MissionContentDoc[],
 	/** The metadata of every version of this mission except the first, with the same length as previousVersions but conceptually offset by one: versionMetadata[n] describes version n+2 of the mission, meaning the last entry describes the current version. The first version has no metadata; it was added at addedAt and has no changelog. */
@@ -111,6 +113,8 @@ export class Mission {
 	/** Map of curator account IDs with their vote */
 	curatorVotes: Record<number, boolean>;
 	editedAt: number = null;
+	/** See MissionDoc.beta. */
+	beta = false;
 	hasCustomCode: boolean = false;
 	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
 	/** See MissionDoc.previousVersions. */
@@ -152,6 +156,7 @@ export class Mission {
 		mission.lovedBy = doc.lovedBy ?? [];
 		mission.curatorVotes = doc.curatorVotes ?? {};
 		mission.editedAt = doc.editedAt ?? null;
+		mission.beta = doc.beta ?? false;
 		mission.hasCustomCode = doc.hasCustomCode ?? false;
 		mission.datablockCompatibility = doc.datablockCompatibility ?? 'pq';
 		mission.previousVersions = doc.previousVersions ?? [];
@@ -549,6 +554,7 @@ export class Mission {
 			missesDependencies: this.missesDependencies,
 			preferPrevThumbnail: this.preferPrevThumbnail,
 			editedAt: this.editedAt,
+			beta: this.beta,
 			lovedBy: this.lovedBy,
 			curatorVotes: this.curatorVotes,
 			hasCustomCode: this.hasCustomCode,
@@ -600,6 +606,7 @@ export class Mission {
 			id: this.id,
 			addedAt: this.addedAt,
 			editedAt: this.editedAt,
+			beta: this.beta,
 
 			downloads: this.downloads ?? 0,
 			lovedCount: this.lovedBy.length,
@@ -623,12 +630,13 @@ export class Mission {
 
 		let lovedByYou = this.lovedBy.includes(requesterId);
 
-		let playInfo = config.games.filter(x => x.datablockCompatibilities.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(game => ({
+		let playInfo = this.beta ? [] : config.games.filter(x => x.datablockCompatibilities.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(game => ({
 			...game,
 			playUrl: game.playUrl.replace('{id}', this.id.toString()),
 		}));
 
-		let lbQueryInfo = config.leaderboardSources.filter(x => x.datablockCompatibilities.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(query => ({
+		// Beta levels have no leaderboards
+		let lbQueryInfo = this.beta ? [] : config.leaderboardSources.filter(x => x.datablockCompatibilities.includes(this.datablockCompatibility) && ((this.hasCustomCode && x.customCodeAllowed) || !this.hasCustomCode)).map(query => ({
 			id: query.id,
 			name: query.name
 		}));

@@ -192,7 +192,7 @@ export const suspendAccount = async (doc: AccountDoc, suspensionReason: string) 
 /** Generates the profile info for a given account. */
 export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 	let hasAvatar = fs.existsSync(path.join(SERVER_DIR, `storage/avatars/${doc._id}.jpg`));
-	let levelCount = await db.missions.countAsync({ addedBy: doc._id });
+	let levelCount = await db.missions.countAsync({ addedBy: doc._id, beta: { $ne: true } });
 
 	return {
 		id: doc._id,
@@ -210,8 +210,8 @@ export const getProfileInfo = async (doc: AccountDoc): Promise<ProfileInfo> => {
 export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedProfileInfo> => {
 	let profileInfo = await getProfileInfo(doc);
 
-	// Add all of their levels
-	let missionDocs = await db.missions.findAsync({ addedBy: doc._id }) as MissionDoc[];
+	// Add all of their released levels (beta levels are unlisted; see getBetaLevelInfos)
+	let missionDocs = await db.missions.findAsync({ addedBy: doc._id, beta: { $ne: true } }) as MissionDoc[];
 	missionDocs.sort((a, b) => b.addedAt - a.addedAt); // Show newest ones first
 	let uploadedLevels: LevelInfo[] = [];
 
@@ -221,7 +221,7 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 	}
 
 	// Add all of their favorites
-	let favoriteMissionDocs = await db.missions.findAsync({ lovedBy: doc._id }) as MissionDoc[];
+	let favoriteMissionDocs = await db.missions.findAsync({ lovedBy: doc._id, beta: { $ne: true } }) as MissionDoc[];
 	favoriteMissionDocs.sort((a, b) => b.addedAt - a.addedAt); // Show newest ones first
 	let favoriteLevels: LevelInfo[] = [];
 
@@ -252,6 +252,13 @@ export const getExtendedProfileInfo = async (doc: AccountDoc): Promise<ExtendedP
 		createdPacks,
 		curatorVotesCast
 	});
+};
+
+/** Gets the info of all beta levels uploaded by the given account, newest first. Beta levels are unlisted, so this should only be shown to the owner. */
+export const getBetaLevelInfos = async (accountId: number): Promise<LevelInfo[]> => {
+	let missionDocs = await db.missions.findAsync({ addedBy: accountId, beta: true }) as MissionDoc[];
+	missionDocs.sort((a, b) => b.addedAt - a.addedAt);
+	return missionDocs.map(x => Mission.fromDoc(x).createLevelInfo());
 };
 
 /** Generates the sign-in info for a given account. */

@@ -71,6 +71,17 @@
 
 			<template v-if="!updateId">
 				<hr>
+				<input type="checkbox" id="betaCheckbox" class="basicCheckbox" v-model="beta">
+				<label for="betaCheckbox" class="notSelectable">Upload as beta</label>
+				<p v-if="beta" class="betaNote">
+					Beta levels are unlisted: they don't appear in search or on the homepage, can't be added to packs, and have no leaderboards or curator votes.
+					Anyone with the link can still view, download and comment on it, and you can find it on your profile.
+					You can update it freely and release it when it's ready, but a released level can't go back to beta.
+				</p>
+			</template>
+
+			<template v-if="!updateId && !beta">
+				<hr>
 				<h3>Optionally, choose the packs you want to add the uploaded {{ successResponse.missions.length > 1 ? 'levels' : 'level' }} to:</h3>
 				<panel-list mode="pack" :entries="successResponse.packs" :defaultCount="4" noEntriesNotice="" :selectedPacks="selectedPacks" v-if="successResponse.packs.length > 0"></panel-list>
 
@@ -122,6 +133,7 @@ const successResponse = ref<{
 }>(null);
 const currentIndex = ref(0);
 const remarks = ref<string[]>([]);
+const beta = ref(false);
 const selectedPacks = ref<number[]>([]);
 const createNewPack = ref(false);
 const newPackName = ref("");
@@ -275,8 +287,9 @@ const submit = async () => {
 		body: JSON.stringify({
 			uploadId: successResponse.value.uploadId,
 			remarks: remarks.value,
-			addToPacks: updateId ? [] : selectedPacks.value, // Don't change pack when updating level
-			newPack: createNewPack.value? {
+			beta: updateId ? undefined : beta.value, // Beta can only be chosen for new levels
+			addToPacks: (updateId || beta.value) ? [] : selectedPacks.value, // Don't change pack when updating level, and beta levels can't be in packs
+			newPack: (createNewPack.value && !beta.value) ? {
 				name: newPackName.value,
 				description: newPackDescription.value
 			} : null
@@ -458,6 +471,11 @@ h3 {
 
 .successContainer {
 	margin-top: 20px;
+}
+
+.betaNote {
+	font-size: 13px;
+	opacity: 0.75;
 }
 
 .remarks {

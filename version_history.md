@@ -1,5 +1,8 @@
 ### Version history
 
+## 1.13.0
+- Added beta levels
+
 ## 1.12.5
 - Fixed missing level dependencies not surfacing an error
 

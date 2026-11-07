@@ -56,6 +56,11 @@
 		<template v-else>
 			<h3>Uploaded levels ({{ profileInfo.uploadedLevels.length }})</h3>
 			<panel-list mode="level" :entries="profileInfo.uploadedLevels" :defaultCount="4" noEntriesNotice="This user has yet to upload any levels."></panel-list>
+			<template v-if="betaLevels.length > 0">
+				<h3>Beta levels ({{ betaLevels.length }})</h3>
+				<p class="betaNotice">{{ isOwnProfile ? 'Only visible to you' : 'Only visible to uploader and moderators' }}</p>
+				<panel-list mode="level" :entries="betaLevels" :defaultCount="4" noEntriesNotice=""></panel-list>
+			</template>
 			<h3>Created packs ({{ profileInfo.createdPacks.length }})</h3>
 			<panel-list mode="pack" :entries="profileInfo.createdPacks" :defaultCount="4" noEntriesNotice="This user has yet to create any packs."></panel-list>
 			<h3>Favorite levels ({{ profileInfo.favoriteLevels.length }})</h3>
@@ -139,7 +144,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, onServerPrefetch, ref, useTemplateRef } from 'vue';
 import { useRoute } from 'vue-router';
-import { ExtendedProfileInfo } from '../../../shared/types';
+import { ExtendedProfileInfo, LevelInfo } from '../../../shared/types';
 import InfoBanner from '../components/InfoBanner.vue';
 import PanelList from '../components/PanelList.vue';
 import ButtonWithIcon from '../components/ButtonWithIcon.vue';
@@ -158,6 +163,7 @@ const suspendConfirmationModal = useTemplateRef<InstanceType<typeof Modal>>('sus
 const curatorConfirmationModal = useTemplateRef<InstanceType<typeof Modal>>('curatorConfirmationModal');
 
 const profileInfo = ref<ExtendedProfileInfo>(null);
+const betaLevels = ref<LevelInfo[]>([]);
 const editingBio = ref(false);
 const notFound = ref(false);
 const acknowledgedSuspensionConsequences = ref(false);
@@ -181,6 +187,12 @@ onMounted(async () => {
 
 		let json = await response.json() as ExtendedProfileInfo;
 		profileInfo.value = json;
+	}
+
+	// Beta levels are unlisted, so they're fetched separately and only for the owner and moderators (never server-side rendered)
+	if (hasOwnershipPermissions.value) {
+		let betaResponse = await fetch(`/api/account/${profileInfo.value.id}/beta-levels`);
+		if (betaResponse.ok) betaLevels.value = await betaResponse.json() as LevelInfo[];
 	}
 });
 onServerPrefetch(async () => {
@@ -465,6 +477,12 @@ h3 {
 	text-transform: uppercase;
 	font-weight: bold;
 	margin-top: 25px;
+}
+
+.betaNotice {
+	margin: 2px 0 8px 0;
+	font-size: 12px;
+	opacity: 0.6;
 }
 
 .notFound {

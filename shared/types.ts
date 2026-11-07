@@ -65,6 +65,8 @@ export interface LevelInfo extends LevelContentInfo {
 	id: number,
 	addedAt: number,
 	editedAt: number,
+	/** Whether the level is in beta: unlisted, with no leaderboards or curator votes. */
+	beta: boolean,
 
 	downloads: number,
 	lovedCount: number,

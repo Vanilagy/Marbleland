@@ -157,6 +157,13 @@ export const initPackApi = () => {
 			return;
 		}
 
+		// Packs are public, so beta levels can't be put into them
+		let newLevelIds = levels.filter(x => !packDoc.levels.includes(x));
+		if (newLevelIds.length > 0 && await db.missions.countAsync({ _id: { $in: newLevelIds }, beta: true }) > 0) {
+			res.status(400).send("400\nBeta levels can't be added to packs.");
+			return;
+		}
+
 		packDoc.levels = levels;
 		await db.packs.updateAsync({ _id: packDoc._id }, packDoc);
 

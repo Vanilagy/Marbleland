@@ -588,6 +588,7 @@ export class MissionUpload {
 	/** Submits the uploaded missions to the database and writes their normalized directories to disk. */
 	async submit(submitter: AccountDoc, requestBody: {
 		remarks: string[],
+		beta?: boolean,
 		addToPacks: number[],
 		newPack?: {
 			name: string,
@@ -680,6 +681,7 @@ export class MissionUpload {
 				const doc = mission.createDoc();
 				doc.addedBy = submitter._id;
 				doc.remarks = requestBody.remarks[i] ?? '';
+				doc.beta = !!requestBody.beta;
 
 				await db.missions.insertAsync(doc);
 				finalDocs.push(doc);

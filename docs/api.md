@@ -24,7 +24,10 @@ A token can be acquired through sign-in and sign-up.
 ## Level
 
 ### `GET` /api/level/list
-Returns a list of all levels as an array of [LevelInfo](#levelinfo).
+Returns a list of all released levels as an array of [LevelInfo](#levelinfo). Beta levels are unlisted and left out.
+
+**Query parameters:**
+- `beta=true` (optional): Returns only beta levels instead of only released levels. The two are never mixed.
 
 ### `POST` /api/level/zip
 Get a .zip archive containing all the levels specified in the request.
@@ -125,7 +128,7 @@ version | `number` | *Defaults to the current version.* If present, the data of 
 Returns a list of packs a given level appears in as an array of [PackInfo](#packinfo).
 
 ### `GET` /api/level/{level-id}/leaderboards/{leaderboards-id}
-Returns the specified leaderboards for the given level in sorted order.
+Returns the specified leaderboards for the given level in sorted order. Responds with 403 for beta levels.
 
 **Response body:**
 ```typescript
@@ -181,6 +184,7 @@ missionId* | `number` | The index of the mission whose image thumbnail should be
 {
 	uploadId: string,
 	remarks: string[], // Additional remarks for each uploaded level to display on that level's page
+	beta?: boolean, // Publish the levels as beta: unlisted, with no leaderboards or curator votes, and not allowed in packs. Can only be chosen here.
 	addToPacks: number[], // The IDs of the packs that all uploaded levels should be added to
 	newPack?: { // Info about a brand new pack that will be created and that the new levels will be added to immediately
 		name: string,
@@ -561,8 +565,14 @@ number[] // An array of level IDs to include in the pack
 ### `PATCH` /api/pack/{pack-id}/unlove
 **Requires [authentication](#authentication).** Unmarks a pack as loved.
 
+### `POST` /api/level/{level-id}/release
+**Requires [authentication](#authentication), and must be the level's uploader or a moderator.** Releases a beta level, making it a regular listed level with leaderboards and curator votes enabled. This cannot be undone. Responds with `{ success: true }`, or 400 if the level isn't in beta.
+
+### `GET` /api/account/{account-id}/beta-levels
+**Requires [authentication](#authentication) as the given account, or as a moderator.** Returns the account's beta levels as an array of [LevelInfo](#levelinfo). Responds with 403 for anyone else.
+
 ### `POST` /api/level/{level-id}/curate-vote
-**Requires [authentication](#authentication) and curator privileges.** Casts a curator vote on a level. If the resulting score is below threshold, it is hidden from normal view.
+**Requires [authentication](#authentication) and curator privileges.** Casts a curator vote on a level. If the resulting score is below threshold, it is hidden from normal view. Responds with 403 for beta levels.
 
 **Request body (`Content-Type: application/json`):**
 ```typescript
@@ -667,6 +677,7 @@ LevelContentInfo & {
 	id: number,
 	addedAt: number,
 	editedAt: number, // Timestamp of when the level was last edited, null if it hasn't been edited.
+	beta: boolean, // Whether the level is in beta (unlisted, no leaderboards or curator votes)
 
 	downloads: number,
 	lovedCount: number,
@@ -690,7 +701,7 @@ LevelInfo & {
 	hasPrevImage: boolean,
 	missionInfo: Record<string, string>, // All the properties of the .mis file's MissionInfo element
 	dependencies: string[], // The list of files (assets) the given level depends on
-	playInfo: GameDefinition[], // Contains the definitions of the games the level can be played on
+	playInfo: GameDefinition[], // Contains the definitions of the games the level can be played on (empty for beta levels)
 	leaderboardInfo: ReducedLeaderboardDefinition[], // Contains the definitions of the leaderboards available for the level
 	// Visible to curators only:
 	curatorVotes: CuratorVoteInfo[], // All the votes cast by curators
