@@ -1,180 +1,208 @@
-import { structureMBGSet, structurePQSet } from "./globals";
 import { Mission } from "./mission";
-import jszip from 'jszip';
-import * as fs from 'node:fs';
-import { Readable } from 'stream';
+import * as fs from 'node:fs/promises';
+import * as zlib from 'node:zlib';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import express from 'express';
 
-/** Generates chunks of the zip over time. */
-export async function* generateZip(missions: Mission[], assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean) {
-	let centralDirectories: Uint8Array[] = [];
-	let centralDirectorySizeTotal = 0;
-	let mainPartLength = 0;
-	let includedFiles = new Set<string>();
+const LOCAL_HEADER_SIZE = 30;
+const CENTRAL_HEADER_SIZE = 46;
+const ZIP64_EXTRA_FIELD_SIZE = 12; // Only ever holds the local header offset
+const ZIP64_END_SIZE = 56 + 20; // Zip64 end of central directory record plus its locator
+const END_SIZE = 22;
+const UINT16_MAX = 0xffff;
+const UINT32_MAX = 0xffffffff;
 
-	// We go through the missions in reverse to emulate the "files added late replace files added early" behavior.
-	for (let mission of missions.slice().reverse()) {
-		let zip = new jszip();
+interface ZipEntry {
+	fullPath: string,
+	name: Buffer,
+	size: number,
+	localHeaderOffset: number
+}
+
+export const sendMissionZip = async (
+	res: express.Response,
+	missions: Mission[],
+	assuming: 'none' | 'gold' | 'platinumquest',
+	appendIdToMis: boolean,
+	fileName: string
+) => {
+	let entries: ZipEntry[] = [];
+	let includedFiles = new Set<string>();
+	let offset = 0;
+	let dependencyCount = 0;
+
+	// Files are stored uncompressed, so we can lay out the entire zip upfront and know its final size before sending
+	// anything. We go through the missions in reverse to emulate the "files added late replace files added early" behavior.
+	for (let i = missions.length - 1; i >= 0; i--) {
+		let mission = missions[i];
+		let dependencies = [...mission.dependencies];
 
 		for (let dependency of mission.getFilteredDependencies(assuming, false, false)) {
+			if (++dependencyCount % 512 === 0) {
+				await new Promise(resolve => setImmediate(resolve)); // To avoid blocking for too long
+			}
+
 			let normalized = mission.normalizeDependency(dependency, false);
 			if (includedFiles.has(normalized)) continue;
 
 			let fullPath = await mission.findPath(dependency);
 			if (!fullPath) continue;
 
-			normalized = mission.normalizeDependency(dependency, appendIdToMis); // Refine it
-
-			// Open up a read stream and add it to the zip
-			let stream = fs.createReadStream(fullPath);
-			zip.file(normalized, stream);
+			let name = Buffer.from(mission.normalizeDependency(dependency, appendIdToMis));
+			let size = mission.fileSizes[dependencies.indexOf(dependency)];
+			entries.push({
+				fullPath,
+				name,
+				size,
+				localHeaderOffset: offset
+			});
 			includedFiles.add(normalized);
-		}
-
-		// Remove all directory entries
-		for (let fileName in zip.files) {
-			if (zip.files[fileName].dir) delete zip.files[fileName];
-		}
-
-		// Generate a zip just for this very level
-		let generated = await zip.generateAsync({ type: 'uint8array' });
-		let dataView = new DataView(generated.buffer);
-
-		for (let i = generated.byteLength - 4; i >= 0; i--) {
-			// Find the end of central directory record to then jump to the start of the central directory record
-			let matchesMagic = dataView.getUint32(i, false) === 0x504b0506;
-			if (matchesMagic) {
-				let startOfCentralDirectoryOffset = dataView.getUint32(i + 16, true);
-
-				let mainPart = generated.slice(0, startOfCentralDirectoryOffset);
-				yield mainPart.buffer; // Push all the file entires without the central directory (will be pushed later)
-
-				let centralDirectory = generated.slice(startOfCentralDirectoryOffset, i);
-				centralDirectories.push(centralDirectory);
-				centralDirectorySizeTotal += centralDirectory.byteLength;
-
-				// Fix the offset local header values in the central directory file entries
-				let localView = new DataView(centralDirectory.buffer);
-				let index = 0;
-				while (index < centralDirectory.byteLength) {
-					let offsetLocalHeader = localView.getUint32(index + 0x2a, true);
-					offsetLocalHeader += mainPartLength;
-					localView.setUint32(index + 0x2a, offsetLocalHeader, true);
-	
-					let fileNameLen = localView.getUint16(index + 0x1c, true);
-					let extraFieldLen = localView.getUint16(index + 0x1e, true);
-					let fileCommentLen = localView.getUint16(index + 0x20, true);
-	
-					index += 0x2e + fileNameLen + extraFieldLen + fileCommentLen;
-				}
-
-				mainPartLength += mainPart.byteLength;
-				break;
-			}
+			offset += LOCAL_HEADER_SIZE + name.byteLength + size;
 		}
 	}
 
-	// Push out all the central directories
-	for (let centralDirectory of centralDirectories) {
-		yield centralDirectory.buffer;
+	let centralDirectoryOffset = offset;
+	let centralDirectorySize = 0;
+	for (let entry of entries) {
+		centralDirectorySize += CENTRAL_HEADER_SIZE + entry.name.byteLength;
+		if (entry.localHeaderOffset >= UINT32_MAX) centralDirectorySize += ZIP64_EXTRA_FIELD_SIZE;
 	}
 
-	// At last, we need to generate the end of central directory record
-	let endBuffer = new ArrayBuffer(22);
-	let endView = new DataView(endBuffer);
+	let needsZip64End =
+		entries.length > UINT16_MAX
+		|| centralDirectorySize >= UINT32_MAX
+		|| centralDirectoryOffset >= UINT32_MAX;
+	let totalSize = centralDirectoryOffset + centralDirectorySize + (needsZip64End ? ZIP64_END_SIZE : 0) + END_SIZE;
 
-	endView.setUint32(0, 0x504b0506, false); // Magic number
-	endView.setUint16(4, 0, true);
-	endView.setUint16(6, 0, true);
-	endView.setUint16(8, includedFiles.size, true);
-	endView.setUint16(10, includedFiles.size, true);
-	endView.setUint32(12, centralDirectorySizeTotal, true);
-	endView.setUint32(16, mainPartLength, true);
-	endView.setUint16(20, 0, true);
+	res.set('Content-Type', 'application/zip');
+	res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+	res.set('Content-Length', totalSize.toString());
+	res.set('Access-Control-Allow-Origin', '*');
 
-	yield endBuffer;
+	let stream = Readable.from(
+		generateZip(entries, centralDirectoryOffset, centralDirectorySize, needsZip64End),
+		{ objectMode: false }
+	);
+	pipeline(stream, res).catch(error => {
+		// Clients aborting downloads is business as usual
+		if (error.code !== 'ERR_STREAM_PREMATURE_CLOSE') console.error("Error while streaming zip:", error);
+	});
+};
+
+const READ_AHEAD_BYTES = 8 * 1024**2;
+
+async function* generateZip(
+	entries: ZipEntry[],
+	centralDirectoryOffset: number,
+	centralDirectorySize: number,
+	needsZip64End: boolean
+) {
+	let now = new Date();
+	let dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+	let dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+	let crcs: number[] = [];
+
+	let reads: Promise<Buffer>[] = []; // Starting at the current entry
+	let nextReadIndex = 0;
+	let bytesReadAhead = 0;
+
+	for (let entry of entries) {
+		// Read files ahead of time so that the disk keeps working while earlier files are still being sent
+		while (nextReadIndex < entries.length && (reads.length === 0 || bytesReadAhead < READ_AHEAD_BYTES)) {
+			let read = fs.readFile(entries[nextReadIndex].fullPath);
+			read.catch(() => {}); // Nobody awaits it anymore if the download gets aborted
+			reads.push(read);
+			bytesReadAhead += entries[nextReadIndex].size;
+			nextReadIndex++;
+		}
+
+		let data = await reads.shift();
+		bytesReadAhead -= entry.size;
+		if (data.byteLength !== entry.size) {
+			throw new Error(`Size of ${entry.fullPath} (${data.byteLength}) doesn't match its stored size (${entry.size}).`);
+		}
+
+		let crc = zlib.crc32(data);
+		crcs.push(crc);
+
+		let localHeader = Buffer.alloc(LOCAL_HEADER_SIZE + entry.name.byteLength);
+		localHeader.writeUInt32LE(0x04034b50, 0);
+		writeCommonHeaderFields(localHeader, 4, entry, crc, dosTime, dosDate, 0);
+		entry.name.copy(localHeader, LOCAL_HEADER_SIZE);
+
+		yield localHeader;
+		yield data;
+	}
+
+	let centralDirectory = Buffer.alloc(centralDirectorySize);
+	let pos = 0;
+	for (let [i, entry] of entries.entries()) {
+		let needsZip64 = entry.localHeaderOffset >= UINT32_MAX;
+
+		centralDirectory.writeUInt32LE(0x02014b50, pos);
+		centralDirectory.writeUInt16LE(45, pos + 4); // Version made by
+		writeCommonHeaderFields(centralDirectory, pos + 6, entry, crcs[i], dosTime, dosDate, needsZip64 ? ZIP64_EXTRA_FIELD_SIZE : 0);
+		centralDirectory.writeUInt32LE(needsZip64 ? UINT32_MAX : entry.localHeaderOffset, pos + 42);
+		entry.name.copy(centralDirectory, pos + CENTRAL_HEADER_SIZE);
+		pos += CENTRAL_HEADER_SIZE + entry.name.byteLength;
+
+		if (needsZip64) {
+			centralDirectory.writeUInt16LE(0x0001, pos);
+			centralDirectory.writeUInt16LE(8, pos + 2);
+			centralDirectory.writeBigUInt64LE(BigInt(entry.localHeaderOffset), pos + 4);
+			pos += ZIP64_EXTRA_FIELD_SIZE;
+		}
+	}
+
+	yield centralDirectory;
+
+	let end = Buffer.alloc((needsZip64End ? ZIP64_END_SIZE : 0) + END_SIZE);
+	pos = 0;
+
+	if (needsZip64End) {
+		end.writeUInt32LE(0x06064b50, 0);
+		end.writeBigUInt64LE(44n, 4); // Size of the rest of the record
+		end.writeUInt16LE(45, 12); // Version made by
+		end.writeUInt16LE(45, 14); // Version needed
+		end.writeBigUInt64LE(BigInt(entries.length), 24);
+		end.writeBigUInt64LE(BigInt(entries.length), 32);
+		end.writeBigUInt64LE(BigInt(centralDirectorySize), 40);
+		end.writeBigUInt64LE(BigInt(centralDirectoryOffset), 48);
+
+		end.writeUInt32LE(0x07064b50, 56);
+		end.writeBigUInt64LE(BigInt(centralDirectoryOffset + centralDirectorySize), 64);
+		end.writeUInt32LE(1, 72); // Total number of disks
+		pos = ZIP64_END_SIZE;
+	}
+
+	// Values that don't fit are maxed out, which tells readers to look at the zip64 record instead
+	end.writeUInt32LE(0x06054b50, pos);
+	end.writeUInt16LE(Math.min(entries.length, UINT16_MAX), pos + 8);
+	end.writeUInt16LE(Math.min(entries.length, UINT16_MAX), pos + 10);
+	end.writeUInt32LE(Math.min(centralDirectorySize, UINT32_MAX), pos + 12);
+	end.writeUInt32LE(Math.min(centralDirectoryOffset, UINT32_MAX), pos + 16);
+
+	yield end;
 }
 
-/** A readable stream for efficient generation and streaming of .zip files with missions in them. */
-export class MissionZipStream extends Readable {
-	missions: Mission[];
-	assuming: 'none' | 'gold' | 'platinumquest';
-	appendIdToMis: boolean;
-	generator: AsyncGenerator<ArrayBufferLike, void, unknown>;
-	expectedSize: number;
-
-	constructor(missions: Mission[], assuming: 'none' | 'gold' | 'platinumquest', appendIdToMis: boolean) {
-		super();
-
-		//missions = missions.filter(x => x.fileSizes); // Kick the shitty ones
-		this.missions = missions;
-		this.assuming = assuming;
-		this.appendIdToMis = appendIdToMis;
-	}
-
-	async init() {
-		this.generator = generateZip(this.missions, this.assuming, this.appendIdToMis);
-
-		// Precompute the final total size of the zip
-
-		let includedFiles = new Set<string>();
-		let totalSize = 0;
-
-		for (let i = this.missions.length - 1; i >= 0; i--) {
-			let mission = this.missions[i];
-
-			for (let dependency of mission.getFilteredDependencies(this.assuming, false, false)) {
-				let normalized = mission.normalizeDependency(dependency, false);
-				if (includedFiles.has(normalized)) continue;
-
-				let dependencyIndex = [...mission.dependencies].indexOf(dependency);
-				let size = mission.fileSizes?.[dependencyIndex] ?? 0;
-				totalSize += size; // Add the actual size of the file
-				totalSize += 0x1e + 0x2e; // Local file header and central directory file header sizes
-
-				let normalizedName = mission.normalizeDependency(dependency, this.appendIdToMis);                                                                                                                                                                                     
-				let nameByteLength = Buffer.byteLength(normalizedName);                                                                                                                                                                                                               
-				totalSize += nameByteLength * 2; // Both headers contain the file name, so add its byte size twice
-																																																																						
-				// Account for Unicode Path Extra Field (0x7075) in both headers for non-Latin-1 filenames                                                                                                                                                                              
-				if (nameByteLength !== normalizedName.length) {
-					totalSize += (9 + nameByteLength) * 2;
-				}
-
-				includedFiles.add(normalized);
-			}
-
-			if (i % 100 === 0) await new Promise(resolve => setImmediate(resolve)); // To avoid blocking for too long
-		}
-
-		totalSize += 0x16; // Length of end of central directory record
-
-		this.expectedSize = totalSize;
-	}
-
-	async _read() {
-		while (true) {
-			let next = await this.generator.next();
-			
-			if (next.done) {
-				// We've streamed the entire .zip
-				this.push(null);
-				return;
-			}
-
-			let allowedMore = this.push(Buffer.from(next.value as ArrayBuffer));
-			if (!allowedMore) break;
-		}
-	}
-
-	async connectToResponse(res: express.Response, fileName: string) {
-		await this.init();
-
-		res.set('Content-Type', 'application/zip');
-		res.set('Content-Disposition', `attachment; filename="${fileName}"`);
-		res.set('Content-Length', this.expectedSize.toString());
-		res.set('Access-Control-Allow-Origin', '*');
-
-		this.pipe(res);
-	}
-}
+const writeCommonHeaderFields = (
+	buffer: Buffer,
+	pos: number,
+	entry: ZipEntry,
+	crc: number,
+	dosTime: number,
+	dosDate: number,
+	extraFieldLength: number
+) => {
+	buffer.writeUInt16LE(entry.localHeaderOffset >= UINT32_MAX ? 45 : 20, pos); // Version needed
+	buffer.writeUInt16LE(0x0800, pos + 2); // Flags: file name is UTF-8
+	buffer.writeUInt16LE(0, pos + 4); // Compression method: stored
+	buffer.writeUInt16LE(dosTime, pos + 6);
+	buffer.writeUInt16LE(dosDate, pos + 8);
+	buffer.writeUInt32LE(crc, pos + 10);
+	buffer.writeUInt32LE(entry.size, pos + 14); // Compressed size
+	buffer.writeUInt32LE(entry.size, pos + 18); // Uncompressed size
+	buffer.writeUInt16LE(entry.name.byteLength, pos + 22);
+	buffer.writeUInt16LE(extraFieldLength, pos + 24);
+};

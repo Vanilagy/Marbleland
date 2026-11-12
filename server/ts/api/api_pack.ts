@@ -8,7 +8,7 @@ import { PackDoc, getPackInfo, getExtendedPackInfo, createPackThumbnail, getPack
 import { app } from "../server";
 import { compressAndSendImage, executeWithIpTimeout, ipTimeouts, validate } from "./api";
 import { Util } from "../util";
-import { MissionZipStream } from "../zip";
+import { sendMissionZip } from "../zip";
 import { incrementLevelDownloads } from './api_level';
 import { rateLimitRequest, HOUR } from '../rate_limiter';
 import { PACK_DESCRIPTION_MAX_LENGTH, PACK_NAME_MAX_LENGTH } from '../../../shared/constants';
@@ -111,8 +111,6 @@ export const initPackApi = () => {
 			}
 		})();
 
-		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
-
 		// Increment the download count for the entire pack, with possible IP timeout
 		await executeWithIpTimeout(req, 'pack' + doc._id, async () => {
 			doc.downloads = (doc.downloads ?? 0) + 1;
@@ -120,7 +118,7 @@ export const initPackApi = () => {
 		});
 
 		let fileName = Util.removeSpecialChars(doc.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
-		stream.connectToResponse(res, `${fileName}-pack-${doc._id}.zip`);
+		await sendMissionZip(res, missions, assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query, `${fileName}-pack-${doc._id}.zip`);
 	});
 
 	// Set the ordered list of levels contained in a pack

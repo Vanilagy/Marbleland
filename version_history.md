@@ -1,5 +1,10 @@
 ### Version history
 
+## 1.12.6
+- Fixed site slowing down after a while and reaching heap exhaustion
+- Sped up .zip downloads
+- Fixed huge (> 4 GiB) .zip downloads being invalid
+
 ## 1.12.5
 - Fixed missing level dependencies not surfacing an error
 

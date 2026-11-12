@@ -15,7 +15,7 @@ import { PackDoc, getPackInfo, createPackThumbnail } from "../pack";
 import { app } from "../server";
 import { compressAndSendImage, executeWithIpTimeout, ipTimeouts, parseBinaryBody, requireAccount, validate } from "./api";
 import { Util } from '../util';
-import { MissionZipStream } from '../zip';
+import { sendMissionZip } from '../zip';
 import { MBPakFile } from '../mbcrypt/mbcrypt';
 import { rateLimitRequest, HOUR, MINUTE } from '../rate_limiter';
 import { COMMENT_MAX_LENGTH, LEVEL_REMARKS_MAX_LENGTH, PACK_DESCRIPTION_MAX_LENGTH, PACK_NAME_MAX_LENGTH } from '../../../shared/constants';
@@ -128,10 +128,9 @@ export const initLevelApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
-		let stream = new MissionZipStream(missions, assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
 		let hash = crypto.createHash('sha256').update([...levelIds].join(',')).digest('hex');
 		let fileName = `levels-${hash.slice(0, 8)}.zip`;
-		stream.connectToResponse(res, fileName);
+		await sendMissionZip(res, missions, assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query, fileName);
 	});
 
 	// Get the .zip of a given level
@@ -147,12 +146,10 @@ export const initLevelApi = () => {
 		let assuming = req.query.assuming as string;
 		if (!['none', 'gold', 'platinumquest'].includes(assuming)) assuming = 'platinumquest'; // Default to PQ
 
-		let stream = new MissionZipStream([mission], assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query);
-
 		await incrementLevelDownloads(doc, req);
 
 		let fileName = Util.removeSpecialChars(doc.info.name.toLowerCase().split(' ').map(x => Util.uppercaseFirstLetter(x)).join(''));
-		stream.connectToResponse(res, `${fileName}-${doc._id}${version !== undefined ? `-v${version}` : ""}.zip`);
+		await sendMissionZip(res, [mission], assuming as ('none' | 'gold' | 'platinumquest'), 'append-id-to-mis' in req.query, `${fileName}-${doc._id}${version !== undefined ? `-v${version}` : ""}.zip`);
 	});
 
 	// Get the .mbpak of a given level

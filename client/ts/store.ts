@@ -4,6 +4,8 @@ import { ExtendedLevelInfo, ExtendedPackInfo, ExtendedProfileInfo, HomeInfo, Lea
 
 export const createNewStore = () => {
 	return createStore({
+		// https://github.com/vuejs/vuex/issues/2250. Without it, every SSR render leaks memory
+		devtools: import.meta.env.DEV && !import.meta.env.SSR,
 		state: {
 			searchState: {
 				searchBar: {
