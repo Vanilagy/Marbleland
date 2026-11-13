@@ -111,7 +111,7 @@ export const compressAndSendImage = async (imagePath: string, req: express.Reque
 
 	// Default case, compress and resize to a reasonable quality
 	let resized = await sharp(buffer, { limitInputPixels: MAX_IMAGE_PIXELS }).resize({width: defaultDimensions.width, height: defaultDimensions.height, fit: 'inside', withoutEnlargement: true}).jpeg({quality: 60}).toBuffer();
-	res.set('Content-Type', imagePath.endsWith('.png') ? 'image/png' : 'image/jpeg');
+	res.set('Content-Type', 'image/jpeg');
 	res.set('Access-Control-Allow-Origin', '*');
 	res.send(resized);
 };
