@@ -21,7 +21,13 @@ export const initApi = () => {
 	// Allow the CORS thing for all API requests
 	app.use('/api', (req, res, next) => {
 		res.set('Access-Control-Allow-Origin', '*');
+		res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+		res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 		res.set('Cache-Control', 'no-cache, no-store'); // Don't cache API endpoints by default; can still be overridden by some endpoints
+		if (req.method === 'OPTIONS') {
+			res.sendStatus(204);
+			return;
+		}
 		next();
 	});
 
