@@ -109,7 +109,7 @@ export class Util {
 	static readdirCached(directoryPath: string) {
 		if (this.readdirCache.has(directoryPath)) return this.readdirCache.get(directoryPath);
 		let promise = new Promise<{ files: string[], directoryPath: string }>(async resolve => {
-			let exists = fs.existsSync(directoryPath);
+			let exists = await Util.pathExists(directoryPath);
 			if (!exists) {
 				let parts = directoryPath.split(path.sep).map(x => x.toLowerCase());
 				if (!parts[0]) {
@@ -130,7 +130,7 @@ export class Util {
 					}
 
 					currPath = path.join(currPath, part);
-					let exists = fs.existsSync(currPath);
+					let exists = await Util.pathExists(currPath);
 					if (!exists) {
 						currFiles = [];
 						break;
@@ -148,6 +148,15 @@ export class Util {
 		});
 		this.readdirCache.set(directoryPath, promise);
 		return promise;
+	}
+
+	static async pathExists(filePath: string) {
+		try {
+			await fs.promises.access(filePath);
+			return true;
+		} catch (e) {
+			return false;
+		}
 	}
 
 	/** Returns the file names of all files in a given directory that start with the given file name. */

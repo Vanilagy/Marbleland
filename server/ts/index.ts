@@ -92,9 +92,6 @@ const init = async () => {
 		// Import a directory of levels to the level database.
 		await scanForMissions(args[1], flags["id-map"], !!flags["replace-duplicates"]);
 		process.exit();
-	} else if (args[0] === 'reimport') {
-		await reimportMissions(args.slice(1).map(x => Number(x)), !!flags["allow-creation"]);
-		process.exit();
 	} else if (args[0] === 'datablock-filter') {
 		let goldMissions = await db.missions.findAsync({ modification: Modification.Gold }) as MissionDoc[];
 		let acceptedDatablocks = (await fs.promises.readFile(args[1])).toString().split('\n').map(x => x.toLowerCase().trim());
@@ -174,6 +171,12 @@ const init = async () => {
 		startIpTimeoutCleanup();
 		initApi();
 		startHTTPServer(config.port, config.host);
+
+		if (args[0] === 'reimport') {
+			// Run it alongside the HTTP server for reduced downtime
+			await reimportMissions(args.slice(1).map(x => Number(x)), !!flags["allow-creation"]);
+		}
+
 		if (config.backupRepositoryPath) initBackup();
 	}
 };

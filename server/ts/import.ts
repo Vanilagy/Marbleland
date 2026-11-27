@@ -13,7 +13,7 @@ import { Mission, MissionDoc, MissionContentDoc, extractMissionContent } from '.
 export const scanForMissions = async (baseDirectory: string, idMapPath?: string, replaceDuplicates = false, allowedRelativePaths?: Set<string>) => {
     let idMap: { id: number, baseName: string }[] = null;
     if (idMapPath) {
-        idMap = JSON.parse(fs.readFileSync(idMapPath).toString());
+        idMap = JSON.parse((await fs.promises.readFile(idMapPath)).toString());
         console.log("ID map loaded.");
     }
 
@@ -40,7 +40,7 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                     if (allowedRelativePaths && !allowedRelativePaths.has(fromStart)) continue;
 
                     // Check if the same file already exists in default PQ, and if so, skip it
-                    let existsInPq = fs.existsSync(path.join(Config.dataPath, relativePath, entry));
+                    let existsInPq = await Util.pathExists(path.join(Config.dataPath, relativePath, entry));
                     let isProbablyCustom = relativePath.includes('custom');
                     if (existsInPq && !isProbablyCustom) {
                         skipped++;
@@ -56,10 +56,11 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                         let baseName = Util.getFileName(fromStart);
                         id = idMap.find(x => x.baseName === baseName)?.id;
                         if (id === undefined) throw new Error(`ID map is missing entry for baseName ${baseName}.`);
-                        keyValue.set('levelId', Math.max(id, keyValue.get('levelId')));
+                        keyValue.set('levelId', Math.max(id + 1, keyValue.get('levelId')));
                     }
 
-                    let mission = new Mission(baseDirectory, fromStart, id);
+                    // A fresh ID is only allocated once we know the mission isn't a duplicate
+                    let mission = new Mission(baseDirectory, fromStart, id ?? null);
 	
                     try {
                         await mission.hydrate();
@@ -133,10 +134,9 @@ export const scanForMissions = async (baseDirectory: string, idMapPath?: string,
                         doc.curatorVotes = duplicateDoc.curatorVotes;
                         doc.versionMetadata = duplicateDoc.versionMetadata;
                         doc.previousVersions = await reimportPreviousVersions(duplicateDoc);
-
-                        // We wrongly incremented the ID even though it got replaced now, so set it back so we don't inflate the ID for nothing.
-                        let incrementedId = keyValue.get('levelId');
-                        keyValue.set('levelId', incrementedId - 1);
+                    } else if (doc._id === null) {
+                        doc._id = keyValue.get('levelId');
+                        keyValue.set('levelId', doc._id + 1);
                     }
 
                     await db.missions.updateAsync({ _id: doc._id }, doc, { upsert: true });
@@ -209,10 +209,21 @@ export const reimportMissions = async (levelIds: number[], allowCreation: boolea
     console.log("Reimporting missions...");
     if (levelIds.length > 0) console.log(`Reimporting only level IDs ${levelIds.join(', ')}`);
 
+    // The live server has been filling this cache, but the reimport needs to see the files as they are now
+    Util.readdirCache.clear();
+
     for (let directory of baseDirectories) {
+        // Levels can get deleted while the reimport is running
+        if (!await Util.pathExists(directory)) {
+            console.log(`Skipping deleted directory: ${directory}`);
+            continue;
+        }
+
         console.log(`Now re-scanning: ${directory}\n\n`);
         await scanForMissions(directory, null, true, relativePaths);
     }
+
+    Util.readdirCache.clear();
 
     console.log("Reimport complete.");
 };
