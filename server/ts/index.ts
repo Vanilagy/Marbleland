@@ -175,6 +175,7 @@ const init = async () => {
 		if (args[0] === 'reimport') {
 			// Run it alongside the HTTP server for reduced downtime
 			await reimportMissions(args.slice(1).map(x => Number(x)), !!flags["allow-creation"]);
+			process.exit();
 		}
 
 		if (config.backupRepositoryPath) initBackup();

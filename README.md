@@ -40,7 +40,7 @@ When the `--replace-duplicates` option is set, duplicate levels already present 
 
 - `npm run reimport -- [--allow-creation] [level_id ...]`<br>
 Will go over all imported levels and reimport them (rebuilding the dependency tree and so on). A list of level IDs can be passed as an optional argument. When present, instead of reimporting all levels, only the levels with the specified IDs will be reimported. When the `--allow-creation` option is set, this command will also be able to import new missions it finds in the directories (instead of just updating old ones).<br><br>
-Unlike the other commands, this one also starts the server as `npm start` does, and the reimport runs in the background while the server is live. This reduces operational downtime.
+Unlike the other commands, this one also starts the server as `npm start` does, and the reimport runs in the background while the server is live. This reduces operational downtime. Once the reimport is done, the server shuts down again.
 
 ## Backups
 Marbleland provies a way to automatically and periodically back up all level and pack-related data to a remote git repository. During the backup process, changed files are synced with the repo, committed and pushed to the remote automatically.
