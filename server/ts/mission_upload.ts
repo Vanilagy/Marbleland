@@ -12,6 +12,7 @@ import { createPack, createPackThumbnail, PackDoc } from './pack';
 import { AccountDoc } from './account';
 import { MagickFormat } from '@imagemagick/magick-wasm';
 import { SERVER_DIR } from './paths';
+import { GAME_TYPE_STRINGS, MODIFICATION_STRINGS } from '../../shared/classification';
 
 /** Stores a list of currently ongoing uploads that are waiting to be submitted. */
 export const ongoingUploads = new Map<string, MissionUpload>();
@@ -254,6 +255,17 @@ export class MissionUpload {
 			if (!group.missionInfo.artist) missing.push("artist");
 
 			if (missing.length > 0) this.problems.add(`The mission info in ${group.misFilePath} is missing the following fields: ${missing.join(', ')}.`);
+
+			let { gametype, game, modification } = group.missionInfo;
+			if (gametype && !GAME_TYPE_STRINGS.has(gametype.toLowerCase())) {
+				this.problems.add(`The mission info in ${group.misFilePath} has an unrecognized gameType "${gametype}". Allowed values are: ${[...GAME_TYPE_STRINGS.keys()].join(', ')}.`);
+			}
+			if (game && !MODIFICATION_STRINGS.has(game.toLowerCase()) && !game.toLowerCase().startsWith('custom')) {
+				this.problems.add(`The mission info in ${group.misFilePath} has an unrecognized game "${game}". Allowed values are: ${[...MODIFICATION_STRINGS.keys(), 'custom'].join(', ')}.`);
+			}
+			if (modification && !MODIFICATION_STRINGS.has(modification.toLowerCase())) {
+				this.problems.add(`The mission info in ${group.misFilePath} has an unrecognized modification "${modification}". Allowed values are: ${[...MODIFICATION_STRINGS.keys()].join(', ')}.`);
+			}
 		}
 
 		let startsWith = Util.removeExtension(group.misFile.name);

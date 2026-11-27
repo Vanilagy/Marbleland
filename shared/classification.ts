@@ -3,11 +3,18 @@ import { GameType, Modification } from "./types";
 
 // Classification logic is shared because it's also needed client-side during level editing, for example
 
+export const GAME_TYPE_STRINGS = new Map([
+	["singleplayer", GameType.SinglePlayer],
+	["multiplayer", GameType.Multiplayer]
+]);
+
 /** Try to guess the game type of this mission. */
 export const guessGameType = (missionInfo: MissionElementScriptObject, relativePath: string, dependencies: string[]) => {
 	let i = missionInfo;
 
-	if (i.gametype) return (i.gametype.toLowerCase() === 'singleplayer')? GameType.SinglePlayer : GameType.Multiplayer; // Explicitly set in the .mis
+	const explicitGameType = GAME_TYPE_STRINGS.get(i.gametype?.toLowerCase() ?? '');
+	if (explicitGameType) return explicitGameType;
+
 	if (relativePath.startsWith('multiplayer/')) return GameType.Multiplayer;
 
 	// "Telltale" multiplayer stuff
@@ -25,6 +32,14 @@ export const guessGameType = (missionInfo: MissionElementScriptObject, relativeP
 	return GameType.SinglePlayer;
 };
 
+export const MODIFICATION_STRINGS = new Map([
+	["gold", Modification.Gold],
+	["platinum", Modification.Platinum],
+	["fubar", Modification.Fubar],
+	["ultra", Modification.Ultra],
+	["platinumquest", Modification.PlatinumQuest]
+]);
+
 /** Try to guess the modification (game) this mission was made for / is compatible with. */
 export const guessModification = (missionInfo: MissionElementScriptObject, hasEasterEgg: boolean, dependencies: string[]) => {
 	const index = {
@@ -34,18 +49,11 @@ export const guessModification = (missionInfo: MissionElementScriptObject, hasEa
 		[Modification.Ultra]: 1,
 		[Modification.PlatinumQuest]: 2
 	};
-	const stringMap = {
-		"gold": Modification.Gold,
-		"platinum": Modification.Platinum,
-		"fubar": Modification.Fubar,
-		"ultra": Modification.Ultra,
-		"platinumquest": Modification.PlatinumQuest
-	};
 
 	let i = missionInfo;
 
-	if (i.game && !i.game.toLowerCase().startsWith('custom')) return stringMap[i.game.toLowerCase() as keyof typeof stringMap];
-	if (i.modification) return stringMap[i.modification.toLowerCase() as keyof typeof stringMap];
+	const explicitModification = MODIFICATION_STRINGS.get(i.game?.toLowerCase() ?? '') ?? MODIFICATION_STRINGS.get(i.modification?.toLowerCase() ?? '');
+	if (explicitModification) return explicitModification;
 
 	let result = Modification.Gold;
 
