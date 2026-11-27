@@ -1,5 +1,13 @@
 ### Version history
 
+## 1.13.0
+- Added MBU datablock compatibility
+- Removed Fubar as a modification
+- Uploads with an unrecognized gameType, game or modification in their MissionInfo are now rejected
+- Fixed levels with an unrecognized gameType, game or modification being misclassified
+- Fixed CORS preflight requests to the API failing
+- Fixed images being served with an incorrect Content-Type
+
 ## 1.12.6
 - Fixed site slowing down after a while and reaching heap exhaustion
 - Sped up .zip downloads
