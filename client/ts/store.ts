@@ -19,7 +19,6 @@ export const createNewStore = () => {
 								{ name: 'all', label: 'All'},
 								{ name: 'gold', label: 'Gold'},
 								{ name: 'platinum', label: 'Platinum'},
-								{ name: 'fubar', label: 'Fubar'},
 								{ name: 'ultra', label: 'Ultra'},
 								{ name: 'platinumquest', label: 'PlatinumQuest'}
 							]

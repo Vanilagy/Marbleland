@@ -35,7 +35,6 @@ export const guessGameType = (missionInfo: MissionElementScriptObject, relativeP
 export const MODIFICATION_STRINGS = new Map([
 	["gold", Modification.Gold],
 	["platinum", Modification.Platinum],
-	["fubar", Modification.Fubar],
 	["ultra", Modification.Ultra],
 	["platinumquest", Modification.PlatinumQuest]
 ]);
@@ -45,7 +44,6 @@ export const guessModification = (missionInfo: MissionElementScriptObject, hasEa
 	const index = {
 		[Modification.Gold]: 0,
 		[Modification.Platinum]: 1,
-		[Modification.Fubar]: 1,
 		[Modification.Ultra]: 1,
 		[Modification.PlatinumQuest]: 2
 	};
@@ -80,7 +78,6 @@ export const guessModification = (missionInfo: MissionElementScriptObject, hasEa
 		if (dependency.startsWith('mbp_')) pickHigher(Modification.Platinum);
 		if (dependency.startsWith('interiors_mbp')) pickHigher(Modification.Platinum);
 		if (dependency.startsWith('lbinteriors_mbp')) pickHigher(Modification.Platinum);
-		if (dependency.startsWith('fubargame')) pickHigher(Modification.Fubar);
 		if (dependency.startsWith('mbu_')) pickHigher(Modification.Ultra);
 	}
 

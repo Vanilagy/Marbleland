@@ -634,7 +634,7 @@ Contains the content-derived metadata of a level.
 {
 	baseName: string,
 	gameType: 'single' | 'multi',
-	modification: 'gold' | 'platinum' | 'fubar' | 'ultra' | 'platinumquest',
+	modification: 'gold' | 'platinum' | 'ultra' | 'platinumquest',
 	name: string,
 	artist: string,
 	desc: string,
