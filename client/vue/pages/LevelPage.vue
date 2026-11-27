@@ -408,7 +408,6 @@ const prettyModification = (mod: Modification) => {
 	switch (mod) {
 		case Modification.Gold: return 'Gold';
 		case Modification.Platinum: return 'Platinum';
-		case Modification.Fubar: return 'Fubar';
 		case Modification.Ultra: return 'Ultra';
 		case Modification.PlatinumQuest: return 'PlatinumQuest';
 	}

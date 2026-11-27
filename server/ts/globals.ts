@@ -12,7 +12,7 @@ import type { PackDoc } from './pack';
 import type { CommentDoc } from './comment';
 
 /** Holds a directory structure. If the value is null, then the key is a file, otherwise the key is a directory and the value is another directory structure. */
-export type DirectoryStructure = {[name: string]: null | DirectoryStructure};
+export type DirectoryStructure = { [name: string]: null | DirectoryStructure };
 
 export let config: {
 	port: number,
@@ -43,6 +43,7 @@ export let structureMBGSet: Set<string>;
 export let structurePQSet: Set<string>;
 export let datablocksMBG: string[];
 export let datablocksMBW: string[];
+export let datablocksMBU: string[];
 
 export let mbcryptRsaKey: crypto.KeyObject;
 export let mbcryptAesKey: Buffer;
@@ -71,7 +72,7 @@ export const initGlobals = async () => {
 		mbcryptRsaKey = key.rsakey;
 		mbcryptAesKey = key.aeskey;
 	}
-	
+
 	keyValue = new KeyValueStore(path.join(SERVER_DIR, 'storage/keyvalue.json'), { levelId: 1, accountId: 1, packId: 1, commentId: 1 });
 
 	// Sometimes, NeDB kinda discards data for some weird reasons when first writing to a database file, so I'm doing this to (maybe) help prevent that:
@@ -125,6 +126,7 @@ export const initGlobals = async () => {
 
 	datablocksMBG = fs.readFileSync(path.join(SERVER_DIR, 'data/datablocks_mbg.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
 	datablocksMBW = fs.readFileSync(path.join(SERVER_DIR, 'data/datablocks_mbw.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
+	datablocksMBU = fs.readFileSync(path.join(SERVER_DIR, 'data/datablocks_mbu.txt')).toString().split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
 };
 
 /** Scans the directory recursively. */
@@ -154,16 +156,16 @@ const scanDirectory = async (directoryPath: string) => {
 };
 
 const parseKeyfile = (file: string) => {
-    let data = fs.readFileSync(file, "utf-8");
-    let key = data.substring(data.indexOf("-----BEGIN RSA PRIVATE KEY-----") + 31, data.indexOf("-----END RSA PRIVATE KEY-----")).replace(/\s/g, '');
-    let rsakey = crypto.createPrivateKey({
-        key: Buffer.from(key, 'base64'),
-        format: 'der',
-        type: 'pkcs1'
-    });
-    let aeskey = Buffer.from(data.substring(data.indexOf("-----BEGIN AES KEY-----") + 25, data.indexOf("-----END AES KEY-----") - 2), "base64");
-    return {
-        rsakey: rsakey,
-        aeskey: aeskey
-    };
+	let data = fs.readFileSync(file, "utf-8");
+	let key = data.substring(data.indexOf("-----BEGIN RSA PRIVATE KEY-----") + 31, data.indexOf("-----END RSA PRIVATE KEY-----")).replace(/\s/g, '');
+	let rsakey = crypto.createPrivateKey({
+		key: Buffer.from(key, 'base64'),
+		format: 'der',
+		type: 'pkcs1'
+	});
+	let aeskey = Buffer.from(data.substring(data.indexOf("-----BEGIN AES KEY-----") + 25, data.indexOf("-----END AES KEY-----") - 2), "base64");
+	return {
+		rsakey: rsakey,
+		aeskey: aeskey
+	};
 };

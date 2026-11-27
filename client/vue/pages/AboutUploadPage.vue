@@ -44,7 +44,7 @@
 	<h3>Controlling level classification</h3>
 	<p>
 		Marbleland tries its best to guess a level's modification (the game it's meant to run in) and type (singleplayer/multiplayer) by looking at the mission and the assets it uses. However, sometimes it will get it wrong. You can therefore precisely control this classification by setting specific fields in your level's MissionInfo:<br><br>
-		Set the <b>game</b> or <b>modification</b> field to one of <b>gold</b>, <b>platinum</b>, <b>fubar</b>, <b>ultra</b> or <b>platinumquest</b> to set the level's modification.<br>
+		Set the <b>game</b> or <b>modification</b> field to one of <b>gold</b>, <b>platinum</b>, <b>ultra</b> or <b>platinumquest</b> to set the level's modification.<br>
 		Set the <b>gameType</b> field to either <b>singleplayer</b> or <b>multiplayer</b> to set the level's game type.
 	</p>
 

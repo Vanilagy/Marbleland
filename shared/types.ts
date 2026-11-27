@@ -8,7 +8,6 @@ export enum GameType {
 export enum Modification {
 	Gold = "gold",
 	Platinum = "platinum",
-	Fubar = "fubar",
 	Ultra = "ultra",
 	PlatinumQuest = "platinumquest"
 }

@@ -5,7 +5,7 @@ import { MisFile, MisParser, MissionElement, MissionElementBase, MissionElementS
 import { workers } from './worker_pool';
 import { Util } from './util';
 import { Config } from './config';
-import { config, datablocksMBG, datablocksMBW, db, keyValue, structureMBGSet, structurePQSet } from './globals';
+import { config, datablocksMBG, datablocksMBW, datablocksMBU, db, keyValue, structureMBGSet, structurePQSet } from './globals';
 import { Modification, GameType, LevelInfo, LevelContentInfo, ExtendedLevelInfo, PackInfo, CuratorVoteInfo } from '../../shared/types';
 import { AccountDoc, getProfileInfo } from './account';
 import { getPackInfo, PackDoc } from './pack'
@@ -34,7 +34,7 @@ export interface MissionContentDoc {
 	missesDependencies: boolean,
 	preferPrevThumbnail: boolean,
 	hasCustomCode: boolean,
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq'
+	datablockCompatibility: 'mbg' | 'mbw' | 'mbu' | 'pq'
 }
 
 /** The metadata of a single mission version (as opposed to its content). */
@@ -112,7 +112,7 @@ export class Mission {
 	curatorVotes: Record<number, boolean>;
 	editedAt: number = null;
 	hasCustomCode: boolean = false;
-	datablockCompatibility: 'mbg' | 'mbw' | 'pq';
+	datablockCompatibility: 'mbg' | 'mbw' | 'mbu' | 'pq';
 	/** See MissionDoc.previousVersions. */
 	previousVersions: MissionContentDoc[] = [];
 	/** See MissionDoc.versionMetadata. */
@@ -846,6 +846,9 @@ export class Mission {
 	determineDatablockCompatibility(): Mission['datablockCompatibility'] {
 		let queue = [this.mis.root] as MissionElement[];
 		let result = 'mbg' as Mission['datablockCompatibility'];
+		// MBU is not a superset of MBG/MBW: it lacks certain MBG/MBW datablocks and has its own exclusives.
+		// A level is only MBU-compatible if every one of its datablocks is contained in the MBU set.
+		let mbuCompatible = true;
 		let cameraPathNodeRegEx = /camerapath\d+/i;
 
 		const updateResult = (datablock: string) => {
@@ -859,10 +862,15 @@ export class Mission {
 			if (result === 'mbw' && !datablocksMBW.includes(datablock)) {
 				result = 'pq';
 			}
+
+			if (mbuCompatible && !datablocksMBU.includes(datablock)) {
+				mbuCompatible = false;
+			}
 		};
 
 		while (queue.length > 0) {
-			if (result === 'pq') {
+			// Once the level can't fit MBG/MBW and isn't MBU-compatible either, only PQ remains and there is nothing left to determine.
+			if (result === 'pq' && !mbuCompatible) {
 				break;
 			}
 
@@ -887,6 +895,12 @@ export class Mission {
 			} else if (element._type === MissionElementType.Trigger) {
 				updateResult(element.datablock);
 			}
+		}
+
+		// A level that uses non-MBG/MBW datablocks (would otherwise be PQ) but stays fully within the
+		// MBU datablock set is an MBU level: it plays on MBU (and PQ), but not on MBG/MBW.
+		if (result === 'pq' && mbuCompatible) {
+			result = 'mbu';
 		}
 
 		return result;
